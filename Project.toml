@@ -1,0 +1,7 @@
+name = "NoLimitHoldem"
+uuid = "6cef90fc-eb55-4a2a-97d0-7ecce2b738fe"
+authors = ["Charles Kawczynski <kawczynski.charles@gmail.com>"]
+version = "0.1.0"
+
+[deps]
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
