@@ -47,6 +47,8 @@ end
 
   @test NLH.rank_type(typeof(jack_clubs)) == Jack
   @test NLH.suit_type(typeof(jack_clubs)) == Club
+  @test NLH.rank_type(jack_clubs) == Jack
+  @test NLH.suit_type(jack_clubs) == Club
   @test NLH.rank(jack_clubs) == Jack()
   @test NLH.suit(jack_clubs) == Club()
   @test sprint(show, two_clubs) == "(2, Club)"
