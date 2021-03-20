@@ -2,6 +2,7 @@
 export Card
 export Suit, Rank
 export Club, Spade, Heart, Diamond
+export ♣, ♠, ♡, ♢
 export Ace, Two, Three, Four, Five, Six, Seven, Eight, Nine, Ten, Jack, Queen, King
 
 export same_suit,
@@ -17,9 +18,17 @@ struct Spade <: Suit end
 struct Heart <: Suit end
 struct Diamond <: Suit end
 
+const ♣ = Club()
+const ♠ = Spade()
+const ♡ = Heart()
+const ♢ = Diamond()
+
 const suit_list = (Club(),Spade(),Heart(),Diamond())
 
-get_string(::Type{S}) where {S <: Suit} = string(S)
+get_string(::Type{Club}) = "♣"
+get_string(::Type{Spade}) = "♠"
+get_string(::Type{Heart}) = "♡"
+get_string(::Type{Diamond}) = "♢"
 
 #### Rank
 
@@ -42,25 +51,30 @@ struct Ace <: Rank end;   value(::Type{Ace}) = 14
 low_value(::Type{T}) where {T} = value(T)
 low_value(::Type{Ace}) = 1
 
-const FaceCards = (Jack(),Queen(),King(),Ace())
+const FaceCards = (Jack(), Queen(), King(), Ace())
+
 const FaceCardTypes = Union{typeof.(FaceCards)...}
 
-const rank_list =
-  (Two(),Three(),Four(),
-    Five(),Six(),Seven(),
-    Eight(),Nine(),Ten(),
-    Jack(),Queen(),King(),
-  Ace())
+const rank_list = (
+    Two(), Three(), Four(),
+    Five(), Six(), Seven(),
+    Eight(), Nine(), Ten(),
+    Jack(), Queen(), King(),
+    Ace(),
+)
 
 #### Card
 
 struct Card{R <: Rank, S <: Suit}
-  rank::R
-  suit::S
+    rank::R
+    suit::S
 end
 
-get_string(::Card{R,S}) where {R,S} = "("*string(value(R))*", "*get_string(S)*")"
-get_string(::Card{R,S}) where {R <: FaceCardTypes, S} = "("*string(R)*", "*get_string(S)*")"
+get_string(::Card{R,S}) where {R,S} = string(value(R))*get_string(S)
+get_string(::Card{Jack,S}) where {S}  = "J"*get_string(S)
+get_string(::Card{Queen,S}) where {S} = "Q"*get_string(S)
+get_string(::Card{King,S}) where {S}  = "K"*get_string(S)
+get_string(::Card{Ace,S}) where {S}   = "A"*get_string(S)
 
 rank_type(::Card{R,S}) where {R,S} = R
 suit_type(::Card{R,S}) where {R,S} = S
