@@ -29,7 +29,8 @@ end
     )
     hand = Hand(cards)
     @test Tuple(card for card in hand) == ntuple(i->cards[i], length(cards))
-    sprint(show, hand)
+    hand = Hand(Card(Ace(), ♣),Card(King(), ♣),Card(Queen(), ♣),Card(Jack(), ♣),Card(Ten(), ♣))
+    @test sprint(show, hand) == "(A♣, K♣, Q♣, J♣, 10♣)"
 end
 
 @testset "Top Hands" begin

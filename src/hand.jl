@@ -42,11 +42,10 @@ function Base.iterate(hand::Hand, state = 1)
 end
 
 function Base.show(io::IO, cards::Tuple{<:Card,<:Card,<:Card,<:Card,<:Card})
-    for card in cards
-        print(io, "  ")
-        show(io, card)
-        print(io, ", ")
-    end
+    print(io, "(")
+    s = map(card -> get_string(card), cards)
+    print(io, join(s, ", "))
+    print(io, ")")
 end
 
 Base.show(io::IO, hand::Hand) = show(io, hand.cards)
