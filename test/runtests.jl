@@ -1,8 +1,7 @@
-using Test
-
 for submodule in [
                   "Card",
                   "Hand",
+                  "Deck",
                  ]
 
   println("Starting tests for $submodule")
