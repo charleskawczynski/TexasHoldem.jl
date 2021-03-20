@@ -4,4 +4,5 @@ authors = ["Charles Kawczynski <kawczynski.charles@gmail.com>"]
 version = "0.1.0"
 
 [deps]
+DispatchedTuples = "508c55e1-51b4-41fd-a5ca-7eb0327d070d"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
