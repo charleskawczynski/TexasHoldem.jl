@@ -2,6 +2,7 @@ using Test
 
 for submodule in [
                   "Card",
+                  "Hand",
                  ]
 
   println("Starting tests for $submodule")
