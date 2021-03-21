@@ -1,0 +1,12 @@
+sprint_row(row) = sprint_row(row, Val(length(row)))
+sprint_row(row, ::Val{1}) = @sprintf("%15s", row...)
+sprint_row(row, ::Val{2}) = @sprintf("%15s %15s", row...)
+sprint_row(row, ::Val{3}) = @sprintf("%15s %15s %15s", row...)
+sprint_row(row, ::Val{4}) = @sprintf("%15s %15s %15s %15s", row...)
+sprint_row(row, ::Val{5}) = @sprintf("%15s %15s %15s %15s %15s", row...)
+sprint_row(row, ::Val{6}) = @sprintf("%15s %15s %15s %15s %15s %15s", row...)
+sprint_row(row, ::Val{7}) = @sprintf("%15s %15s %15s %15s %15s %15s %15s", row...)
+sprint_row(row, ::Val{8}) = @sprintf("%15s %15s %15s %15s %15s %15s %15s %15s", row...)
+sprint_row(row, ::Val{9}) = @sprintf("%15s %15s %15s %15s %15s %15s %15s %15s %15s", row...)
+sprint_row(row, ::Val{10}) = @sprintf("%15s %15s %15s %15s %15s %15s %15s %15s %15s %15s", row...)
+
