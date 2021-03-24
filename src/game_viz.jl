@@ -24,7 +24,7 @@ function print_state(game::Game, ::Deal)
     end
     players = hcat("Players", players...)
     player_cards = map(game.players) do player
-        join(get_string.(player.cards), ", ")
+        join(string.(player.cards), ", ")
     end
     player_cards = hcat("Cards", player_cards...)
     println(repeat("-", (15+1)*(length(game.players)+1)))
@@ -32,19 +32,19 @@ function print_state(game::Game, ::Deal)
     println(sprint_row(player_cards))
 end
 function print_state(game::Game, ::Flop)
-    table_cards = get_string.(observed_cards(game.table))
+    table_cards = string.(observed_cards(game.table))
     table_cards = hcat("Flop", table_cards)
     println()
     println(sprint_row(table_cards))
 end
 function print_state(game::Game, ::Turn)
-    table_cards = get_string.(observed_cards(game.table))
+    table_cards = string.(observed_cards(game.table))
     table_cards = hcat("Turn", table_cards)
     println()
     println(sprint_row(table_cards))
 end
 function print_state(game::Game, ::River)
-    table_cards = get_string.(observed_cards(game.table))
+    table_cards = string.(observed_cards(game.table))
     table_cards = hcat("River", table_cards)
     println()
     println(sprint_row(table_cards))
@@ -68,7 +68,7 @@ function action_table_data(game::Game)
     end)...)
 
     cards = vcat(collect(map(game.players) do player
-        join(get_string.(player.cards), ", ")
+        join(string.(player.cards), ", ")
     end)...)
 
     all_data = hcat(rows, cards, data)
@@ -84,7 +84,7 @@ function results_table_data(game::Game)
     end
     rows = collect(rows)
     data = vcat(collect(map(game.players) do player
-        join(get_string.(player.cards), ", ")
+        join(string.(player.cards), ", ")
     end)...)
     all_data = hcat(rows, data)
     return all_data, header
