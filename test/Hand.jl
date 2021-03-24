@@ -3,13 +3,7 @@ using NoLimitHoldem
 const NLH = NoLimitHoldem
 
 @testset "Hand constructor and properties" begin
-    cards = (
-        Card(Ace(), Club()),
-        Card(Two(), Club()),
-        Card(Three(), Club()),
-        Card(Four(), Club()),
-        Card(Five(), Club())
-    )
+    cards = (A♣, 2♣, 3♣, 4♣, 5♣)
     hand = Hand(cards)
     hand = Hand(cards...)
     @test NLH.rank_count(hand) == hand.rc
@@ -20,16 +14,10 @@ const NLH = NoLimitHoldem
 end
 
 @testset "Hand extending" begin
-    cards = (
-        Card(Ace(), Club()),
-        Card(Two(), Club()),
-        Card(Three(), Club()),
-        Card(Four(), Club()),
-        Card(Five(), Club())
-    )
+    cards = (A♣, 2♣, 3♣, 4♣, 5♣)
     hand = Hand(cards)
     @test Tuple(card for card in hand) == ntuple(i->cards[i], length(cards))
-    hand = Hand(Card(Ace(), ♣),Card(King(), ♣),Card(Queen(), ♣),Card(Jack(), ♣),Card(Ten(), ♣))
+    hand = Hand(A♣, K♣, Q♣, J♣, 10♣)
     @test sprint(show, hand) == "(A♣, K♣, Q♣, J♣, 10♣)"
 end
 
@@ -48,77 +36,15 @@ end
 
 @testset "Hand comparisons" begin
 
-    straight_flush = Hand(
-        Card(Ace(), Club()),
-        Card(Two(), Club()),
-        Card(Three(), Club()),
-        Card(Four(), Club()),
-        Card(Five(), Club()),
-    )
-
-    four_of_a_kind = Hand(
-        Card(King(), Club()),
-        Card(King(), Diamond()),
-        Card(King(), Club()),
-        Card(King(), Heart()),
-        Card(Five(), Heart()),
-    )
-
-    full_house = Hand(
-        Card(Ace(), Club()),
-        Card(Ace(), Spade()),
-        Card(Three(), Club()),
-        Card(Three(), Heart()),
-        Card(Three(), Club()),
-    )
-
-    flush_hand = Hand(
-        Card(Ace(), Club()),
-        Card(Two(), Club()),
-        Card(King(), Club()),
-        Card(Five(), Club()),
-        Card(Six(), Club()),
-    )
-
-    straight = Hand(
-        Card(Ace(), Club()),
-        Card(Two(), Diamond()),
-        Card(Three(), Spade()),
-        Card(Four(), Heart()),
-        Card(Five(), Club()),
-    )
-
-    trips = Hand(
-        Card(Ace(), Club()),
-        Card(Ace(), Diamond()),
-        Card(Ace(), Spade()),
-        Card(Four(), Heart()),
-        Card(Five(), Club()),
-    )
-
-    two_pair = Hand(
-        Card(Ace(), Club()),
-        Card(Ace(), Heart()),
-        Card(Three(), Club()),
-        Card(Four(), Club()),
-        Card(Four(), Club()),
-    )
-
-    one_pair = Hand(
-        Card(Ace(), Club()),
-        Card(Ace(), Heart()),
-        Card(Three(), Club()),
-        Card(Four(), Club()),
-        Card(Five(), Club()),
-    )
-
-    high_card = Hand(
-        Card(Ten(), Club()),
-        Card(King(), Heart()),
-        Card(Three(), Club()),
-        Card(Four(), Club()),
-        Card(Five(), Club()),
-    )
+    straight_flush = Hand(A♣, 2♣, 3♣, 4♣, 5♣)
+    four_of_a_kind = Hand(K♣, K♢, K♣, K♡, 5♡)
+    full_house = Hand(A♣, A♠, 3♣, 3♡, 3♣)
+    flush_hand = Hand(A♣, 2♣, K♣, 5♣, 6♣)
+    straight = Hand(A♣, 2♢, 3♠, 4♡, 5♣)
+    trips = Hand(A♣, A♢, A♠, 4♡, 5♣)
+    two_pair = Hand(A♣, A♡, 3♣, 4♣, 4♣)
+    one_pair = Hand(A♣, A♡, 3♣, 4♣, 5♣)
+    high_card = Hand(10♣, K♡, 3♣, 4♣, 5♣)
 
     # ---- Building blocks
 

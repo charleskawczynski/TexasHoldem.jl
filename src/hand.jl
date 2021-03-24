@@ -43,7 +43,7 @@ end
 
 function Base.show(io::IO, cards::Tuple{<:Card,<:Card,<:Card,<:Card,<:Card})
     print(io, "(")
-    s = map(card -> get_string(card), cards)
+    s = map(card -> string(card), cards)
     print(io, join(s, ", "))
     print(io, ")")
 end
