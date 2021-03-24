@@ -1,5 +1,7 @@
 for submodule in [
                   "Card",
+                  "test_card_eval_helpers",
+                  "CardEval",
                   "Hand",
                   "Deck",
                   "Game",

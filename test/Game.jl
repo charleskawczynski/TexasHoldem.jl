@@ -30,7 +30,7 @@ end
     players = ntuple(2) do i
         NLH.Player(i, pop!(deck, 2))
     end
-    table = NLH.Table(deck)
+    table = NLH.Table!(deck)
 
     table.state = Deal()
     @test NLH.observed_cards(table) == ()
