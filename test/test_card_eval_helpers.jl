@@ -1,4 +1,5 @@
 using Test
+using HoldemCards
 using NoLimitHoldem
 using Combinatorics
 using BenchmarkTools
@@ -32,12 +33,12 @@ end
     # For debugging:
     debug = false
     if debug
-        for r in NLH.rank_list[end:-1:1]
+        for r in rank_list()[end:-1:1]
             @show string(r), NLH.quads_base(typeof(r))
         end
         s_readability = "(string(r), string(rk), NLH.single_kicker_iter(typeof(r), typeof(rk))) = "
-        for r in NLH.rank_list[end:-1:1]
-            for rk in NLH.rank_list[end:-1:1]
+        for r in rank_list()[end:-1:1]
+            for rk in rank_list()[end:-1:1]
                 rk == r && (println(s_readability); continue)
                 @show string(r), string(rk), NLH.single_kicker_iter(typeof(r), typeof(rk))
             end
