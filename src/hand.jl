@@ -2,35 +2,36 @@
 
 const DT = DispatchedTuples
 
-export Hand, top_hand
+export Hand, hand_rank
 
-# Results of top_hand
-export StraightFlush, FourOfAKind, FullHouse,
-    Flush, Straight, Trips,
-    TwoPair, SinglePair, HighCard
+abstract type AbstractTopHand end
 
-struct Hand{N, NT <: NTuple{N,Card}, RC, ∑RC, SC, ∑SC}
-    "Cards"
-    cards::NT
-    "Rank count"
-    rc::RC
-    "∑Rank count"
-    ∑rc::∑RC
-    "Suit count"
-    sc::SC
-    "∑Suit count"
-    ∑sc::∑SC
+struct StraightFlush <: AbstractTopHand end; export StraightFlush
+struct FourOfAKind <: AbstractTopHand end; export FourOfAKind
+struct FullHouse <: AbstractTopHand end; export FullHouse
+struct Flush <: AbstractTopHand end; export Flush
+struct Straight <: AbstractTopHand end; export Straight
+struct Trips <: AbstractTopHand end; export Trips
+struct TwoPair <: AbstractTopHand end; export TwoPair
+struct SinglePair <: AbstractTopHand end; export SinglePair
+struct HighCard <: AbstractTopHand end; export HighCard
+
+struct Hand{C,TC,R,H}
+    cards::C
+    top_cards::TC
+    rank::R
+    hand::H
+    Hand(player_cards::Tuple, table_cards::Tuple) =
+        Hand((player_cards..., table_cards...))
     Hand(cards...) = Hand(cards)
-    function Hand(cards::Union{Tuple,Vector})
-        rc, ∑rc = tally(cards, rank)
-        sc, ∑sc = tally(cards, suit)
-        N = length(cards)
-        return new{N,
+    function Hand(cards::Tuple)
+        sorted_cards = sort(collect(cards); by=x->value(x))
+        top_cards, hand, rank = cards_hand_rank(cards)
+        return new{
             typeof(cards),
-            typeof(rc),
-            typeof(∑rc),
-            typeof(sc),
-            typeof(∑sc)}(cards, rc, ∑rc, sc, ∑sc)
+            typeof(top_cards),
+            typeof(hand),
+            typeof(rank)}(cards, top_cards, hand, rank)
     end
 end
 
@@ -41,99 +42,60 @@ function Base.iterate(hand::Hand, state = 1)
     return (hand.cards[state], state+1)
 end
 
-function Base.show(io::IO, cards::Tuple{<:Card,<:Card,<:Card,<:Card,<:Card})
+function Base.show(io::IO, hand::Hand)
     print(io, "(")
-    s = map(card -> string(card), cards)
+    s = map(card -> string(card), hand.cards)
     print(io, join(s, ", "))
     print(io, ")")
 end
 
-Base.show(io::IO, hand::Hand) = show(io, hand.cards)
-
-rank_count(hand::Hand) = hand.rc
-suit_count(hand::Hand) = hand.sc
-
-rank_count_sum(hand::Hand) = hand.∑rc
-suit_count_sum(hand::Hand) = hand.∑sc
-
-function tally(cards::Tuple, fun)
-    fun_count = DispatchedTuple(
-    map(cards) do card
-        (fun(card), 1)
-    end, 0)
-
-    ∑fun_count = DispatchedSet(
-    map(DT.unique_keys(fun_count)) do k
-        (k, sum(fun_count[k]))
-    end, 0)
-    return fun_count, ∑fun_count
-end
-
-abstract type AbstractTopHand end
-
-struct StraightFlush <: AbstractTopHand end
-struct FourOfAKind <: AbstractTopHand end
-struct FullHouse <: AbstractTopHand end
-struct Flush <: AbstractTopHand end
-struct Straight <: AbstractTopHand end
-struct Trips <: AbstractTopHand end
-struct TwoPair <: AbstractTopHand end
-struct SinglePair <: AbstractTopHand end
-struct HighCard{R <: Int} <: AbstractTopHand
-    rank::R
-end
-
-function top_hand(hand::Hand)
-    is_straight_flush(hand) && return StraightFlush()
-    is_four_of_a_kind(hand) && return FourOfAKind()
-    is_full_house(hand)     && return FullHouse()
-    is_flush(hand)          && return Flush()
-    is_straight(hand)       && return Straight()
-    is_trips(hand)          && return Trips()
-    is_two_pair(hand)       && return TwoPair()
-    is_one_pair(hand)       && return SinglePair()
-    return HighCard(maximum(value.(rank_type.(hand))))
-end
-
-is_straight_flush(hand::Hand) = is_straight(hand) && is_flush(hand)
-is_four_of_a_kind(hand::Hand) = has_n_of_a_kind(hand, 4)
-is_flush(hand::Hand) = any(values(suit_count_sum(hand)) .== 5)
-
-consecutive(tup) = all(ntuple(i->tup[i]+1==tup[i+1], 4))
-function is_straight(hand::Hand)
-    ranks = sort(collect(value.(rank_type.(hand.cards))))
-    ranks_low = sort(collect(low_value.(rank_type.(hand.cards))))
-    high_straight = consecutive(ranks)
-    low_straight = consecutive(ranks_low)
-    return low_straight || high_straight
-end
-
-is_trips(hand::Hand) = has_n_of_a_kind(hand, 3)
-is_full_house(hand::Hand) = has_nm_of_a_kind(hand, 3, 2)
-is_two_pair(hand::Hand) = has_nm_of_a_kind(hand, 2, 2)
-is_one_pair(hand::Hand) = has_n_of_a_kind(hand, 2)
-
-function has_n_of_a_kind(hand::Hand, n)
-    ∑rc = rank_count_sum(hand)
-    match_n_found = false
-    match_count = map(keys(∑rc)) do k
-        ∑rc_card = ∑rc[k]
-        ∑rc_card == n && (match_n_found = true)
-        ∑rc_card == n || ∑rc_card == 1
+function cards_hand_rank(cards)
+    ranks = map(combinations(cards, 5)) do five_card_combo
+        (five_card_combo, hand_rank_base(Tuple(five_card_combo))...)
     end
-    return all(match_count) && match_n_found
+    i_max = argmin(map(x->x[2], ranks))
+    return ranks[i_max]
 end
 
-function has_nm_of_a_kind(hand::Hand, n, m)
-    ∑rc = rank_count_sum(hand)
-    match_n_found = false
-    match_m_found = false
-    match_count = map(keys(∑rc)) do k
-        ∑rc_card = ∑rc[k]
-        ∑rc_card == n && (match_n_found = true)
-        ∑rc_card == m && (match_m_found = true)
-        ∑rc_card == n || ∑rc_card == m || ∑rc_card == 1
+
+function hand_rank_base(cards)
+    r = rank(sort(collect(cards); by=x->value(x), rev=true))
+    if     is_straight_flush(cards); hand = StraightFlush()
+    elseif is_four_of_a_kind(cards); hand = FourOfAKind()
+    elseif is_full_house(cards)    ; hand = FullHouse()
+    elseif is_flush(cards)         ; hand = Flush()
+    elseif is_straight(cards)      ; hand = Straight()
+    elseif is_trips(cards)         ; hand = Trips()
+    elseif is_two_pair(cards)      ; hand = TwoPair()
+    elseif is_pair(cards)          ; hand = SinglePair()
+    else                           ; hand = HighCard()
     end
-    return all(match_count) && match_n_found && match_m_found
+    return (r, hand)
 end
+
+is_straight_flush(cards) = is_straight(cards) && is_flush(cards)
+is_four_of_a_kind(cards) = has_n_of_a_kind(cards, 4)
+function is_flush(cards)
+    return any(map(suit_list) do s
+        sum(Ref(s) .== suit.(cards))
+    end .>= 5)
+end
+
+is_trips(cards) = has_n_of_a_kind(cards, 3)
+is_full_house(cards) = has_n_of_a_kind(cards, 2) && has_n_of_a_kind(cards, 3)
+is_two_pair(cards) =
+    has_n_of_a_kind(cards, 2) && n_of_a_kind_value(cards, 2) ≠ n_of_a_kind_value_reversed(cards, 2)
+
+is_pair(cards) = has_n_of_a_kind(cards, 2)
+
+get_n_of_a_kind(cards, n) =
+    [i for i in value.(rank_list) if count(v->v==i, value.(cards))==n]
+
+n_of_a_kind_value(cards, n) = first(get_n_of_a_kind(cards, n))
+
+has_n_of_a_kind(cards, n) =
+    any([sum(Ref(i) .== value.(cards))==n for i in value.(rank_list)])
+
+n_of_a_kind_value_reversed(cards, n) =
+    [i for i in sort(collect(value.(rank_list)); rev=true) if count(v->v==i, value.(cards))==n]
 

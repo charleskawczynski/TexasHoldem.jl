@@ -30,13 +30,6 @@ end
 end
 
 @testset "Card" begin
-
-    @test same_suit(A♣  , J♣) == true
-    @test same_suit(J♡, J♣) == false
-
-    @test same_rank(J♡, J♣) == true
-    @test same_rank(A♣  , J♣) == false
-
     @test NLH.rank_type(typeof(J♣)) == NLH.Jack
     @test NLH.suit_type(typeof(J♣)) == NLH.Club
     @test NLH.rank_type(J♣) == NLH.Jack

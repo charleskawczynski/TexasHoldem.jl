@@ -1,5 +1,6 @@
 module NoLimitHoldem
 
+using Combinatorics
 using DispatchedTuples
 using UnPack
 using Random

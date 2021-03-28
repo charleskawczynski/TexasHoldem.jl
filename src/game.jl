@@ -31,7 +31,7 @@ function Base.show(io::IO, table::Table, include_type = true)
 end
 
 Table(cards::Tuple) = Table(cards, 0, Deal(), 1)
-Table(deck::Deck) =
+Table!(deck::Deck) =
     Table(Iterators.flatten(ntuple(i->pop!(deck, 1), 5)) |> collect |> Tuple)
 
 observed_cards(table::Table) = observed_cards(table, table.state)
@@ -127,7 +127,7 @@ function Game(;
     players = ntuple(n_players) do i
         Player(i, pop!(deck, 2))
     end
-    table = Table(deck)
+    table = Table!(deck)
     state = table.state
     targs = (table, players, blinds, winners)
     args = (state, table, players, blinds, winners)
