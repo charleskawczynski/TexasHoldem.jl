@@ -18,11 +18,6 @@ version = "1.0.2"
 deps = ["Printf"]
 uuid = "ade2ca70-3891-5945-98fb-dc099432e06a"
 
-[[DispatchedTuples]]
-git-tree-sha1 = "4ccc236f2e2f6e4a15b093d76184ffded23d211f"
-uuid = "508c55e1-51b4-41fd-a5ca-7eb0327d070d"
-version = "0.2.0"
-
 [[DocStringExtensions]]
 deps = ["LibGit2", "Markdown", "Pkg", "Test"]
 git-tree-sha1 = "9d4f64f79012636741cf01133158a54b24924c32"
@@ -41,7 +36,7 @@ uuid = "f43a241f-c20a-4ad4-852c-f6b1247861c6"
 
 [[HoldemCards]]
 deps = ["Random", "Test"]
-git-tree-sha1 = "cfa7a18262ec565443cd3a64cf55aa49664a0b26"
+git-tree-sha1 = "fa87da35999bed73a9a48eb44cab90b921119129"
 repo-rev = "main"
 repo-url = "https://github.com/charleskawczynski/HoldemCards.jl"
 uuid = "ecfe714a-bcc2-4d11-ad00-25525ff8f984"
@@ -103,10 +98,8 @@ uuid = "14a3606d-f60d-562e-9121-12d972cd8159"
 uuid = "ca575930-c2e3-43a9-ace4-1e988b2c1908"
 
 [[NoLimitHoldem]]
-deps = ["Combinatorics", "DispatchedTuples", "Printf", "Random", "UnPack"]
-git-tree-sha1 = "1567bdcd1064479717727c4a68bbada10a5617a5"
-repo-rev = "main"
-repo-url = "https://github.com/charleskawczynski/NoLimitHoldem.jl"
+deps = ["Combinatorics", "HoldemCards", "Printf", "UnPack"]
+path = ".."
 uuid = "6cef90fc-eb55-4a2a-97d0-7ecce2b738fe"
 version = "0.1.0"
 

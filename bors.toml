@@ -2,7 +2,6 @@ status = [
   "ci 1.5.4 - ubuntu-latest",
   "ci 1.5.4 - windows-latest",
   "ci 1.5.4 - macOS-latest",
-  "docbuild",
 ]
 delete_merged_branches = true
 timeout_sec = 10800
