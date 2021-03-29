@@ -1,4 +1,5 @@
 using Test
+using HoldemCards
 using NoLimitHoldem
 const NLH = NoLimitHoldem
 
@@ -54,7 +55,6 @@ end
     @test NLH.is_four_of_a_kind(four_of_a_kind.cards)
     @test NLH.is_full_house(full_house.cards)
     @test NLH.is_flush(flush_hand.cards)
-    @test NLH.is_straight(straight.cards)
     @test NLH.is_trips(trips.cards)
     @test NLH.is_two_pair(two_pair.cards)
     @test NLH.is_pair(one_pair.cards)

@@ -57,12 +57,12 @@ end
 
 
 function hand_rank_base(cards)
-    r = rank(sort(collect(cards); by=x->value(x), rev=true))
+    r = hand_rank(sort(collect(cards); by=x->value(x), rev=true))
     if     is_straight_flush(cards); hand = StraightFlush()
     elseif is_four_of_a_kind(cards); hand = FourOfAKind()
     elseif is_full_house(cards)    ; hand = FullHouse()
     elseif is_flush(cards)         ; hand = Flush()
-    elseif is_straight(cards)      ; hand = Straight()
+    elseif HHE.is_straight(cards)  ; hand = Straight()
     elseif is_trips(cards)         ; hand = Trips()
     elseif is_two_pair(cards)      ; hand = TwoPair()
     elseif is_pair(cards)          ; hand = SinglePair()
@@ -71,7 +71,7 @@ function hand_rank_base(cards)
     return (r, hand)
 end
 
-is_straight_flush(cards) = is_straight(cards) && is_flush(cards)
+is_straight_flush(cards) = HHE.is_straight(cards) && is_flush(cards)
 is_four_of_a_kind(cards) = has_n_of_a_kind(cards, 4)
 function is_flush(cards)
     return any(map(suit_list()) do s
