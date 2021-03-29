@@ -1,3 +1,4 @@
+push!(LOAD_PATH, ".")
 using Documenter, NoLimitHoldem
 
 format = Documenter.HTML(

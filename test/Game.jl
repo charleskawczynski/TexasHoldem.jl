@@ -1,5 +1,6 @@
 using Test
 using NoLimitHoldem
+using HoldemCards
 using PrettyTables
 const NLH = NoLimitHoldem
 

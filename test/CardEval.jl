@@ -1,5 +1,6 @@
 using Test
 using NoLimitHoldem
+using HoldemCards
 using BenchmarkTools
 const NLH = NoLimitHoldem
 

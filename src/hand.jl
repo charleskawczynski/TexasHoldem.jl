@@ -1,7 +1,5 @@
 #### Hand
 
-const DT = DispatchedTuples
-
 export Hand, hand_rank
 
 abstract type AbstractTopHand end
@@ -76,7 +74,7 @@ end
 is_straight_flush(cards) = is_straight(cards) && is_flush(cards)
 is_four_of_a_kind(cards) = has_n_of_a_kind(cards, 4)
 function is_flush(cards)
-    return any(map(suit_list) do s
+    return any(map(suit_list()) do s
         sum(Ref(s) .== suit.(cards))
     end .>= 5)
 end
@@ -89,13 +87,13 @@ is_two_pair(cards) =
 is_pair(cards) = has_n_of_a_kind(cards, 2)
 
 get_n_of_a_kind(cards, n) =
-    [i for i in value.(rank_list) if count(v->v==i, value.(cards))==n]
+    [i for i in value.(rank_list()) if count(v->v==i, value.(cards))==n]
 
 n_of_a_kind_value(cards, n) = first(get_n_of_a_kind(cards, n))
 
 has_n_of_a_kind(cards, n) =
-    any([sum(Ref(i) .== value.(cards))==n for i in value.(rank_list)])
+    any([sum(Ref(i) .== value.(cards))==n for i in value.(rank_list())])
 
 n_of_a_kind_value_reversed(cards, n) =
-    [i for i in sort(collect(value.(rank_list)); rev=true) if count(v->v==i, value.(cards))==n]
+    [i for i in sort(collect(value.(rank_list())); rev=true) if count(v->v==i, value.(cards))==n]
 
