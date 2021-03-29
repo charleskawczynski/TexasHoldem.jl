@@ -1,4 +1,5 @@
 using Test
+using HoldemCards
 using NoLimitHoldem
 using HoldemCards
 using PrettyTables

@@ -1,12 +1,12 @@
 module NoLimitHoldem
 
 using HoldemCards
-import HoldemCards: rank
+using HoldemHandEvaluator
 using Combinatorics
 using UnPack
 using Printf
+const HHE = HoldemHandEvaluator
 
-include("cards_eval.jl")
 include("hand.jl")
 include("game.jl")
 include("game_viz.jl")
