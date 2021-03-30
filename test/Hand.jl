@@ -1,5 +1,5 @@
 using Test
-using HoldemCards
+using PlayingCards
 using NoLimitHoldem
 const NLH = NoLimitHoldem
 
