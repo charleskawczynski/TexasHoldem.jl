@@ -1,6 +1,6 @@
 module NoLimitHoldem
 
-using HoldemCards
+using PlayingCards
 using HoldemHandEvaluator
 using Combinatorics
 using UnPack
