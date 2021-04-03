@@ -1,6 +1,6 @@
 #### Hand
 
-export Hand, hand_rank
+export Hand
 
 abstract type AbstractTopHand end
 
@@ -23,7 +23,7 @@ struct Hand{C,TC,R,H}
         Hand((player_cards..., table_cards...))
     Hand(cards...) = Hand(cards)
     function Hand(cards::Tuple)
-        sorted_cards = sort(collect(cards); by=x->value(x))
+        sorted_cards = sort(collect(cards); by=x->high_value(x))
         top_cards, hand, rank = cards_hand_rank(cards)
         return new{
             typeof(cards),
@@ -57,12 +57,12 @@ end
 
 
 function hand_rank_base(cards)
-    r = hand_rank(sort(collect(cards); by=x->value(x), rev=true))
+    r = hand_rank(sort(collect(cards); by=x->high_value(x), rev=true))
     if     is_straight_flush(cards); hand = StraightFlush()
     elseif is_four_of_a_kind(cards); hand = FourOfAKind()
     elseif is_full_house(cards)    ; hand = FullHouse()
     elseif is_flush(cards)         ; hand = Flush()
-    elseif HHE.is_straight(cards)  ; hand = Straight()
+    elseif PHE.is_straight(cards)  ; hand = Straight()
     elseif is_trips(cards)         ; hand = Trips()
     elseif is_two_pair(cards)      ; hand = TwoPair()
     elseif is_pair(cards)          ; hand = SinglePair()
@@ -71,10 +71,10 @@ function hand_rank_base(cards)
     return (r, hand)
 end
 
-is_straight_flush(cards) = HHE.is_straight(cards) && is_flush(cards)
+is_straight_flush(cards) = PHE.is_straight(cards) && is_flush(cards)
 is_four_of_a_kind(cards) = has_n_of_a_kind(cards, 4)
 function is_flush(cards)
-    return any(map(suit_list()) do s
+    return any(map(suits()) do s
         sum(Ref(s) .== suit.(cards))
     end .>= 5)
 end
@@ -87,13 +87,13 @@ is_two_pair(cards) =
 is_pair(cards) = has_n_of_a_kind(cards, 2)
 
 get_n_of_a_kind(cards, n) =
-    [i for i in value.(rank_list()) if count(v->v==i, value.(cards))==n]
+    [i for i in high_value.(ranks()) if count(v->v==i, high_value.(cards))==n]
 
 n_of_a_kind_value(cards, n) = first(get_n_of_a_kind(cards, n))
 
 has_n_of_a_kind(cards, n) =
-    any([sum(Ref(i) .== value.(cards))==n for i in value.(rank_list())])
+    any([sum(Ref(i) .== high_value.(cards))==n for i in high_value.(ranks())])
 
 n_of_a_kind_value_reversed(cards, n) =
-    [i for i in sort(collect(value.(rank_list())); rev=true) if count(v->v==i, value.(cards))==n]
+    [i for i in sort(collect(high_value.(ranks())); rev=true) if count(v->v==i, high_value.(cards))==n]
 

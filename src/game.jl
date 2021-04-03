@@ -118,7 +118,7 @@ function Base.show(io::IO, game::Game)
 end
 
 function Game(;
-        deck = OrderedDeck(),
+        deck = ordered_deck(),
         n_players::Int = 2,
         blinds::Blinds = Blinds(1,2),
         winners::Winners = Winners(false, Nobody())

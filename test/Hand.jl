@@ -14,8 +14,8 @@ end
     cards = (A♣, 2♣, 3♣, 4♣, 5♣)
     hand = Hand(cards)
     @test Tuple(card for card in hand) == ntuple(i->cards[i], length(cards))
-    hand = Hand(A♣, K♣, Q♣, J♣, 10♣)
-    @test sprint(show, hand) == "(A♣, K♣, Q♣, J♣, 10♣)"
+    hand = Hand(A♣, K♣, Q♣, J♣, T♣)
+    @test sprint(show, hand) == "(A♣, K♣, Q♣, J♣, T♣)"
 end
 
 @testset "Top Hands" begin
@@ -42,7 +42,7 @@ end
     trips = Hand(A♣, A♢, A♠, 4♡, 5♣)
     two_pair = Hand(A♣, A♡, 3♣, 4♣, 4♣)
     one_pair = Hand(A♣, A♡, 3♣, 4♣, 5♣)
-    high_card = Hand(10♣, K♡, 3♣, 4♣, 5♣)
+    high_card = Hand(T♣, K♡, 3♣, 4♣, 5♣)
 
     # has_n_of_a_kind
     @test NLH.has_n_of_a_kind(one_pair.cards, 2)
