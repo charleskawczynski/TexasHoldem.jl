@@ -1,11 +1,10 @@
 module NoLimitHoldem
 
 using PlayingCards
-using HoldemHandEvaluator
+using PokerHandEvaluator.HandRankAndGroup
 using Combinatorics
 using UnPack
 using Printf
-const HHE = HoldemHandEvaluator
 
 include("hand.jl")
 include("game.jl")
