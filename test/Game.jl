@@ -25,7 +25,7 @@ const NLH = NoLimitHoldem
 end
 
 @testset "Table" begin
-    deck = OrderedDeck()
+    deck = ordered_deck()
 
     shuffle!(deck)
     players = ntuple(2) do i
