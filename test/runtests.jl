@@ -1,5 +1,4 @@
 for submodule in [
-                  "Hand",
                   "Game",
                  ]
 

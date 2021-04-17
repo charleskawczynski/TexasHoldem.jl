@@ -1,12 +1,11 @@
 module NoLimitHoldem
 
 using PlayingCards
-using PokerHandEvaluator.HandRankAndGroup
-using Combinatorics
+using PokerHandEvaluator
+using PokerHandEvaluator.HandTypes
 using UnPack
 using Printf
 
-include("hand.jl")
 include("game.jl")
 include("game_viz.jl")
 

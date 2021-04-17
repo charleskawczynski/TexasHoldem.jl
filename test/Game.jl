@@ -62,6 +62,8 @@ end
     NLH.act!(game, PayBlinds())
 end
 
+pretty_table_header(header) = tuple([header[i, :] for i = 1:size(header, 1)]...)
+
 @testset "Game" begin
     game = Game(;n_players = 3)
     players = game.players
@@ -85,8 +87,8 @@ end
     data, header, table_cards = NLH.action_table_data(game)
     @info table_cards
     pretty_table(
-        data,
-        header,
+        data;
+        header = pretty_table_header(header),
         header_crayon = crayon"yellow bold",
         crop = :none,
     )
@@ -108,8 +110,8 @@ end
     data, header, table_cards = NLH.action_table_data(game)
     @info table_cards
     pretty_table(
-        data,
-        header,
+        data;
+        header = pretty_table_header(header),
         header_crayon = crayon"yellow bold",
         crop = :none,
     )
@@ -123,16 +125,16 @@ end
     data, header, table_cards = NLH.action_table_data(game)
     @info table_cards
     pretty_table(
-        data,
-        header,
+        data;
+        header = pretty_table_header(header),
         header_crayon = crayon"yellow bold",
         crop = :none,
     )
 
     data, header = NLH.results_table_data(game)
     pretty_table(
-        data,
-        header,
+        data;
+        header = pretty_table_header(header),
         header_crayon = crayon"yellow bold",
         crop = :none,
     )
