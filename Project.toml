@@ -13,6 +13,6 @@ UnPack = "3a884ed6-31ef-47d7-9d2a-63182c4928ed"
 [compat]
 PlayingCards = "0.2"
 PokerHandEvaluator = "0.1"
-PrettyTables = "0.12"
+PrettyTables = "0.12, 1.0"
 UnPack = "1.0"
 julia = "1.3"
