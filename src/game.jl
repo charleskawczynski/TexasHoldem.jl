@@ -4,9 +4,7 @@
 
 export Game, play
 export Deal, PayBlinds, Flop, Turn, River
-export Fold, Check, Call, Raise
 export move_button!
-export fold!, check!, raise!, call!
 
 abstract type AbstractGameState end
 struct Deal <: AbstractGameState end
@@ -41,45 +39,14 @@ observed_cards(table::Table, ::Flop) = table.cards[1:3]
 observed_cards(table::Table, ::Turn) = table.cards[1:4]
 observed_cards(table::Table, ::River) = table.cards
 
-abstract type AbstractAction end
-struct Fold <: AbstractAction end
-struct Check <: AbstractAction end
-struct Call{T} <: AbstractAction
-    amt::T
-end
-struct Raise{T} <: AbstractAction
-    amt::T
-end
-
-abstract type AbstractPlayer end
-struct Nobody <: AbstractPlayer end
-
-mutable struct Player{ID,C,BR,AH,AR,AI} <: AbstractPlayer
-    id::ID
-    cards::C
-    bank_roll::BR
-    action_history::AH
-    action_required::AR
-    all_in::AI
-end
-
-function Player(id, cards)
-    bank_roll = 200
-    action_history = AbstractAction[]
-    action_required = true
-    all_in = false
-    args = (id, cards, bank_roll, action_history, action_required, all_in)
-    Player{typeof.(args)...}(args...)
-end
-
 struct Blinds{S,B}
     small::S
     big::B
 end
 
-mutable struct Winners{D<:Bool,P<:AbstractPlayer}
-    declared::D
-    players::P
+Base.@kwdef mutable struct Winners
+    declared::Bool = false
+    players::Union{Nothing,Tuple,Player} = nothing
 end
 
 function Base.show(io::IO, winners::Winners, include_type = true)
@@ -88,12 +55,13 @@ function Base.show(io::IO, winners::Winners, include_type = true)
     println(io, "Winners          = $(winners.players)")
 end
 
-mutable struct Game{T,P,B,W}
+mutable struct Game
     state::AbstractGameState
-    table::T
-    players::P
-    blinds::B
-    winners::W
+    table::Table
+    players::Tuple
+    blinds::Blinds
+    winners::Winners
+    current_raise_amt::Float64
 end
 
 function Base.show(io::IO, blinds::Blinds, include_type = true)
@@ -118,60 +86,48 @@ function Base.show(io::IO, game::Game)
 end
 
 function Game(;
-        deck = ordered_deck(),
-        n_players::Int = 2,
+        deck,
+        players,
         blinds::Blinds = Blinds(1,2),
-        winners::Winners = Winners(false, Nobody())
+        winners::Winners = Winners()
     )
-    shuffle!(deck)
-    players = ntuple(n_players) do i
-        Player(i, pop!(deck, 2))
-    end
     table = Table!(deck)
     state = table.state
     targs = (table, players, blinds, winners)
-    args = (state, table, players, blinds, winners)
-    return Game{typeof.(targs)...}(args...)
+    current_raise_amt = 0
+    args = (state, table, players, blinds, winners, current_raise_amt)
+    return Game(args...)
 end
 
-function fold!(game::Game, player::Player)
-    push!(player.action_history, Fold())
-    player.action_required = false
-end
-function check!(game::Game, player::Player)
-    push!(player.action_history, Check())
-    player.action_required = false
-end
-function call!(game::Game, player::Player, amt)
-    push!(player.action_history, Call(amt))
-    player.action_required = false
+folded(player::Player) = player.folded
+action_history(player::Player) = player.action_history
+n_players(game::Game) = length(game.players)
 
-    if player.bank_roll > amt
-        player.bank_roll -= amt
-        game.table.pot += amt
-    else
-        player.bank_roll = 0
-        game.table.pot += player.bank_roll
-        player.all_in = true
-    end
-end
-function raise!(game::Game, player::Player, amt)
-    if player.bank_roll >= amt
-        player.bank_roll -= amt
-        game.table.pot += amt
-        player.bank_roll == amt && (player.all_in = true)
-    else
-        msg1 = "Player $(player.id) has insufficient bank"
-        msg2 = "roll ($(player.bank_roll)) to add $amt to pot."
-        error(msg1*msg2)
+function declare_winners!(game::Game)
+    fhe = map(game.players) do player
+        FullHandEval((player.cards..., observed_cards(game.table)...))
     end
 
-    push!(player.action_history, Raise(amt))
-    player.action_required = false
-    for oponent in game.players
-        oponent.id == player.id && continue
-        last(oponent.action_history) isa Fold && continue
-        oponent.action_required = true
+    hr = hand_rank.(fhe)
+    @show hand_type.(fhe)
+    @show hand_rank.(fhe)
+    @show best_cards.(fhe)
+
+    min_hr = min(hr...)
+    game.winners.players = filter(game.players) do player
+        hr[player.id] == min_hr
+    end
+    game.winners.declared = true
+    game.current_raise_amt = 0
+end
+
+function check_for_winner!(game)
+    game.winners.declared = count(folded.(game.players)) == n_players(game)-1
+    if game.winners.declared
+        for player in game.players
+            folded(player) && continue
+            game.winners.players = player
+        end
     end
 end
 
@@ -180,7 +136,8 @@ move_button!(game::Game) = move_button!(game.table, game.players)
 """
     move_button!(table::Table)
 
-Move the button around the table
+Move the button to the next player on
+the table.
 """
 function move_button!(table::Table, players)
     table.button_id = mod(table.button_id, length(players))+1
@@ -216,12 +173,10 @@ blinds(game::Game) = game.blinds
 
 function reset_actions_required!(game::Game)
     for player in game.players
+        folded(player) && continue
         player.action_required = true
     end
-end
-
-function act!(game::Game, player::Player)
-    check!(game, player) # Check for now
+    game.current_raise_amt = 0
 end
 
 function set_state!(game::Game, state::AbstractGameState)
@@ -230,12 +185,18 @@ function set_state!(game::Game, state::AbstractGameState)
 end
 
 function act_generic!(game::Game, state::AbstractGameState)
+    game.winners.declared && return # TODO: is this redundant?
     set_state!(game, state)
     print_state(game)
+
+    # TODO: incorporate winners.declared into logic
+
     any_actions_required(game) || return
     i = 1
     while any_actions_required(game)
-        act!(game, acting_player(game, i))
+        player = acting_player(game, i)
+        folded(player) || player_option!(game, player)
+        game.winners.declared && break
         i+=1
     end
 end
@@ -247,7 +208,7 @@ end
 
 function act!(game::Game, state::River)
     act_generic!(game, state)
-    # game.winners = top_hand
+    declare_winners!(game)
 end
 
 function act!(game::Game, state::PayBlinds)
@@ -256,14 +217,19 @@ function act!(game::Game, state::PayBlinds)
     call!(game, small_blind(game), blinds(game).small)
     call!(game, big_blind(game), blinds(game).big)
     print_state(game)
+    reset_actions_required!(game)
 end
 
 function play(game::Game)
+    # TODO: deal cards here instead of cards dealt into Game before play
+    # Also: Players who cannot afford the blinds are all-in, which is likely
+    # not caught here.
+    # @assert all(cards.(game.players) .== nothing)
     act!(game, Deal())      # Deal player cards, then bet/check/raise based on player cards
     act!(game, PayBlinds()) #
-    act!(game, Flop())      # Deal flop        , then bet/check/raise based on flop
-    act!(game, Turn())      # Deal turn        , then bet/check/raise based on turn
-    act!(game, River())     # Deal river       , then bet/check/raise based on river
+    game.winners.declared || act!(game, Flop())      # Deal flop        , then bet/check/raise based on flop
+    game.winners.declared || act!(game, Turn())      # Deal turn        , then bet/check/raise based on turn
+    game.winners.declared || act!(game, River())     # Deal river       , then bet/check/raise based on river
     return game.winners
 end
 
