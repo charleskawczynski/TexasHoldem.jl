@@ -20,7 +20,7 @@ include("print_row.jl")
 function print_state(game::Game, ::Deal)
     players = map(game.players) do player
         star = player_button_star(game.table, player)
-        star*"Player[$(player.id)]"
+        star*name(player)
     end
     players = hcat("Players", players...)
     player_cards = map(game.players) do player

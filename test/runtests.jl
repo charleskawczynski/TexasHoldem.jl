@@ -1,5 +1,7 @@
 for submodule in [
-                  "Game",
+                  "players",
+                  "transactions",
+                  "game",
                  ]
 
   println("Starting tests for $submodule")

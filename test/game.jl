@@ -2,7 +2,7 @@ using Test
 using PlayingCards
 using NoLimitHoldem
 using PrettyTables
-const NLH = NoLimitHoldem
+NLH = NoLimitHoldem
 
 @testset "Action ID" begin
     @test NLH.action_id(5, 1, 1) == 4
@@ -29,7 +29,7 @@ end
 
     shuffle!(deck)
     players = ntuple(2) do i
-        NLH.Player(i, pop!(deck, 2))
+        NLH.Player(BotRandom(), i, pop!(deck, 2))
     end
     table = NLH.Table!(deck)
 
@@ -52,7 +52,12 @@ end
 end
 
 @testset "Play" begin
-    game = Game()
+    deck = ordered_deck()
+    shuffle!(deck)
+    players = ntuple(2) do i
+        NLH.Player(BotRandom(), i, pop!(deck, 2))
+    end
+    game = Game(;deck=deck,players=players)
     sprint(show, game)
 
     game.table.state = Deal()
@@ -65,7 +70,12 @@ end
 pretty_table_header(header) = tuple([header[i, :] for i = 1:size(header, 1)]...)
 
 @testset "Game" begin
-    game = Game(;n_players = 3)
+    deck = ordered_deck()
+    shuffle!(deck)
+    players = ntuple(3) do i
+        NLH.Player(BotRandom(), i, pop!(deck, 2))
+    end
+    game = Game(;deck = deck, players = players)
     players = game.players
     # Round 1
     check!(game, players[1])
@@ -94,7 +104,12 @@ pretty_table_header(header) = tuple([header[i, :] for i = 1:size(header, 1)]...)
     )
 
     # All-in cases
-    game = Game(;n_players = 3)
+    deck = ordered_deck()
+    shuffle!(deck)
+    players = ntuple(3) do i
+        NLH.Player(BotRandom(), i, pop!(deck, 2))
+    end
+    game = Game(;deck = deck, players = players)
     players = game.players
     # Round 1
     check!(game, players[1])
@@ -118,7 +133,12 @@ pretty_table_header(header) = tuple([header[i, :] for i = 1:size(header, 1)]...)
 end
 
 @testset "Play" begin
-    game = Game(;n_players = 3)
+    deck = ordered_deck()
+    shuffle!(deck)
+    players = ntuple(3) do i
+        NLH.Player(BotRandom(), i, pop!(deck, 2))
+    end
+    game = Game(;deck = deck, players = players)
 
     play(game)
 
@@ -141,7 +161,12 @@ end
 end
 
 @testset "Move button" begin
-    game = Game(;n_players = 3)
+    deck = ordered_deck()
+    shuffle!(deck)
+    players = ntuple(3) do i
+        NLH.Player(BotRandom(), i, pop!(deck, 2))
+    end
+    game = Game(;deck = deck, players = players)
     @test game.table.button_id == 1
     move_button!(game)
     @test game.table.button_id == 2
