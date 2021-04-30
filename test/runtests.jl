@@ -1,6 +1,7 @@
 for submodule in [
                   "players",
                   "transactions",
+                  "table",
                   "game",
                  ]
 

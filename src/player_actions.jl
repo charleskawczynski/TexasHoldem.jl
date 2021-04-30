@@ -6,6 +6,8 @@ export fold!, check!, raise!, call!
 export Fold, Check, Call, Raise
 
 abstract type AbstractAction end
+struct PayBlind <: AbstractAction end
+struct SitOut <: AbstractAction end
 struct Fold <: AbstractAction end
 struct Check <: AbstractAction end
 struct Call{T} <: AbstractAction
@@ -19,42 +21,38 @@ function fold!(game::Game, player::Player)
     push!(player.action_history, Fold())
     player.action_required = false
     player.folded = true
-    check_for_winner!(game)
+    check_for_winner!(game.table)
 end
 function check!(game::Game, player::Player)
     push!(player.action_history, Check())
     player.action_required = false
 end
-function call!(game::Game, player::Player, amt)
+
+call!(game::Game, player::Player, amt) = call!(game.table, player, amt)
+
+function call!(table::Table, player::Player, amt;debug=false)
     push!(player.action_history, Call(amt))
     player.action_required = false
-
-    if player.bank_roll > amt
-        player.bank_roll -= amt
-        game.table.pot += amt
-    else
-        player.bank_roll = 0
-        game.table.pot += player.bank_roll
-        player.all_in = true
-    end
+    contribute!(table, player, amt, true;debug=debug)
 end
-function raise!(game::Game, player::Player, amt)
-    if player.bank_roll >= amt
-        player.bank_roll -= amt
-        game.table.pot += amt
-        player.bank_roll == amt && (player.all_in = true)
-        game.current_raise_amt += amt
-    else
-        msg1 = "Player $(player.id) has insufficient bank"
-        msg2 = "roll ($(player.bank_roll)) to add $amt to pot."
-        error(msg1*msg2)
-    end
+
+raise!(game::Game, player::Player, amt) = raise!(game.table, player, amt)
+
+# TODO: add assertion that raise amount must be
+# greater than small blind (unless all-in).
+function raise!(table::Table, player::Player, amt;debug=false)
+    @assert !(amt ≈ 0) # more checks are performed in `contribute!`
+    contribute!(table, player, amt, false;debug=debug)
+    table.current_raise_amt += amt
 
     push!(player.action_history, Raise(amt))
     player.action_required = false
-    for oponent in game.players
+    player.last_to_raise = true
+    players = players_at_table(table)
+    for oponent in players
         oponent.id == player.id && continue
         folded(oponent) && continue
         oponent.action_required = true
+        oponent.last_to_raise = false
     end
 end
