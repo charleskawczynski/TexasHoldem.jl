@@ -17,17 +17,17 @@ print_state(game::Game) = print_state(game, game.state)
 
 include("print_row.jl")
 
-function print_state(game::Game, ::Deal)
-    players = map(game.players) do player
+function print_state(game::Game, ::PreFlop)
+    players = map(players_at_table(game)) do player
         star = player_button_star(game.table, player)
         star*name(player)
     end
     players = hcat("Players", players...)
-    player_cards = map(game.players) do player
+    player_cards = map(players_at_table(game)) do player
         join(string.(player.cards), ", ")
     end
     player_cards = hcat("Cards", player_cards...)
-    println(repeat("-", (15+1)*(length(game.players)+1)))
+    println(repeat("-", (15+1)*(length(players_at_table(game))+1)))
     println(sprint_row(players))
     println(sprint_row(player_cards))
 end
@@ -48,26 +48,25 @@ function print_state(game::Game, ::River)
     table_cards = hcat("River", table_cards)
     println()
     println(sprint_row(table_cards))
-    println(repeat("-", (15+1)*(length(game.players)+1)))
+    println(repeat("-", (15+1)*(length(players_at_table(game))+1)))
 end
-print_state(game::Game, ::PayBlinds) = nothing
 
 function action_table_data(game::Game)
-    n_players = length(game.players)
-    n_rounds = maximum(map(player -> length(player.action_history), game.players))
+    n_players = length(players_at_table(game))
+    n_rounds = maximum(map(player -> length(player.action_history), players_at_table(game)))
     rounds = map(i->"Round $i", 1:n_rounds)
     header = reshape(vcat("Player", "Cards", rounds), 1,n_rounds+2)
-    rows = map(game.players) do player
+    rows = map(players_at_table(game)) do player
         star = player_button_star(game.table, player)
-        star*"Player[$(player.id)]"
+        star*name(player)
     end
     rows = collect(rows)
-    data = vcat(collect(map(game.players) do player
+    data = vcat(collect(map(players_at_table(game)) do player
         arr = collect(padded_array(player.action_history, n_rounds))
         reshape(arr, 1, size(arr, 1))
     end)...)
 
-    cards = vcat(collect(map(game.players) do player
+    cards = vcat(collect(map(players_at_table(game)) do player
         join(string.(player.cards), ", ")
     end)...)
 
@@ -78,12 +77,12 @@ end
 
 function results_table_data(game::Game)
     header = ["Player" "Hand"]
-    rows = map(game.players) do player
+    rows = map(players_at_table(game)) do player
         star = player_button_star(game.table, player)
-        star*"Player[$(player.id)]"
+        star*name(player)
     end
     rows = collect(rows)
-    data = vcat(collect(map(game.players) do player
+    data = vcat(collect(map(players_at_table(game)) do player
         join(string.(player.cards), ", ")
     end)...)
     all_data = hcat(rows, data)

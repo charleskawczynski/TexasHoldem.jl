@@ -4,79 +4,32 @@ using NoLimitHoldem
 using PrettyTables
 NLH = NoLimitHoldem
 
-@testset "Action ID" begin
-    @test NLH.action_id(5, 1, 1) == 4
-    @test NLH.action_id(5, 1, 2) == 5
-    @test NLH.action_id(5, 1, 3) == 1
-    @test NLH.action_id(5, 1, 4) == 2
-    @test NLH.action_id(5, 1, 5) == 3
-
-    @test NLH.action_id(5, 4, 1) == 2
-    @test NLH.action_id(5, 4, 2) == 3
-    @test NLH.action_id(5, 4, 3) == 4
-    @test NLH.action_id(5, 4, 4) == 5
-    @test NLH.action_id(5, 4, 5) == 1
-
-    @test NLH.action_id(2, 1, 1) == 2
-    @test NLH.action_id(2, 1, 2) == 1
-
-    @test NLH.action_id(2, 2, 1) == 1
-    @test NLH.action_id(2, 2, 2) == 2
-end
-
-@testset "Table" begin
-    deck = ordered_deck()
-
-    shuffle!(deck)
-    players = ntuple(2) do i
-        NLH.Player(BotRandom(), i, pop!(deck, 2))
-    end
-    table = NLH.Table!(deck)
-
-    table.state = Deal()
-    @test NLH.observed_cards(table) == ()
-    table.state = PayBlinds();
-    @test NLH.observed_cards(table) == ()
-    table.state = Flop()
-    @test NLH.observed_cards(table) == table.cards[1:3]
-    table.state = Turn()
-    @test NLH.observed_cards(table) == table.cards[1:4]
-    table.state = River()
-    @test NLH.observed_cards(table) == table.cards
-end
-
-@testset "Print row" begin
+@testset "Game: Print row" begin
     for i in 1:10
         NLH.sprint_row(repeat(["a"], i))
     end
 end
 
-@testset "Play" begin
-    deck = ordered_deck()
-    shuffle!(deck)
+@testset "Game: show" begin
     players = ntuple(2) do i
-        NLH.Player(BotRandom(), i, pop!(deck, 2))
+        NLH.Player(BotRandom(), i)
     end
-    game = Game(;deck=deck,players=players)
+    game = Game(players)
     sprint(show, game)
 
-    game.table.state = Deal()
-
-    NLH.act!(game, PayBlinds())
+    game.table.state = PreFlop()
     sprint(show, game)
-    NLH.act!(game, PayBlinds())
 end
 
 pretty_table_header(header) = tuple([header[i, :] for i = 1:size(header, 1)]...)
 
-@testset "Game" begin
-    deck = ordered_deck()
-    shuffle!(deck)
+@testset "Game: contrived game" begin
     players = ntuple(3) do i
-        NLH.Player(BotRandom(), i, pop!(deck, 2))
+        NLH.Player(BotRandom(), i)
     end
-    game = Game(;deck = deck, players = players)
-    players = game.players
+    game = Game(players)
+    players = NLH.players_at_table(game)
+    NLH.deal!(game.table, NLH.blinds(game.table))
     # Round 1
     check!(game, players[1])
     check!(game, players[2])
@@ -104,13 +57,12 @@ pretty_table_header(header) = tuple([header[i, :] for i = 1:size(header, 1)]...)
     )
 
     # All-in cases
-    deck = ordered_deck()
-    shuffle!(deck)
     players = ntuple(3) do i
-        NLH.Player(BotRandom(), i, pop!(deck, 2))
+        NLH.Player(BotRandom(), i)
     end
-    game = Game(;deck = deck, players = players)
-    players = game.players
+    game = Game(players)
+    players = NLH.players_at_table(game)
+    NLH.deal!(game.table, NLH.blinds(game.table))
     # Round 1
     check!(game, players[1])
     check!(game, players[2])
@@ -132,15 +84,13 @@ pretty_table_header(header) = tuple([header[i, :] for i = 1:size(header, 1)]...)
     )
 end
 
-@testset "Play" begin
-    deck = ordered_deck()
-    shuffle!(deck)
+@testset "Game: Play 2" begin
     players = ntuple(3) do i
-        NLH.Player(BotRandom(), i, pop!(deck, 2))
+        NLH.Player(BotRandom(), i)
     end
-    game = Game(;deck = deck, players = players)
+    game = Game(players)
 
-    play(game)
+    play(game; debug = true)
 
     data, header, table_cards = NLH.action_table_data(game)
     @info table_cards
@@ -159,20 +109,3 @@ end
         crop = :none,
     )
 end
-
-@testset "Move button" begin
-    deck = ordered_deck()
-    shuffle!(deck)
-    players = ntuple(3) do i
-        NLH.Player(BotRandom(), i, pop!(deck, 2))
-    end
-    game = Game(;deck = deck, players = players)
-    @test game.table.button_id == 1
-    move_button!(game)
-    @test game.table.button_id == 2
-    move_button!(game)
-    @test game.table.button_id == 3
-    move_button!(game)
-    @test game.table.button_id == 1
-end
-

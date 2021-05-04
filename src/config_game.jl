@@ -60,22 +60,18 @@ end
 function configure_basic_heads_up_game()
     bank_roll = 100
     blinds = Blinds(1, 2)
-    deck = ordered_deck()
-    shuffle!(deck)
     players = (
-        Player(Human(), 1, pop!(deck, 2); bank_roll=bank_roll),
-        Player(BotRandom(), 2, pop!(deck, 2); bank_roll=bank_roll)
+        Player(Human(), 1; bank_roll=bank_roll),
+        Player(BotRandom(), 2; bank_roll=bank_roll)
     )
-    return Game(;
-        players=players,
-        deck=deck,
+    return Game(players;
         blinds=blinds,
     )
 end
 
 function configure_human_players(n_players)
     options = string.(1:n_players)
-    menu = MultiSelectMenu(options; charset=:unicode)
+    menu = MultiSelectMenu(options) # charset=:unicode is not supported in earlier Julia versions
     choices = request("Select which players are human:", menu)
     println("$(length(choices)) human players ($(join(sort(collect(choices)), ", ")))")
     length(choices) > 0 || println("Menu canceled.")
@@ -90,21 +86,15 @@ function configure_custom_game()
     human_player_ids = configure_human_players(n_players)
     bank_roll = cofigure_bank_roll(blinds)
 
-    deck = ordered_deck()
-    shuffle!(deck)
     players = ntuple(n_players) do i
         if i in human_player_ids
-            Player(Human(), i, pop!(deck, 2); bank_roll=bank_roll)
+            Player(Human(), i; bank_roll=bank_roll)
         else
-            Player(BotRandom(), i, pop!(deck, 2); bank_roll=bank_roll)
+            Player(BotRandom(), i; bank_roll=bank_roll)
         end
     end
 
-    return Game(;
-        players=players,
-        deck=deck,
-        blinds=blinds,
-    )
+    return Game(players; blinds=blinds)
 end
 
 function configure_game()

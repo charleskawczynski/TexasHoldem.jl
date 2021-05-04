@@ -21,6 +21,13 @@ mutable struct Player{LF}
     action_required::Bool
     all_in::Bool
     folded::Bool
+    checked::Bool
+    last_to_raise::Bool
+end
+
+function Base.show(io::IO, player::Player, include_type = true)
+    include_type && println(io, typeof(player))
+    println(io, "$(name(player))        = $(player.cards)")
 end
 
 function Player(life_form, id, cards = nothing; bank_roll = 200)
@@ -28,7 +35,9 @@ function Player(life_form, id, cards = nothing; bank_roll = 200)
     action_required = true
     all_in = false
     folded = false
-    args = (life_form, id, cards, Float64(bank_roll), action_history, action_required, all_in, folded)
+    checked = false
+    last_to_raise = false
+    args = (life_form, id, cards, Float64(bank_roll), action_history, action_required, all_in, folded, checked, last_to_raise)
     Player(args...)
 end
 
@@ -36,3 +45,8 @@ cards(player::Player) = player.cards
 bank_roll(player::Player) = player.bank_roll
 player_id(player::Player) = player.id
 name(player::Player{LF}) where {LF <: AbstractLifeForm} = "$(nameof(LF))[$(player.id)]"
+folded(player::Player) = player.folded
+action_history(player::Player) = player.action_history
+checked(player::Player) = player.checked
+last_to_raise(player::Player) =
+    player.last_to_raise
