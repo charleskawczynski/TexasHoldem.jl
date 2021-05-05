@@ -1,7 +1,6 @@
 using Test
 using PlayingCards
 using NoLimitHoldem
-using PrettyTables
 NLH = NoLimitHoldem
 
 @testset "Game: Print row" begin
@@ -20,8 +19,6 @@ end
     game.table.state = PreFlop()
     sprint(show, game)
 end
-
-pretty_table_header(header) = tuple([header[i, :] for i = 1:size(header, 1)]...)
 
 @testset "Game: contrived game" begin
     players = ntuple(3) do i
@@ -47,15 +44,6 @@ pretty_table_header(header) = tuple([header[i, :] for i = 1:size(header, 1)]...)
     raise!(game, players[1], 10)
     fold!(game, players[2])
 
-    data, header, table_cards = NLH.action_table_data(game)
-    @info table_cards
-    pretty_table(
-        data;
-        header = pretty_table_header(header),
-        header_crayon = crayon"yellow bold",
-        crop = :none,
-    )
-
     # All-in cases
     players = ntuple(3) do i
         NLH.Player(BotRandom(), i)
@@ -73,15 +61,6 @@ pretty_table_header(header) = tuple([header[i, :] for i = 1:size(header, 1)]...)
     call!(game, players[2], players[2].bank_roll)
 
     @test_throws ErrorException raise!(game, players[1], 10000)
-
-    data, header, table_cards = NLH.action_table_data(game)
-    @info table_cards
-    pretty_table(
-        data;
-        header = pretty_table_header(header),
-        header_crayon = crayon"yellow bold",
-        crop = :none,
-    )
 end
 
 @testset "Game: Play 2" begin
@@ -91,21 +70,4 @@ end
     game = Game(players)
 
     play(game; debug = true)
-
-    data, header, table_cards = NLH.action_table_data(game)
-    @info table_cards
-    pretty_table(
-        data;
-        header = pretty_table_header(header),
-        header_crayon = crayon"yellow bold",
-        crop = :none,
-    )
-
-    data, header = NLH.results_table_data(game)
-    pretty_table(
-        data;
-        header = pretty_table_header(header),
-        header_crayon = crayon"yellow bold",
-        crop = :none,
-    )
 end

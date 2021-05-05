@@ -1,7 +1,6 @@
 using Test
 using PlayingCards
 using NoLimitHoldem
-using PrettyTables
 NLH = NoLimitHoldem
 
 @testset "Table: constructors / observed cards" begin
