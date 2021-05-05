@@ -5,7 +5,6 @@
 export Game, play
 
 mutable struct Game
-    state::AbstractGameState
     table::Table
 end
 
@@ -18,7 +17,7 @@ function Base.show(io::IO, game::Game)
     println(io, "-----------------------")
 end
 
-function Game(players;
+function Game(players::Tuple;
         deck = ordered_deck(),
         table_in = nothing,
         button_id::Int = button_id(),
@@ -51,9 +50,7 @@ function Game(players;
         @assert cards(table) == nothing
     end
 
-    state = table.state
-    args = (state, table)
-    return Game(args...)
+    return Game(table)
 end
 
 players_at_table(game::Game) = players_at_table(game.table)
@@ -62,34 +59,18 @@ big_blind(game::Game) = big_blind(players_at_table(game), game.table)
 blinds(game::Game) = blinds(game.table)
 any_actions_required(game::Game) = any_actions_required(game.table)
 
-reset_round!(game::Game) = reset_round!(game.table)
-
-function reset_round!(table::Table)
-    players = players_at_table(table)
-    for player in players
-        player.checked = false
-        folded(player) && continue
-        player.action_required = true
-        player.last_to_raise = false
-    end
-    table.current_raise_amt = 0
-end
-
-function set_state!(game::Game, state::AbstractGameState)
-    game.state = state
-    game.table.state = state
-end
-
 function act_generic!(game::Game, state::AbstractGameState)
     table = game.table
     table.winners.declared && return # TODO: is this redundant?
-    set_state!(game, state)
+    set_state!(game.table, state)
     print_state(game)
 
     any_actions_required(game) || return
-    for player in circle(table, SmallBlind())
+    for player in circle(table, FirstToAct())
         last_to_raise(player) && break
         all_checked_or_folded(table) && break
+        all_all_in(table) && break
+        !any(action_required.(players_at_table(table))) && break
         folded(player) && continue
         player_option!(game, player)
         table.winners.declared && break
@@ -98,7 +79,7 @@ end
 
 function act!(game::Game, state::AbstractGameState)
     act_generic!(game, state)
-    reset_round!(game)
+    reset_round!(game.table)
 end
 
 function act!(game::Game, state::River)

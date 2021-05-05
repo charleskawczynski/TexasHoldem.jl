@@ -12,6 +12,8 @@ struct Human <: AbstractLifeForm end
 abstract type AbstractAI <: AbstractLifeForm end
 struct BotRandom <: AbstractAI end
 
+ai_to_use() = BotRandom()
+
 mutable struct Player{LF}
     life_form::LF
     id::Int
@@ -48,5 +50,6 @@ name(player::Player{LF}) where {LF <: AbstractLifeForm} = "$(nameof(LF))[$(playe
 folded(player::Player) = player.folded
 action_history(player::Player) = player.action_history
 checked(player::Player) = player.checked
-last_to_raise(player::Player) =
-    player.last_to_raise
+last_to_raise(player::Player) = player.last_to_raise
+all_in(player::Player) = player.all_in
+action_required(player::Player) = player.action_required

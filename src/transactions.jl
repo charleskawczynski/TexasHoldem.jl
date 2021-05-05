@@ -57,7 +57,7 @@ function last_call_of_round(table, player)
     for (i,oponent) in enumerate(circle(table, player))
         oponent.id == player.id && continue
         folded(oponent) && continue
-        oponent.all_in && !last_to_raise(oponent) && continue
+        all_in(oponent) && !last_to_raise(oponent) && continue
         return last_to_raise(oponent)
         i > length(players_at_table(table)) && error("Broken logic in last_call_of_round")
     end
@@ -98,11 +98,11 @@ of the (sorted) players at the start of the game.
 function contribute!(table, player, amt, call=false;debug=false)
     tm = table.transactions
     if !(0 ≤ amt ≤ bank_roll(player))
-        msg1 = "Player $(player.id) has insufficient bank"
-        msg2 = "roll ($(player.bank_roll)) to add $amt to pot."
+        msg1 = "$(name(player)) has insufficient bank"
+        msg2 = "roll (\$$(bank_roll(player))) to add \$$amt to pot."
         error(msg1*msg2)
     end
-    @assert player.all_in == false
+    @assert all_in(player) == false
 
     amt_remaining = amt
 
@@ -168,6 +168,7 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards)
 
         for winner_id in winners
             win_id = tm.sorted_players[winner_id].id
+            folded(players[win_id]) && continue
             winer_pl = tm.sorted_players[winner_id]
             amt = sidepot_winnings(tm, i) / n_winners
             players[win_id].bank_roll += amt

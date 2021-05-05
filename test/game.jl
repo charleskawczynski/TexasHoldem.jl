@@ -37,11 +37,11 @@ end
     check!(game, players[2])
 
     # Round 3
-    raise!(game, players[1], 10)
+    raise_to!(game, players[1], 10)
     call!(game, players[2], 10)
 
     # Round 4
-    raise!(game, players[1], 10)
+    raise_to!(game, players[1], 10)
     fold!(game, players[2])
 
     # All-in cases
@@ -57,10 +57,10 @@ end
     fold!(game, players[3])
 
     # Round 2
-    raise!(game, players[1], players[1].bank_roll)
+    raise_to!(game, players[1], players[1].bank_roll)
     call!(game, players[2], players[2].bank_roll)
 
-    @test_throws ErrorException raise!(game, players[1], 10000)
+    @test_throws ErrorException raise_to!(game, players[1], 10000)
 end
 
 @testset "Game: Play 2" begin

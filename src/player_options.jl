@@ -12,8 +12,59 @@ function player_option!(game::Game, player::Player)
 end
 
 #####
-##### Bot player options (ask via prompts)
+##### Human player options (ask via prompts)
 #####
+
+function player_option(player::Player{Human}, ::PayBlindSitOut)
+    options = ["Pay blind", "Sit out a hand"]
+    menu = RadioMenu(options, pagesize=4)
+    choice = request("$(name(player))'s turn to act:", menu)
+    choice == -1 && error("Uncaught case")
+    choice == 1 && return PayBlind()
+    choice == 2 && return SitOut()
+end
+function player_option!(game::Game, player::Player{Human}, ::CheckRaiseFold)
+    options = ["Check", "Raise", "Fold"]
+    menu = RadioMenu(options, pagesize=4)
+    choice = request("$(name(player))'s turn to act:", menu)
+    choice == -1 && error("Uncaught case")
+    choice == 1 && check!(game, player)
+    choice == 2 && raise_to!(game, player, input_raise_amt(player))
+    choice == 3 && fold!(game, player)
+end
+function player_option!(game::Game, player::Player{Human}, ::CallRaiseFold)
+    options = ["Call", "Raise", "Fold"]
+    menu = RadioMenu(options, pagesize=4)
+    choice = request("$(name(player))'s turn to act:", menu)
+    choice == -1 && error("Uncaught case")
+    choice == 1 && call!(game, player, game.table.current_raise_amt)
+    choice == 2 && raise_to!(game, player, input_raise_amt(player))
+    choice == 3 && fold!(game, player)
+end
+
+function input_raise_amt(player::Player{Human})
+    raise_amt = nothing
+    while true
+        println("Enter raise amt:")
+        raise_amt = readline()
+        try
+            raise_amt = parse(Float64, raise_amt)
+            raise_amt ≤ player.bank_roll && break
+            println("$(name(player)) doesn't have enough funds (\$$(player.bank_roll)) to bet \$$(raise_amt)")
+        catch
+            println("Raise must be a Float64")
+        end
+    end
+    @assert raise_amt ≠ nothing
+    @info "$(name(player)) bets \$$(raise_amt)"
+    return raise_amt
+end
+
+#####
+##### AbstractAI
+#####
+
+##### BotRandom
 
 player_option(player::Player{BotRandom}, ::PayBlindSitOut) = PayBlind()
 
@@ -23,7 +74,7 @@ function player_option!(game::Game, player::Player{BotRandom}, ::CheckRaiseFold)
         @info "$(name(player)) checked"
     else
         amt = Int(round(rand()*bank_roll(player), digits=0))
-        raise!(game, player, min(amt, blinds(game).small))
+        raise_to!(game, player, min(amt, blinds(game).small))
         @info "$(name(player)) raised \$$(amt)!"
     end
 end
@@ -37,7 +88,7 @@ function player_option!(game::Game, player::Player{BotRandom}, ::CallRaiseFold)
             end
             if rand() < 0.5
                 amt = Int(round(rand()*bank_roll(player), digits=0))
-                raise!(game, player, min(amt, blinds(game).small))
+                raise_to!(game, player, min(amt, blinds(game).small))
                 @info "$(name(player)) re-raised \$$(amt)!"
             else
                 @info "$(name(player)) called!"
@@ -47,57 +98,4 @@ function player_option!(game::Game, player::Player{BotRandom}, ::CallRaiseFold)
         fold!(game, player)
         @info "$(name(player)) folded!"
     end
-end
-
-#####
-##### Human player options (ask via prompts)
-#####
-
-function player_option(player::Player{Human}, ::PayBlindSitOut)
-    options = ["Pay blind", "Sit out a hand"]
-    menu = RadioMenu(options, pagesize=4)
-    choice = request("Player $(player.id)'s turn to act:", menu)
-    choice == -1 && error("Uncaught case")
-    choice == 1 && return PayBlind()
-    choice == 2 && return SitOut()
-end
-function player_option!(game::Game, player::Player{Human}, ::CheckRaiseFold)
-    options = ["Check", "Raise", "Fold"]
-    menu = RadioMenu(options, pagesize=4)
-    choice = request("Player $(player.id)'s turn to act:", menu)
-    choice == -1 && error("Uncaught case")
-    choice == 1 && check!(game, player)
-    choice == 2 && raise!(game, player, input_raise_amt(player))
-    choice == 3 && fold!(game, player)
-end
-function player_option!(game::Game, player::Player{Human}, ::CallRaiseFold)
-    options = ["Call", "Raise", "Fold"]
-    menu = RadioMenu(options, pagesize=4)
-    choice = request("Player $(player.id)'s turn to act:", menu)
-    choice == -1 && error("Uncaught case")
-    choice == 1 && call!(game, player, game.table.current_raise_amt)
-    choice == 2 && raise!(game, player, input_raise_amt(player))
-    choice == 3 && fold!(game, player)
-end
-
-######
-###### Helpers
-######
-
-function input_raise_amt(player::Player{Human})
-    raise_amt = nothing
-    while true
-        println("Enter raise amt:")
-        raise_amt = readline()
-        try
-            raise_amt = parse(Float64, raise_amt)
-            raise_amt ≤ player.bank_roll && break
-            println("Player $(player.id) doesn't have enough funds (\$$(player.bank_roll)) to bet \$$(raise_amt)")
-        catch
-            println("Raise must be a Float64")
-        end
-    end
-    @assert raise_amt ≠ nothing
-    @info "Player $(player.id) bets \$$(raise_amt)"
-    return raise_amt
 end

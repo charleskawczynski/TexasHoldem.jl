@@ -2,7 +2,7 @@
 ##### Game viz
 #####
 
-print_state(game::Game) = print_state(game, game.state)
+print_state(game::Game) = print_state(game, game.table.state)
 
 include("print_row.jl")
 

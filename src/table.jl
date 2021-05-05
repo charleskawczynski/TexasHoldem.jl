@@ -2,7 +2,7 @@
 ##### Table
 #####
 
-export Button, SmallBlind, BigBlind
+export Button, SmallBlind, BigBlind, FirstToAct
 export Table
 export move_button!
 
@@ -65,8 +65,24 @@ observed_cards(table::Table, ::River) = table.cards
 
 players_at_table(table::Table) = table.players
 all_checked_or_folded(table::Table) = all(map(player -> folded(player) || checked(player), players_at_table(table)))
+all_all_in(table::Table) = all(all_in.(players_at_table(table)))
 
 blinds(table::Table) = table.blinds
+
+function reset_round!(table::Table)
+    players = players_at_table(table)
+    for player in players
+        player.checked = false
+        folded(player) && continue
+        player.action_required = true
+        player.last_to_raise = false
+    end
+    table.current_raise_amt = 0
+end
+
+function set_state!(table::Table, state::AbstractGameState)
+    table.state = state
+end
 
 function declare_winners!(table::Table)
     fhe = map(players_at_table(table)) do player
@@ -143,8 +159,7 @@ button(players::Tuple, table::Table) = players[circle_table(table, 1)]
 small_blind(players::Tuple, table::Table) = players[circle_table(table, 2)]
 big_blind(players::Tuple, table::Table) = players[circle_table(table, 3)]
 
-any_actions_required(table::Table) =
-    any(map(player -> player.action_required, players_at_table(table)))
+any_actions_required(table::Table) = any(action_required.(players_at_table(table)))
 
 player_button_star(table::Table, player::Player) =
     table.button_id == player.id ? "*" : ""
@@ -153,6 +168,7 @@ abstract type TablePosition end
 struct Button <: TablePosition end
 struct SmallBlind <: TablePosition end
 struct BigBlind <: TablePosition end
+struct FirstToAct <: TablePosition end # (after BigBlind)
 
 struct CircleTable{CircType,P}
     players::Tuple
@@ -174,6 +190,9 @@ Base.iterate(ct::CircleTable{SmallBlind}, state = 2) =
     (ct.players[circle_table(ct.n_players, ct.button_id, state)], state+1)
 
 Base.iterate(ct::CircleTable{BigBlind}, state = 3) =
+    (ct.players[circle_table(ct.n_players, ct.button_id, state)], state+1)
+
+Base.iterate(ct::CircleTable{FirstToAct}, state = 4) =
     (ct.players[circle_table(ct.n_players, ct.button_id, state)], state+1)
 
 Base.iterate(ct::CircleTable{P}, state = 1) where {P <: Player} =

@@ -193,6 +193,44 @@ end
     @test state==length(players)
 end
 
+@testset "Table: FirstToAct iterator" begin
+
+    @test NLH.button_id() == 1
+
+    players = ntuple(i-> NLH.Player(BotRandom(), i), 5)
+    table = Table(;players = players, button_id = NLH.button_id())
+    NLH.deal!(table, NLH.blinds(table))
+
+    # button_id = 1
+    state = 0
+    for player in NLH.circle(table, FirstToAct())
+        state+=1
+        state == 1 && @test player.id == 4
+        state == 2 && @test player.id == 5
+        state == 3 && @test player.id == 1
+        state == 4 && @test player.id == 2
+        state == 5 && @test player.id == 3
+        state == length(players) && break
+    end
+    @test state==length(players)
+
+    # button_id = 2
+    players = ntuple(i-> NLH.Player(BotRandom(), i), 5)
+    table = Table(;players = players, button_id = 2)
+    NLH.deal!(table, NLH.blinds(table))
+    state = 0
+    for player in NLH.circle(table, FirstToAct())
+        state+=1
+        state == 1 && @test player.id == 5
+        state == 2 && @test player.id == 1
+        state == 3 && @test player.id == 2
+        state == 4 && @test player.id == 3
+        state == 5 && @test player.id == 4
+        state == length(players) && break
+    end
+    @test state==length(players)
+end
+
 @testset "Table: iterate from player" begin
 
     @test NLH.button_id() == 1

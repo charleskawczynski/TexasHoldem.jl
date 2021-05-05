@@ -62,7 +62,22 @@ function configure_basic_heads_up_game()
     blinds = Blinds(1, 2)
     players = (
         Player(Human(), 1; bank_roll=bank_roll),
-        Player(BotRandom(), 2; bank_roll=bank_roll)
+        Player(ai_to_use(), 2; bank_roll=bank_roll)
+    )
+    return Game(players;
+        blinds=blinds,
+    )
+end
+
+function configure_basic_1v4_game()
+    bank_roll = 100
+    blinds = Blinds(1, 2)
+    players = (
+        Player(Human(), 1; bank_roll=bank_roll),
+        Player(ai_to_use(), 2; bank_roll=bank_roll),
+        Player(ai_to_use(), 3; bank_roll=bank_roll),
+        Player(ai_to_use(), 4; bank_roll=bank_roll),
+        Player(ai_to_use(), 5; bank_roll=bank_roll),
     )
     return Game(players;
         blinds=blinds,
@@ -90,7 +105,7 @@ function configure_custom_game()
         if i in human_player_ids
             Player(Human(), i; bank_roll=bank_roll)
         else
-            Player(BotRandom(), i; bank_roll=bank_roll)
+            Player(ai_to_use(), i; bank_roll=bank_roll)
         end
     end
 
@@ -98,11 +113,16 @@ function configure_custom_game()
 end
 
 function configure_game()
-    options = ["Heads up-- you vs AI, \$1-\$2 blinds, \$100 bank roll", "custom game"]
+    options = [
+        "Heads up-- you vs AI, \$1-\$2 blinds, \$100 bank roll",
+        "1v4-- you vs 4 AI, \$1-\$2 blinds, \$100 bank roll",
+        "custom game"
+    ]
     menu = RadioMenu(options, pagesize=4)
     choice = request("Configure game:", menu)
     if choice != -1
-        choice == 2 && return configure_custom_game()
+        choice == 3 && return configure_custom_game()
+        choice == 2 && return configure_basic_1v4_game()
         choice == 1 && return configure_basic_heads_up_game()
         error("Uncaught case")
     else
