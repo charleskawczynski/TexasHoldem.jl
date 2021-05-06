@@ -220,3 +220,47 @@ end
     @test bank_roll(players[6]) == 100 # lost (but not all-in)
     @test sum(bank_roll.(players)) == 2100
 end
+
+@testset "TransactionManagers - Single round split pot (shared winners), with simple re-raises, reversed bank roll order" begin
+    table_cards = (T♢, Q♢, A♠, 8♠, 9♠)
+    players = (
+        NLH.Player(BotRandom(), 1, (2♠, 3♣); bank_roll = 6*100), # lose, but not bust
+        NLH.Player(BotRandom(), 2, (7♠, 7♣); bank_roll = 5*100), # 2nd to players 2 and 3, win remaining pot
+        NLH.Player(BotRandom(), 3, (2♡, 3♢); bank_roll = 4*100), # bust
+        NLH.Player(BotRandom(), 4, (K♡,K♢); bank_roll = 3*100), # win, split with player 2
+        NLH.Player(BotRandom(), 5, (K♠, K♣); bank_roll = 2*100), # win, split with player 3
+        NLH.Player(BotRandom(), 6, (4♠, 5♣); bank_roll = 1*100), # bust
+    )
+    tm = NLH.TransactionManager(players)
+    table = Table(;players=players,cards=table_cards,transactions=tm)
+    @test NLH.amount.(tm.side_pots) == [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+    NLH.raise_to!(table, players[1], 500) # raise to 500
+    @test NLH.amount.(tm.side_pots) == [100.0, 100.0, 100.0, 100.0, 100.0, 0.0]
+
+    NLH.call!(table, players[2], 500) # call
+    @test NLH.amount.(tm.side_pots) == [200.0, 200.0, 200.0, 200.0, 200.0, 0.0]
+
+    NLH.call!(table, players[3], 400) # call
+    @test NLH.amount.(tm.side_pots) == [300.0, 300.0, 300.0, 300.0, 200.0, 0.0]
+
+    NLH.call!(table, players[4], 300) # call
+    @test NLH.amount.(tm.side_pots) == [400.0, 400.0, 400.0, 300.0, 200.0, 0.0]
+
+    NLH.call!(table, players[5], 200) # call
+    @test NLH.amount.(tm.side_pots) == [500.0, 500.0, 400.0, 300.0, 200.0, 0.0]
+
+    NLH.call!(table, players[6], 100) # call
+    @test NLH.amount.(tm.side_pots) == [600.0, 500.0, 400.0, 300.0, 200.0, 0.0]
+
+    NLH.distribute_winnings!(players, tm, table_cards)
+    @test NLH.amount.(tm.side_pots) == [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+    @test bank_roll(players[1]) == 100 # lost (but not all-in)
+    @test bank_roll(players[2]) == 500 # all contributions after 3rd all-in (3*100+2*100)
+    @test bank_roll(players[3]) == 0 # bust
+    @test bank_roll(players[4]) == 950 # = 600/2+500/2+400
+    @test bank_roll(players[5]) == 550 # = 600/2+500/2
+    @test bank_roll(players[6]) == 0 # bust
+    @test sum(bank_roll.(players)) == 2100
+end

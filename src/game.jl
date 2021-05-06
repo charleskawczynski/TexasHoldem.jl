@@ -111,6 +111,9 @@ function play(game::Game)
     table = game.table
     players = players_at_table(table)
 
+    initial_brs = deepcopy(bank_roll.(players))
+    initial_∑brs = sum(initial_brs)
+
     @info "Initial bank roll summary: $(bank_roll.(players))"
 
     table.transactions = TransactionManager(players)
@@ -128,6 +131,15 @@ function play(game::Game)
     winners.declared || act!(game, River())     # Deal river, then bet/check/raise
 
     distribute_winnings!(players, table.transactions, cards(table))
+
+    @debug "amount.(table.transactions.side_pots) = $(amount.(table.transactions.side_pots))"
+    @debug "initial_∑brs = $(initial_∑brs)"
+    @debug "sum(bank_roll.(players_at_table(table))) = $(sum(bank_roll.(players_at_table(table))))"
+    @debug "initial_brs = $(initial_brs)"
+    @debug "bank_roll.(players_at_table(table)) = $(bank_roll.(players_at_table(table)))"
+
+    @assert initial_∑brs ≈ sum(bank_roll.(players_at_table(table))) # eventual assertion
+    @assert sum(amount.(table.transactions.side_pots)) ≈ 0
 
     @info "Final bank roll summary: $(bank_roll.(players))"
 

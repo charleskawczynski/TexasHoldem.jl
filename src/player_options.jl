@@ -77,7 +77,7 @@ function player_option!(game::Game, player::Player{BotRandom}, ::CheckRaiseFold)
 end
 function player_option!(game::Game, player::Player{BotRandom}, ::CallRaiseFold)
     if rand() < 0.5
-        if rand() < 0.5 # broken: if false: no action is taken. Need raise_to! amount validator to properly fix
+        if rand() < 0.5 # TODO: broken: if false: no action is taken. Need raise_to! add validate_raise to properly fix
             if game.table.current_raise_amt ≤ bank_roll(player)
                 call!(game, player, game.table.current_raise_amt)
             else
