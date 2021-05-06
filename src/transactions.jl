@@ -25,6 +25,7 @@ among multiple players.
 """
 struct TransactionManager
   sorted_players::Vector{Player}
+  initial_brs::Vector{Float64}
   pot_id::Union{Nothing,Vector{Int}}
   side_pots::Vector{SidePot}
 end
@@ -48,6 +49,7 @@ function TransactionManager(players)
 
     TransactionManager(
         sorted_players,
+        deepcopy(collect(bank_roll.(players))),
         Int[1],
         [SidePot(pid, 0, cap_i) for (cap_i, pid, amt) in zip(cap, player_id.(sorted_players), bank_roll.(sorted_players))],
     )
@@ -138,18 +140,6 @@ side_pot_full(tm::TransactionManager, i) = i < tm.pot_id[1]
 
 sidepot_winnings(tm::TransactionManager, id::Int) = sum(map(x->x.amt, tm.side_pots[1:id]))
 
-function print_winner(player, n_side_pots, amt, hand_evals_sorted)
-    fhe = hand_evals_sorted[findfirst(x->player_id(x.player)==player.id, hand_evals_sorted)].fhe
-    hand = hand_type(fhe)
-    hand_str = nameof(typeof(hand))
-    if n_side_pots==1
-        @info "$(name(player)) wins \$$(amt) with $(hand_str)!"
-    else
-        @info "$(name(player)) wins \$$(amt) side-pot with $(hand_str)!"
-    end
-end
-
-# TODO: improve logging by collect winnings in first pass, and report results in second pass.
 function distribute_winnings!(players, tm::TransactionManager, table_cards)
     @debug "Distributing winnings..."
     @debug "Pot amounts = $(amount.(tm.side_pots))"
@@ -158,7 +148,10 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards)
         eligible = !folded(player) && !sat_out(player)
         (; eligible=eligible, player=player, fhe=fhe, spid=spid)
     end
-    n_side_pots = count(x->!(x.amt≈0), tm.side_pots)
+
+    player_winnings = map(players) do player
+        zeros(length(tm.side_pots))
+    end
 
     for i in 1:length(tm.side_pots)
         @debug "Distributing side-pot $i"
@@ -194,12 +187,22 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards)
             winning_player = players[win_id]
             folded(winning_player) && continue
             amt = sidepot_winnings(tm, i) / n_winners
-            winning_player.bank_roll += amt
-            print_winner(winning_player, n_side_pots, amt, hand_evals_sorted)
+            player_winnings[win_id][i] = amt
         end
         for j in 1:i
             tm.side_pots[j].amt = 0 # empty out distributed winnings
         end
     end
+
+    for (player, initial_br, side_pot_winnings) in zip(players, tm.initial_brs, player_winnings)
+        ∑side_pot_winnings = sum(side_pot_winnings)
+        if !(∑side_pot_winnings ≈ 0)
+            amt_contributed = initial_br - bank_roll(player)
+            @debug "$(name(player))'s side-pot wins: \$$(side_pot_winnings)!"
+            @info "$(name(player)) wins \$$(∑side_pot_winnings) (\$$(∑side_pot_winnings-amt_contributed) profit)!"
+            player.bank_roll += ∑side_pot_winnings
+        end
+    end
+
     @debug "Distributed winnings..."
 end
