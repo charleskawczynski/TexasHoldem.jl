@@ -11,3 +11,23 @@ NLH = NoLimitHoldem
 
     play(game)
 end
+
+@testset "Game: Play (BotSitOut)" begin
+    players = (
+        NLH.Player(BotSitOut(), 1),
+        NLH.Player(BotRandom(), 2),
+        NLH.Player(BotRandom(), 3),
+    )
+    game = Game(players)
+    play(game)
+end
+
+@testset "Game: Play (BotCheckFold)" begin
+    players = (
+        NLH.Player(BotCheckFold(), 1),
+        NLH.Player(BotCheckFold(), 2),
+        NLH.Player(BotCheckFold(), 3),
+    )
+    game = Game(players)
+    play(game)
+end

@@ -137,14 +137,10 @@ circle_table(n_players, button_id, state) =
 circle_table(table::Table, state) =
     circle_table(length(table.players), table.button_id, state)
 
-button(players::Tuple, table::Table) = players[circle_table(table, 1)]
-small_blind(players::Tuple, table::Table) = players[circle_table(table, 2)]
-big_blind(players::Tuple, table::Table) = players[circle_table(table, 3)]
+small_blind(table::Table) = players_at_table(table)[circle_table(table, 2)]
+big_blind(table::Table) = players_at_table(table)[circle_table(table, 3)]
 
 any_actions_required(table::Table) = any(action_required.(players_at_table(table)))
-
-player_button_star(table::Table, player::Player) =
-    table.button_id == player.id ? "*" : ""
 
 abstract type TablePosition end
 struct Button <: TablePosition end
@@ -195,22 +191,22 @@ function deal!(table::Table, blinds::Blinds)
             @info "$(name(player)) sat out a hand."
             check_for_winner!(table)
         elseif po isa PayBlind
-            if player.id == small_blind(players, table).id && bank_roll(player) ≤ blinds.small
+            if player.id == small_blind(table).id && bank_roll(player) ≤ blinds.small
                 player.cards = pop!(table.deck, 2)
                 player.all_in = true
                 @info "$(name(player)) paid the small blind (all-in) and dealt cards: $(player.cards)"
                 contribute!(table, player, bank_roll(player))
-            elseif player.id == big_blind(players, table).id && bank_roll(player) ≤ blinds.big
+            elseif player.id == big_blind(table).id && bank_roll(player) ≤ blinds.big
                 player.cards = pop!(table.deck, 2)
                 player.all_in = true
                 @info "$(name(player)) paid the  big  blind (all-in) and dealt cards: $(player.cards)"
                 contribute!(table, player, bank_roll(player))
             else
                 player.cards = pop!(table.deck, 2)
-                if player.id == small_blind(players, table).id
+                if player.id == small_blind(table).id
                     @info "$(name(player)) paid the small blind and dealt cards: $(player.cards)"
                     contribute!(table, player, blinds.small)
-                elseif player.id == big_blind(players, table).id
+                elseif player.id == big_blind(table).id
                     @info "$(name(player)) paid the  big  blind and dealt cards: $(player.cards)"
                     contribute!(table, player, blinds.big)
                 else

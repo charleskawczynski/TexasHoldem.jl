@@ -2,8 +2,9 @@
 ##### Player types
 #####
 
+export bank_roll
 export Human
-export BotRandom, bank_roll
+export BotRandom, BotSitOut, BotCheckFold, BotCheckCall
 
 abstract type AbstractLifeForm end
 
@@ -11,6 +12,9 @@ struct Human <: AbstractLifeForm end
 
 abstract type AbstractAI <: AbstractLifeForm end
 struct BotRandom <: AbstractAI end
+struct BotSitOut <: AbstractAI end
+struct BotCheckFold <: AbstractAI end
+struct BotCheckCall <: AbstractAI end
 
 ai_to_use() = BotRandom()
 

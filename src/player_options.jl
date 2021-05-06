@@ -63,6 +63,28 @@ end
 ##### AbstractAI
 #####
 
+##### BotSitOut
+
+player_option(player::Player{BotSitOut}, ::PayBlindSitOut) = SitOut() # no other options needed
+
+##### BotCheckFold
+
+player_option(player::Player{BotCheckFold}, ::PayBlindSitOut) = PayBlind()
+player_option!(game::Game, player::Player{BotCheckFold}, ::CheckRaiseFold) = check!(game, player)
+player_option!(game::Game, player::Player{BotCheckFold}, ::CallRaiseFold) = fold!(game, player)
+
+##### BotCheckCall
+
+player_option(player::Player{BotCheckCall}, ::PayBlindSitOut) = PayBlind()
+player_option!(game::Game, player::Player{BotCheckCall}, ::CheckRaiseFold) = check!(game, player)
+function player_option!(game::Game, player::Player{BotCheckCall}, ::CallRaiseFold)
+    if game.table.current_raise_amt ≤ bank_roll(player)
+        call!(game, player, game.table.current_raise_amt)
+    else
+        call!(game, player, bank_roll(player))
+    end
+end
+
 ##### BotRandom
 
 player_option(player::Player{BotRandom}, ::PayBlindSitOut) = PayBlind()
@@ -77,16 +99,15 @@ function player_option!(game::Game, player::Player{BotRandom}, ::CheckRaiseFold)
 end
 function player_option!(game::Game, player::Player{BotRandom}, ::CallRaiseFold)
     if rand() < 0.5
-        if rand() < 0.5 # TODO: broken: if false: no action is taken. Need raise_to! add validate_raise to properly fix
-            if game.table.current_raise_amt ≤ bank_roll(player)
-                call!(game, player, game.table.current_raise_amt)
-            else
-                call!(game, player, bank_roll(player))
-            end
-            if rand() < 0.5
-                amt = Int(round(rand()*bank_roll(player), digits=0))
-                raise_to!(game, player, min(amt, blinds(game).small))
-            end
+        # Call
+        if game.table.current_raise_amt ≤ bank_roll(player)
+            call!(game, player, game.table.current_raise_amt)
+        else
+            call!(game, player, bank_roll(player))
+        end
+        if rand() < 0.5
+            amt = Int(round(rand()*bank_roll(player), digits=0))
+            raise_to!(game, player, min(amt, blinds(game).small))
         end
     else
         fold!(game, player)
