@@ -115,7 +115,7 @@ function contribute!(table, player, amt, call=false)
     for i in 1:length(tm.side_pots)
         @assert 0 ≤ amt_remaining
         side_pot_full(tm, i) && continue
-        cap_i = tm.side_pots[i].cap
+        cap_i = cap(tm.side_pots[i])
         @assert 0 ≤ amt_remaining
         cond = amt_remaining < cap_i
         amt_contrib = cond ? amt_remaining : cap_i
@@ -179,7 +179,9 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards)
         end
         all_valid_min_hrs = min(map(x->hand_rank(x.fhe), filter(x->x.eligible, hand_evals_sorted))...)
 
-        winner_ids = findall(x->hand_rank(x.fhe)==all_valid_min_hrs && x.eligible, hand_evals_sorted)
+        winner_ids = findall(hand_evals_sorted) do x
+            x.eligible ? hand_rank(x.fhe)==all_valid_min_hrs : false
+        end
         n_winners = length(winner_ids)
         @debug "winner_ids = $(winner_ids)"
         for winner_id in winner_ids

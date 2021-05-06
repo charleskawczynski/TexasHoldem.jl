@@ -14,6 +14,16 @@ NLH = NoLimitHoldem
     sprint(show, game)
 end
 
+@testset "Game: pre-dealt deck" begin
+    deck = ordered_deck()
+    shuffle!(deck)
+    players = ntuple(3) do i
+        NLH.Player(BotRandom(), i, pop!(deck, 2))
+    end
+    table = Table(;players=players,deck=deck,cards=pop!(deck, 5))
+    game = Game(players;deck=deck,table=table)
+end
+
 @testset "Game: contrived game" begin
     players = ntuple(3) do i
         NLH.Player(BotRandom(), i)

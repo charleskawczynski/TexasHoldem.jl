@@ -19,7 +19,7 @@ end
 
 function Game(players::Tuple;
         deck = ordered_deck(),
-        table_in = nothing,
+        table = nothing,
         button_id::Int = button_id(),
         blinds::Blinds = Blinds(1,2),
     )
@@ -32,10 +32,9 @@ function Game(players::Tuple;
 
         # If the user is specifying the player cards, then the
         # user should probably also handle the table cards too.
-        @assert table_in ≠ nothing
-        table = table_in
+        @assert table ≠ nothing
         @assert cards(table) isa Tuple{Card,Card,Card,Card,Card}
-        @assert legnth(cards(table)) == 5
+        @assert length(cards(table)) == 5
         @assert length(deck) + n_player_cards + length(cards(table)) == 52
     else # nobody has been dealt yet
         table = Table(;
@@ -54,8 +53,6 @@ function Game(players::Tuple;
 end
 
 players_at_table(game::Game) = players_at_table(game.table)
-small_blind(game::Game) = small_blind(players_at_table(game), game.table)
-big_blind(game::Game) = big_blind(players_at_table(game), game.table)
 blinds(game::Game) = blinds(game.table)
 any_actions_required(game::Game) = any_actions_required(game.table)
 
