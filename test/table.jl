@@ -1,5 +1,6 @@
 using Test
 using PlayingCards
+using Logging
 using NoLimitHoldem
 NLH = NoLimitHoldem
 

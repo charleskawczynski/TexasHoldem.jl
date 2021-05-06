@@ -16,7 +16,7 @@ function cofigure_n_players()
         end
     end
     @assert n_players ≠ nothing
-    println("$n_players playing")
+    @info "$n_players playing"
     return n_players
 end
 
@@ -35,7 +35,7 @@ function cofigure_bank_roll(blinds)
         end
     end
     @assert bank_roll ≠ nothing
-    println("Players starting with a bank roll of \$$bank_roll")
+    @info "Players starting with a bank roll of \$$bank_roll"
     return bank_roll
 end
 
@@ -53,7 +53,7 @@ function cofigure_blinds()
         end
     end
     @assert big_blinds ≠ nothing
-    println("Blinds: $(big_blinds/2), $(big_blinds)")
+    @info "Blinds: $(big_blinds/2), $(big_blinds)"
     return Blinds(big_blinds/2, big_blinds)
 end
 

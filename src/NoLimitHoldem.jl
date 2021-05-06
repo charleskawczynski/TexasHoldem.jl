@@ -33,7 +33,6 @@ include("table.jl")
 include("game.jl")
 include("player_actions.jl")
 include("player_options.jl")
-include("game_viz.jl")
 include("config_game.jl")
 
 end # module

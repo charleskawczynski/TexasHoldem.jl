@@ -59,19 +59,33 @@ big_blind(game::Game) = big_blind(players_at_table(game), game.table)
 blinds(game::Game) = blinds(game.table)
 any_actions_required(game::Game) = any_actions_required(game.table)
 
+print_new_cards(table, state::PreFlop) = nothing
+print_new_cards(table, state::Flop) =  @info "Flop: $(repeat(" ", 44)) $(table.cards[1:3])"
+print_new_cards(table, state::Turn) =  @info "Turn: $(repeat(" ", 44)) $(table.cards[4])"
+print_new_cards(table, state::River) = @info "River: $(repeat(" ", 43)) $(table.cards[5])"
+
 function act_generic!(game::Game, state::AbstractGameState)
     table = game.table
     table.winners.declared && return # TODO: is this redundant?
     set_state!(game.table, state)
-    print_state(game)
+    print_new_cards(game.table, state)
 
     any_actions_required(game) || return
     for player in circle(table, FirstToAct())
+        @debug "Checking to see if it's $(name(player))'s turn to act"
+        @debug "     all_in.(players_at_table(table)) = $(all_in.(players_at_table(table)))"
+        @debug "     last_to_raise.(players_at_table(table)) = $(last_to_raise.(players_at_table(table)))"
+        @debug "     checked.(players_at_table(table)) = $(checked.(players_at_table(table)))"
+        @debug "     folded.(players_at_table(table)) = $(folded.(players_at_table(table)))"
+        @debug "     action_required.(players_at_table(table)) = $(action_required.(players_at_table(table)))"
+        @debug "     !any(action_required.(players_at_table(table))) = $(!any(action_required.(players_at_table(table))))"
+        @debug "     all_checked_or_folded(table) = $(all_checked_or_folded(table))"
         last_to_raise(player) && break
         all_checked_or_folded(table) && break
         all_all_in(table) && break
         !any(action_required.(players_at_table(table))) && break
         folded(player) && continue
+        @debug "$(name(player))'s turn to act"
         player_option!(game, player)
         table.winners.declared && break
     end
@@ -82,11 +96,6 @@ function act!(game::Game, state::AbstractGameState)
     reset_round!(game.table)
 end
 
-function act!(game::Game, state::River)
-    act_generic!(game, state)
-    declare_winners!(game.table)
-end
-
 """
     play(::Game)
 
@@ -94,9 +103,15 @@ Play a game. Note that this method
 expects no cards (players and table)
 to be dealt.
 """
-function play(game::Game; debug = false)
+function play(game::Game)
+    @info "********************************"
+    @info "******************************** Playing Game!"
+    @info "********************************"
+
     table = game.table
     players = players_at_table(table)
+
+    @info "Initial bank roll summary: $(bank_roll.(players))"
 
     table.transactions = TransactionManager(players)
 
@@ -111,6 +126,14 @@ function play(game::Game; debug = false)
     winners.declared || act!(game, Flop())      # Deal flop , then bet/check/raise
     winners.declared || act!(game, Turn())      # Deal turn , then bet/check/raise
     winners.declared || act!(game, River())     # Deal river, then bet/check/raise
+
+    distribute_winnings!(players, table.transactions, cards(table))
+
+    @info "Final bank roll summary: $(bank_roll.(players))"
+
+    @info "********************************"
+    @info "******************************** Game finished!"
+    @info "********************************"
     return winners
 end
 

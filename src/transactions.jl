@@ -64,7 +64,7 @@ function last_call_of_round(table, player)
 end
 
 """
-    contribute!(table, player, amt, call=false;debug=false)
+    contribute!(table, player, amt, call=false)
 
 Player `player` contributes amount `amt` to the
 appropriate side-pot(s) for calls (for `call = true`)
@@ -95,7 +95,7 @@ of the (sorted) players at the start of the game.
 1   2   3   4   5   6
 ```
 """
-function contribute!(table, player, amt, call=false;debug=false)
+function contribute!(table, player, amt, call=false)
     tm = table.transactions
     if !(0 ≤ amt ≤ bank_roll(player))
         msg1 = "$(name(player)) has insufficient bank"
@@ -117,7 +117,7 @@ function contribute!(table, player, amt, call=false;debug=false)
         @assert 0 ≤ amt_remaining
         cond = amt_remaining < cap_i
         amt_contrib = cond ? amt_remaining : cap_i
-        debug && @info "$(name(player)) contributes $amt_contrib to last side-pot $(i) ($cond)"
+        @debug "$(name(player)) contributes $amt_contrib to last side-pot $(i) ($cond)"
         tm.side_pots[i].amt += amt_contrib
         player.bank_roll -= amt_contrib
         amt_remaining -= amt_contrib
@@ -138,44 +138,68 @@ side_pot_full(tm::TransactionManager, i) = i < tm.pot_id[1]
 
 sidepot_winnings(tm::TransactionManager, id::Int) = sum(map(x->x.amt, tm.side_pots[1:id]))
 
-function print_winner(player, n_side_pots, amt)
+function print_winner(player, n_side_pots, amt, hand_evals_sorted)
+    fhe = hand_evals_sorted[findfirst(x->player_id(x.player)==player.id, hand_evals_sorted)].fhe
+    hand = hand_type(fhe)
+    hand_str = nameof(typeof(hand))
     if n_side_pots==1
-        @info "$(name(player)) wins \$$(amt)!"
+        @info "$(name(player)) wins \$$(amt) with $(hand_str)!"
     else
-        @info "$(name(player)) wins \$$(amt) side-pot!"
+        @info "$(name(player)) wins \$$(amt) side-pot with $(hand_str)!"
     end
 end
 
+# TODO: improve logging by collect winnings in first pass, and report results in second pass.
 function distribute_winnings!(players, tm::TransactionManager, table_cards)
-    hand_evals = map(enumerate(tm.sorted_players)) do (j, player)
-        (player.id, hand_rank(FullHandEval((player.cards..., table_cards...))), j)
+    @debug "Distributing winnings..."
+    @debug "Pot amounts = $(amount.(tm.side_pots))"
+    hand_evals_sorted = map(enumerate(tm.sorted_players)) do (spid, player)
+        fhe = sat_out(player) ? nothing : FullHandEval((player.cards..., table_cards...))
+        eligible = !folded(player) && !sat_out(player)
+        (; eligible=eligible, player=player, fhe=fhe, spid=spid)
     end
-    hand_evals_filtered = deepcopy(hand_evals)
     n_side_pots = count(x->!(x.amt≈0), tm.side_pots)
 
     for i in 1:length(tm.side_pots)
-
-        filter!(x->x[3] ≥ i, hand_evals_filtered) # only (sorted) players i:end can win the ith side-pot
-        isempty(hand_evals_filtered) && continue # no players left to distribute to
+        @debug "Distributing side-pot $i"
+        @debug "sidepot_winnings(tm, length(players)) ≈ 0 = $(sidepot_winnings(tm, length(players)) ≈ 0)"
         sidepot_winnings(tm, length(players)) ≈ 0 && continue # no money left to distribute
 
-        remaining_ids = map(x-> x[1], hand_evals_filtered)
-        min_hr_all = min(map(x->x[2], hand_evals_filtered)...)
+        hand_evals_sorted = map(hand_evals_sorted) do (eligible, player, fhe, spid)
+            if spid ≥ i # only (sorted) players i:end can win the ith side-pot
+                (; eligible=eligible, player=player, fhe=fhe, spid=spid)
+            else
+                (; eligible=false, player=player, fhe=fhe, spid=spid)
+            end
+        end
+        @debug begin
+            s = "Sorted hand evals: \n"
+            for hes in hand_evals_sorted
+                sat_out(hes.player) && continue # (don't have cards to eval)
+                s *= "eligible=$(hes.eligible), "
+                s *= "pid=$(player_id(hes.player)), "
+                s *= "spid=$(hes.spid), "
+                s *= "hr=$(hand_rank(hes.fhe)), "
+                s *= "ht=$(nameof(typeof(hand_type(hes.fhe))))\n"
+            end
+            s
+        end
+        all_valid_min_hrs = min(map(x->hand_rank(x.fhe), filter(x->x.eligible, hand_evals_sorted))...)
 
-        # since hand_evals are filtered, we need a `+i-1` offset to retain indexing into :
-        winners = findall(x->x[2]==min_hr_all, hand_evals_filtered) .+ i .- 1
-        n_winners = length(winners)
-
-        for winner_id in winners
+        winner_ids = findall(x->hand_rank(x.fhe)==all_valid_min_hrs && x.eligible, hand_evals_sorted)
+        n_winners = length(winner_ids)
+        @debug "winner_ids = $(winner_ids)"
+        for winner_id in winner_ids
             win_id = tm.sorted_players[winner_id].id
-            folded(players[win_id]) && continue
-            winer_pl = tm.sorted_players[winner_id]
+            winning_player = players[win_id]
+            folded(winning_player) && continue
             amt = sidepot_winnings(tm, i) / n_winners
-            players[win_id].bank_roll += amt
-            print_winner(players[win_id], n_side_pots, amt)
+            winning_player.bank_roll += amt
+            print_winner(winning_player, n_side_pots, amt, hand_evals_sorted)
         end
         for j in 1:i
             tm.side_pots[j].amt = 0 # empty out distributed winnings
         end
     end
+    @debug "Distributed winnings..."
 end
