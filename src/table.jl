@@ -84,24 +84,6 @@ function set_state!(table::Table, state::AbstractGameState)
     table.state = state
 end
 
-function declare_winners!(table::Table)
-    fhe = map(players_at_table(table)) do player
-        FullHandEval((player.cards..., observed_cards(table)...))
-    end
-
-    hr = hand_rank.(fhe)
-    @show hand_type.(fhe)
-    @show hand_rank.(fhe)
-    @show best_cards.(fhe)
-
-    min_hr = min(hr...)
-    table.winners.players = filter(players_at_table(table)) do player
-        hr[player.id] == min_hr
-    end
-    table.winners.declared = true
-    table.current_raise_amt = 0
-end
-
 function check_for_winner!(table::Table)
     players = players_at_table(table)
     n_players = length(players)
@@ -209,29 +191,30 @@ function deal!(table::Table, blinds::Blinds)
         po = player_option(player, PayBlindSitOut())
         if po isa SitOut
             player.folded = true
+            player.sat_out = true
             @info "$(name(player)) sat out a hand."
             check_for_winner!(table)
         elseif po isa PayBlind
             if player.id == small_blind(players, table).id && bank_roll(player) ≤ blinds.small
                 player.cards = pop!(table.deck, 2)
                 player.all_in = true
-                @info "$(name(player)) is all in on small blind!"
+                @info "$(name(player)) paid the small blind (all-in) and dealt cards: $(player.cards)"
                 contribute!(table, player, bank_roll(player))
             elseif player.id == big_blind(players, table).id && bank_roll(player) ≤ blinds.big
                 player.cards = pop!(table.deck, 2)
                 player.all_in = true
-                @info "$(name(player)) is all in on big blind!"
+                @info "$(name(player)) paid the  big  blind (all-in) and dealt cards: $(player.cards)"
                 contribute!(table, player, bank_roll(player))
             else
                 player.cards = pop!(table.deck, 2)
                 if player.id == small_blind(players, table).id
-                    @info "$(name(player)) paid the small blind."
+                    @info "$(name(player)) paid the small blind and dealt cards: $(player.cards)"
                     contribute!(table, player, blinds.small)
                 elseif player.id == big_blind(players, table).id
-                    @info "$(name(player)) paid the big blind."
+                    @info "$(name(player)) paid the  big  blind and dealt cards: $(player.cards)"
                     contribute!(table, player, blinds.big)
                 else
-                    @info "$(name(player)) dealt free cards."
+                    @info "$(name(player)) dealt (free) cards:                   $(player.cards)"
                 end
             end
         else
@@ -241,6 +224,6 @@ function deal!(table::Table, blinds::Blinds)
     end
 
     table.cards = get_table_cards!(table.deck)
-    @info "Table cards dealt (but not yet revealed)."
+    @info "Table cards dealt (face-down)."
 end
 

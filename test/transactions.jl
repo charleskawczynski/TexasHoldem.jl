@@ -200,7 +200,7 @@ end
     NLH.raise_to!(table, players[3], 300) # raise all-in
     @test NLH.amount.(tm.side_pots) == [300.0, 200.0, 100.0, 0.0, 0.0, 0.0]
 
-    NLH.raise_to!(table, players[4], 400;debug=true) # raise all-in
+    NLH.raise_to!(table, players[4], 400) # raise all-in
     @test NLH.amount.(tm.side_pots) == [400.0, 300.0, 200.0, 100.0, 0.0, 0.0]
 
     NLH.raise_to!(table, players[5], 500) # raise all-in

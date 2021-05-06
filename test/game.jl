@@ -3,12 +3,6 @@ using PlayingCards
 using NoLimitHoldem
 NLH = NoLimitHoldem
 
-@testset "Game: Print row" begin
-    for i in 1:10
-        NLH.sprint_row(repeat(["a"], i))
-    end
-end
-
 @testset "Game: show" begin
     players = ntuple(2) do i
         NLH.Player(BotRandom(), i)
@@ -63,11 +57,3 @@ end
     @test_throws ErrorException raise_to!(game, players[1], 10000)
 end
 
-@testset "Game: Play 2" begin
-    players = ntuple(3) do i
-        NLH.Player(BotRandom(), i)
-    end
-    game = Game(players)
-
-    play(game; debug = true)
-end

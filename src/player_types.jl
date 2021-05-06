@@ -25,6 +25,7 @@ mutable struct Player{LF}
     folded::Bool
     checked::Bool
     last_to_raise::Bool
+    sat_out::Bool
 end
 
 function Base.show(io::IO, player::Player, include_type = true)
@@ -38,8 +39,21 @@ function Player(life_form, id, cards = nothing; bank_roll = 200)
     all_in = false
     folded = false
     checked = false
+    sat_out = false
     last_to_raise = false
-    args = (life_form, id, cards, Float64(bank_roll), action_history, action_required, all_in, folded, checked, last_to_raise)
+    args = (
+        life_form,
+        id,
+        cards,
+        Float64(bank_roll),
+        action_history,
+        action_required,
+        all_in,
+        folded,
+        checked,
+        last_to_raise,
+        sat_out,
+    )
     Player(args...)
 end
 
@@ -53,3 +67,4 @@ checked(player::Player) = player.checked
 last_to_raise(player::Player) = player.last_to_raise
 all_in(player::Player) = player.all_in
 action_required(player::Player) = player.action_required
+sat_out(player::Player) = player.sat_out

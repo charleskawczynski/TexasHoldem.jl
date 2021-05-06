@@ -56,7 +56,6 @@ function input_raise_amt(player::Player{Human})
         end
     end
     @assert raise_amt ≠ nothing
-    @info "$(name(player)) bets \$$(raise_amt)"
     return raise_amt
 end
 
@@ -71,16 +70,14 @@ player_option(player::Player{BotRandom}, ::PayBlindSitOut) = PayBlind()
 function player_option!(game::Game, player::Player{BotRandom}, ::CheckRaiseFold)
     if rand() < 0.5
         check!(game, player)
-        @info "$(name(player)) checked"
     else
         amt = Int(round(rand()*bank_roll(player), digits=0))
         raise_to!(game, player, min(amt, blinds(game).small))
-        @info "$(name(player)) raised \$$(amt)!"
     end
 end
 function player_option!(game::Game, player::Player{BotRandom}, ::CallRaiseFold)
     if rand() < 0.5
-        if rand() < 0.5
+        if rand() < 0.5 # broken: if false: no action is taken. Need raise_to! amount validator to properly fix
             if game.table.current_raise_amt ≤ bank_roll(player)
                 call!(game, player, game.table.current_raise_amt)
             else
@@ -89,13 +86,9 @@ function player_option!(game::Game, player::Player{BotRandom}, ::CallRaiseFold)
             if rand() < 0.5
                 amt = Int(round(rand()*bank_roll(player), digits=0))
                 raise_to!(game, player, min(amt, blinds(game).small))
-                @info "$(name(player)) re-raised \$$(amt)!"
-            else
-                @info "$(name(player)) called!"
             end
         end
     else
         fold!(game, player)
-        @info "$(name(player)) folded!"
     end
 end
