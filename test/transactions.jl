@@ -15,8 +15,8 @@ NLH = NoLimitHoldem
     @test NLH.player_id.(tm.side_pots) == [1,2,3]
 
     NLH.raise_to!(table, players[1], 100) # raise all-in
-    NLH.call!(table, players[2], 100) # call
-    NLH.call!(table, players[3], 100) # call
+    NLH.call!(table, players[2]) # call
+    NLH.call!(table, players[3]) # call
 
     @test NLH.amount.(tm.side_pots) == [300.0, 0.0, 0.0]
     NLH.distribute_winnings!(players, tm, table_cards)
@@ -38,8 +38,8 @@ end
     table = Table(;players=players,cards=table_cards,transactions=tm)
 
     NLH.raise_to!(table, players[1], 100) # Raise
-    NLH.call!(table, players[2], 100) # call
-    NLH.call!(table, players[3], 100) # all-in
+    NLH.call!(table, players[2]) # call
+    NLH.call!(table, players[3]) # all-in
 
     @test NLH.amount.(tm.side_pots) == [300.0, 0.0, 0.0]
     NLH.distribute_winnings!(players, tm, table_cards)
@@ -61,17 +61,17 @@ end
     table = Table(;players=players,cards=table_cards,transactions=tm)
 
     NLH.raise_to!(table, players[1], 100) # Raise all-in
-    NLH.call!(table, players[2], 100) # call
-    NLH.call!(table, players[3], 100) # call
+    NLH.call!(table, players[2]) # call
+    NLH.call!(table, players[3]) # call
 
     @test NLH.amount.(tm.side_pots) == [300.0, 0.0, 0.0]
 
-    @test_throws ErrorException NLH.call!(table, players[1], 100) # already all-in!
+    @test_throws AssertionError NLH.call!(table, players[1]) # already all-in!
 
     NLH.reset_round!(table)
 
     NLH.raise_to!(table, players[2], 100) # Raise all-in
-    NLH.call!(table, players[3], 100) # call
+    NLH.call!(table, players[3]) # call
 
     @test NLH.amount.(tm.side_pots) == [300.0, 200.0, 0.0]
     NLH.distribute_winnings!(players, tm, table_cards)
@@ -93,16 +93,16 @@ end
     table = Table(;players=players,cards=table_cards,transactions=tm)
 
     NLH.raise_to!(table, players[1], 100) # Raise
-    NLH.call!(table, players[2], 100) # call
-    NLH.call!(table, players[3], 100) # all-in
+    NLH.call!(table, players[2]) # call
+    NLH.call!(table, players[3]) # all-in
 
     @test NLH.amount.(tm.side_pots) == [300.0, 0.0, 0.0]
 
     NLH.reset_round!(table)
 
     NLH.raise_to!(table, players[1], 100) # call
-    NLH.call!(table, players[2], 100) # all-in
-    @test_throws ErrorException NLH.call!(table, players[3], 100) # already all-in!
+    NLH.call!(table, players[2]) # all-in
+    @test_throws AssertionError NLH.call!(table, players[3]) # already all-in!
 
     @test NLH.amount.(tm.side_pots) == [300.0, 200.0, 0.0]
 
@@ -128,41 +128,41 @@ end
     table = Table(;players=players,cards=table_cards,transactions=tm)
 
     NLH.raise_to!(table, players[1], 100) # raise all-in
-    NLH.call!(table, players[2], 100) # call
-    NLH.call!(table, players[3], 100) # call
-    NLH.call!(table, players[4], 100) # call
-    NLH.call!(table, players[5], 100) # call
-    NLH.call!(table, players[6], 100) # call
+    NLH.call!(table, players[2]) # call
+    NLH.call!(table, players[3]) # call
+    NLH.call!(table, players[4]) # call
+    NLH.call!(table, players[5]) # call
+    NLH.call!(table, players[6]) # call
     @test NLH.amount.(tm.side_pots) == [600.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
     NLH.reset_round!(table)
 
     NLH.raise_to!(table, players[2], 100) # raise all-in
-    NLH.call!(table, players[3], 100) # call
-    NLH.call!(table, players[4], 100) # call
-    NLH.call!(table, players[5], 100) # call
-    NLH.call!(table, players[6], 100) # call
+    NLH.call!(table, players[3]) # call
+    NLH.call!(table, players[4]) # call
+    NLH.call!(table, players[5]) # call
+    NLH.call!(table, players[6]) # call
     @test NLH.amount.(tm.side_pots) == [600.0, 500.0, 0.0, 0.0, 0.0, 0.0]
 
     NLH.reset_round!(table)
 
     NLH.raise_to!(table, players[3], 100) # raise all-in
-    NLH.call!(table, players[4], 100) # call
-    NLH.call!(table, players[5], 100) # call
-    NLH.call!(table, players[6], 100) # call
+    NLH.call!(table, players[4]) # call
+    NLH.call!(table, players[5]) # call
+    NLH.call!(table, players[6]) # call
     @test NLH.amount.(tm.side_pots) == [600.0, 500.0, 400.0, 0.0, 0.0, 0.0]
 
     NLH.reset_round!(table)
 
     NLH.raise_to!(table, players[4], 100) # raise all-in
-    NLH.call!(table, players[5], 100) # call
-    NLH.call!(table, players[6], 100) # call
+    NLH.call!(table, players[5]) # call
+    NLH.call!(table, players[6]) # call
     @test NLH.amount.(tm.side_pots) == [600.0, 500.0, 400.0, 300.0, 0.0, 0.0]
 
     NLH.reset_round!(table)
 
     NLH.raise_to!(table, players[5], 100) # raise all-in
-    NLH.call!(table, players[6], 100) # call
+    NLH.call!(table, players[6]) # call
     @test NLH.amount.(tm.side_pots) ≈ [600.0, 500.0, 400.0, 300.0, 200.0, 0.0]
 
     NLH.distribute_winnings!(players, tm, table_cards)
@@ -206,7 +206,7 @@ end
     NLH.raise_to!(table, players[5], 500) # raise all-in
     @test NLH.amount.(tm.side_pots) == [500.0, 400.0, 300.0, 200.0, 100.0, 0.0]
 
-    NLH.call!(table, players[6], 500) # call
+    NLH.call!(table, players[6]) # call
     @test NLH.amount.(tm.side_pots) ≈ [600.0, 500.0, 400.0, 300.0, 200.0, 0.0]
 
     NLH.distribute_winnings!(players, tm, table_cards)
@@ -238,19 +238,19 @@ end
     NLH.raise_to!(table, players[1], 500) # raise to 500
     @test NLH.amount.(tm.side_pots) == [100.0, 100.0, 100.0, 100.0, 100.0, 0.0]
 
-    NLH.call!(table, players[2], 500) # call
+    NLH.call!(table, players[2]) # call
     @test NLH.amount.(tm.side_pots) == [200.0, 200.0, 200.0, 200.0, 200.0, 0.0]
 
-    NLH.call!(table, players[3], 400) # call
+    NLH.call!(table, players[3]) # call
     @test NLH.amount.(tm.side_pots) == [300.0, 300.0, 300.0, 300.0, 200.0, 0.0]
 
-    NLH.call!(table, players[4], 300) # call
+    NLH.call!(table, players[4]) # call
     @test NLH.amount.(tm.side_pots) == [400.0, 400.0, 400.0, 300.0, 200.0, 0.0]
 
-    NLH.call!(table, players[5], 200) # call
+    NLH.call!(table, players[5]) # call
     @test NLH.amount.(tm.side_pots) == [500.0, 500.0, 400.0, 300.0, 200.0, 0.0]
 
-    NLH.call!(table, players[6], 100) # call
+    NLH.call!(table, players[6]) # call
     @test NLH.amount.(tm.side_pots) == [600.0, 500.0, 400.0, 300.0, 200.0, 0.0]
 
     NLH.distribute_winnings!(players, tm, table_cards)

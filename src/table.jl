@@ -64,10 +64,17 @@ observed_cards(table::Table, ::Turn) = table.cards[1:4]
 observed_cards(table::Table, ::River) = table.cards
 
 players_at_table(table::Table) = table.players
-all_checked_or_folded(table::Table) = all(map(player -> folded(player) || checked(player), players_at_table(table)))
-all_all_in(table::Table) = all(all_in.(players_at_table(table)))
+all_checked_or_folded(table::Table) = all(map(x -> folded(x) || checked(x), players_at_table(table)))
+all_all_in_or_folded(table::Table) = all(map(x -> folded(x) || all_in(x), players_at_table(table)))
 
 blinds(table::Table) = table.blinds
+
+function reset_round_bank_rolls!(table::Table)
+    players = players_at_table(table)
+    for player in players
+        player.round_bank_roll = bank_roll(player)
+    end
+end
 
 function reset_round!(table::Table)
     players = players_at_table(table)
@@ -76,6 +83,7 @@ function reset_round!(table::Table)
         folded(player) && continue
         player.action_required = true
         player.last_to_raise = false
+        player.round_contribution = 0
     end
     table.current_raise_amt = 0
 end
@@ -139,6 +147,11 @@ circle_table(table::Table, state) =
 
 small_blind(table::Table) = players_at_table(table)[circle_table(table, 2)]
 big_blind(table::Table) = players_at_table(table)[circle_table(table, 3)]
+first_to_act(table::Table) = players_at_table(table)[circle_table(table, 4)]
+
+is_small_blind(table::Table, player::Player) = player.id == small_blind(table).id
+is_big_blind(table::Table, player::Player) = player.id == big_blind(table).id
+is_first_to_act(table::Table, player::Player) = player.id == first_to_act(table).id
 
 any_actions_required(table::Table) = any(action_required.(players_at_table(table)))
 
@@ -185,6 +198,8 @@ function deal!(table::Table, blinds::Blinds)
     shuffle!(table.deck)
     for (i, player) in enumerate(circle(table, SmallBlind()))
         po = player_option(player, PayBlindSitOut())
+        # TODO: move sit-out option to before deal! to allow earlier
+        # error checking, and avoiding situations with too few players.
         if po isa SitOut
             player.folded = true
             player.sat_out = true

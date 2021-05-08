@@ -26,6 +26,8 @@ function Game(players::Tuple;
 
     n_player_cards = sum(map(x->cards(x)==nothing ? 0 : length(cards(x)), players))
 
+    @assert 2 ≤ length(players) ≤ 10
+
     if length(deck) ≠ 52
         # if the deck isn't full, then players should have been dealt cards.
         @assert n_player_cards > 0
@@ -61,14 +63,29 @@ print_new_cards(table, state::Flop) =  @info "Flop: $(repeat(" ", 44)) $(table.c
 print_new_cards(table, state::Turn) =  @info "Turn: $(repeat(" ", 44)) $(table.cards[4])"
 print_new_cards(table, state::River) = @info "River: $(repeat(" ", 43)) $(table.cards[5])"
 
+force_blind_raise!(table::Table, player, ::AbstractGameState, i::Int) = nothing
+function force_blind_raise!(table::Table, player::Player, ::PreFlop, i::Int)
+    if 1 ≤ i ≤ length(players_at_table(table))
+        # TODO: what if only two players?
+        if is_first_to_act(table, player)
+            # everyone must call big blind to see flop:
+            table.current_raise_amt = blinds(table).big
+        end
+    end
+end
+reset_round_bank_rolls!(game::Game, state::PreFlop) = nothing # called separately prior to deal
+reset_round_bank_rolls!(game::Game, state::AbstractGameState) = reset_round_bank_rolls!(game.table)
+
 function act_generic!(game::Game, state::AbstractGameState)
     table = game.table
-    table.winners.declared && return # TODO: is this redundant?
+    table.winners.declared && return
     set_state!(game.table, state)
     print_new_cards(game.table, state)
+    reset_round_bank_rolls!(game, state)
 
     any_actions_required(game) || return
-    for player in circle(table, FirstToAct())
+    for (i, player) in enumerate(circle(table, FirstToAct()))
+        force_blind_raise!(table, player, state, i)
         @debug "Checking to see if it's $(name(player))'s turn to act"
         @debug "     all_in.(players_at_table(table)) = $(all_in.(players_at_table(table)))"
         @debug "     last_to_raise.(players_at_table(table)) = $(last_to_raise.(players_at_table(table)))"
@@ -76,12 +93,14 @@ function act_generic!(game::Game, state::AbstractGameState)
         @debug "     folded.(players_at_table(table)) = $(folded.(players_at_table(table)))"
         @debug "     action_required.(players_at_table(table)) = $(action_required.(players_at_table(table)))"
         @debug "     !any(action_required.(players_at_table(table))) = $(!any(action_required.(players_at_table(table))))"
+        @debug "     all_all_in_or_folded(table) = $(all_all_in_or_folded(table))"
         @debug "     all_checked_or_folded(table) = $(all_checked_or_folded(table))"
         last_to_raise(player) && break
         all_checked_or_folded(table) && break
-        all_all_in(table) && break
+        all_all_in_or_folded(table) && break
         !any(action_required.(players_at_table(table))) && break
         folded(player) && continue
+        all_in(player) && continue
         @debug "$(name(player))'s turn to act"
         player_option!(game, player)
         table.winners.declared && break
@@ -117,6 +136,7 @@ function play(game::Game)
 
     @assert all(cards.(players) .== nothing)
     @assert cards(table) == nothing
+    reset_round_bank_rolls!(table) # round bank-rolls must account for blinds
     deal!(table, blinds(table))
     @assert cards(table) ≠ nothing
 
