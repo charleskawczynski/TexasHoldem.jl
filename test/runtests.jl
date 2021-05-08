@@ -12,14 +12,15 @@ submodules = [
 ]
 
 tests_to_debug = ["play"]
+# tests_to_debug = submodules
 
 for submodule in submodules
     println("Starting tests for $submodule")
     t = 0
     local logger
     if any(submodule in tests_to_debug)
-        # logger = ConsoleLogger(stderr,Logging.Info)
-        logger = ConsoleLogger(stderr,Logging.Debug;meta_formatter=metafmt)
+        logger = ConsoleLogger(stderr,Logging.Info)
+        # logger = ConsoleLogger(stderr,Logging.Debug;meta_formatter=metafmt)
     else
         logger = NullLogger()
     end

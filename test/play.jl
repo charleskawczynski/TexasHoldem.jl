@@ -3,13 +3,17 @@ using PlayingCards
 using NoLimitHoldem
 NLH = NoLimitHoldem
 
-@testset "Game: Play (3 BotRandom's)" begin
-    players = ntuple(3) do i
-        NLH.Player(BotRandom(), i)
-    end
-    game = Game(players)
+@testset "Game: Play (invalid number of players)" begin
+    @test_throws AssertionError Game(ntuple(i->NLH.Player(BotRandom(), i), 1))
+    @test_throws AssertionError Game(ntuple(i->NLH.Player(BotRandom(), i), 11))
+end
 
-    play(game)
+@testset "Game: Play (BotCheckCall)" begin
+    play(Game(ntuple(i->NLH.Player(BotCheckCall(), i), 3)))
+end
+
+@testset "Game: Play (BotCheckFold)" begin
+    play(Game(ntuple(i->NLH.Player(BotCheckFold(), i), 3)))
 end
 
 @testset "Game: Play (BotSitOut)" begin
@@ -18,16 +22,15 @@ end
         NLH.Player(BotRandom(), 2),
         NLH.Player(BotRandom(), 3),
     )
-    game = Game(players)
-    play(game)
+    play(Game(players))
 end
 
-@testset "Game: Play (BotCheckFold)" begin
-    players = (
-        NLH.Player(BotCheckFold(), 1),
-        NLH.Player(BotCheckFold(), 2),
-        NLH.Player(BotCheckFold(), 3),
-    )
-    game = Game(players)
-    play(game)
+@testset "Game: Play (3 BotRandom's)" begin
+    for n in 1:100
+        play(Game(ntuple(i->NLH.Player(BotRandom(), i), 3)))
+    end
+end
+
+@testset "Game: Play (10 BotRandom's)" begin
+    play(Game(ntuple(i->NLH.Player(BotRandom(), i), 10)))
 end
