@@ -1,3 +1,5 @@
-# NoLimitHoldem.jl
+# TexasHoldem.jl
 
-An experimental package for simulating No Limit Holdem Poker.
+An experimental package for simulating No-Limit Texas Holdem Poker.
+
+

@@ -1,5 +1,5 @@
 """
-    NoLimitHoldem
+    TexasHoldem
 
 A no-limit hold-em simulator.
 
@@ -11,7 +11,7 @@ A no-limit hold-em simulator.
  - `round` the process of each player deciding which
    actions to take, until no further actions are taking.
 """
-module NoLimitHoldem
+module TexasHoldem
 
 using PlayingCards
 using PokerHandEvaluator

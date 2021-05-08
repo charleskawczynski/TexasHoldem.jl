@@ -1,15 +1,15 @@
 using Test
 using PlayingCards
-using NoLimitHoldem
-NLH = NoLimitHoldem
+using TexasHoldem
+TH = TexasHoldem
 
 @testset "Players" begin
     players = (
-        NLH.Player(Human(), 1),
-        NLH.Player(BotRandom(), 2),
+        TH.Player(Human(), 1),
+        TH.Player(BotRandom(), 2),
     )
-    @test NLH.name(players[1]) == "Human[1]"
-    @test NLH.name(players[2]) == "BotRandom[2]"
-    @test NLH.cards(players[1]) == players[1].cards
-    @test NLH.cards(players[2]) == players[2].cards
+    @test TH.name(players[1]) == "Human[1]"
+    @test TH.name(players[2]) == "BotRandom[2]"
+    @test TH.cards(players[1]) == players[1].cards
+    @test TH.cards(players[2]) == players[2].cards
 end
