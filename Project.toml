@@ -1,4 +1,4 @@
-name = "NoLimitHoldem"
+name = "TexasHoldem"
 uuid = "6cef90fc-eb55-4a2a-97d0-7ecce2b738fe"
 authors = ["Charles Kawczynski <kawczynski.charles@gmail.com>"]
 version = "0.1.0"

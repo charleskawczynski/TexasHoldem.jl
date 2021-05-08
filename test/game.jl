@@ -1,11 +1,11 @@
 using Test
 using PlayingCards
-using NoLimitHoldem
-NLH = NoLimitHoldem
+using TexasHoldem
+TH = TexasHoldem
 
 @testset "Game: show" begin
     players = ntuple(2) do i
-        NLH.Player(BotRandom(), i)
+        TH.Player(BotRandom(), i)
     end
     game = Game(players)
     sprint(show, game)
@@ -18,7 +18,7 @@ end
     deck = ordered_deck()
     shuffle!(deck)
     players = ntuple(3) do i
-        NLH.Player(BotRandom(), i, pop!(deck, 2))
+        TH.Player(BotRandom(), i, pop!(deck, 2))
     end
     table = Table(;players=players,deck=deck,cards=pop!(deck, 5))
     game = Game(players;deck=deck,table=table)
@@ -26,11 +26,11 @@ end
 
 @testset "Game: contrived game" begin
     players = ntuple(3) do i
-        NLH.Player(BotRandom(), i)
+        TH.Player(BotRandom(), i)
     end
     game = Game(players)
-    players = NLH.players_at_table(game)
-    NLH.deal!(game.table, NLH.blinds(game.table))
+    players = TH.players_at_table(game)
+    TH.deal!(game.table, TH.blinds(game.table))
     # Round 1
     check!(game, players[1])
     check!(game, players[2])
@@ -50,11 +50,11 @@ end
 
     # All-in cases
     players = ntuple(3) do i
-        NLH.Player(BotRandom(), i)
+        TH.Player(BotRandom(), i)
     end
     game = Game(players)
-    players = NLH.players_at_table(game)
-    NLH.deal!(game.table, NLH.blinds(game.table))
+    players = TH.players_at_table(game)
+    TH.deal!(game.table, TH.blinds(game.table))
     # Round 1
     check!(game, players[1])
     check!(game, players[2])

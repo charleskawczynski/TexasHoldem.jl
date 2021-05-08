@@ -1,4 +1,4 @@
-using Documenter, NoLimitHoldem
+using Documenter, TexasHoldem
 
 format = Documenter.HTML(
     prettyurls = !isempty(get(ENV, "CI", "")),
@@ -6,13 +6,13 @@ format = Documenter.HTML(
 )
 
 makedocs(
-    sitename = "NoLimitHoldem.jl",
+    sitename = "TexasHoldem.jl",
     strict = true,
     format = format,
     checkdocs = :exports,
     clean = true,
     doctest = true,
-    modules = [NoLimitHoldem],
+    modules = [TexasHoldem],
     pages = Any[
         "Home" => "index.md",
         "API" => "api.md",
@@ -20,7 +20,7 @@ makedocs(
 )
 
 deploydocs(
-    repo = "github.com/charleskawczynski/NoLimitHoldem.jl.git",
+    repo = "github.com/charleskawczynski/TexasHoldem.jl.git",
     target = "build",
     push_preview = true,
     devbranch = "main",

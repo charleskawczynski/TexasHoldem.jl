@@ -1,8 +1,8 @@
 # API
 
 ```@docs
-NoLimitHoldem
-NoLimitHoldem.raise_to!
-NoLimitHoldem.move_button!
-NoLimitHoldem.play
+TexasHoldem
+TexasHoldem.raise_to!
+TexasHoldem.move_button!
+TexasHoldem.play
 ```
