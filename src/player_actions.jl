@@ -3,7 +3,7 @@
 #####
 
 export fold!, check!, raise_to!, call!
-export Fold, Check, Call, Raise
+export SitDown, SitOut, Fold, Check, Call, Raise
 
 abstract type AbstractAction end
 struct SitDown <: AbstractAction end
@@ -68,8 +68,16 @@ function call_valid_amount!(table::Table, player::Player, amt)
     @debug "$(name(player)) calling $(amt)."
     push!(player.action_history, Call(amt))
     player.action_required = false
+
+    blind_str = is_blind_call(table, player, amt) ? " (blind)" : ""
+
     contribute!(table, player, amt, true)
-    @info "$(name(player)) called $(amt)."
+
+    if all_in(player)
+        @info "$(name(player)) called $(amt)$(blind_str) (now all-in)."
+    else
+        @info "$(name(player)) called $(amt)$(blind_str)."
+    end
 end
 
 #####
@@ -105,7 +113,7 @@ function valid_raise_bounds(table::Table, player::Player)
     cra = table.current_raise_amt
     rbr = round_bank_roll(player)
     if cra ≈ 0 # initial raise
-        vrb = (blinds(table).small, rbr)
+        vrb = (blinds(table).small, rbr) # TODO: should this be bb?
     else # re-raise
         if rbr > 2*cra
             vrb = (2*cra, rbr)
@@ -127,7 +135,7 @@ Return back `amt` if `amt` is a valid raise amount.
 """
 function valid_raise_amount(table::Table, player::Player, amt)
     @assert !(amt ≈ 0)
-    @assert amt ≤ round_bank_roll(player)
+    rbr = round_bank_roll(player)
     cra = table.current_raise_amt
     prc = player.round_contribution
     rbr = round_bank_roll(player)
@@ -140,8 +148,8 @@ function valid_raise_amount(table::Table, player::Player, amt)
         @debug "amt ≈ rbr = $(amt ≈ rbr)"
         @debug "2*cra ≤ amt ≤ rbr = $(2*cra ≤ amt ≤ rbr)"
     end
-    @assert vrb[1] ≤ amt ≤ vrb[2] || amt ≈ vrb[1] ≈ vrb[2]
-    @assert amt - prc > 0 # contribution amount must be > 0!
+    @assert vrb[1] ≤ amt ≤ vrb[2] || amt ≈ vrb[1] ≈ vrb[2] "Invalid raise amount"
+    @assert amt - prc > 0 "Contribution amount must be > 0"
     return amt
 end
 

@@ -66,9 +66,12 @@ end
 
     @test TH.amount.(tm.side_pots) == [300.0, 0.0, 0.0]
 
-    @test_throws AssertionError TH.call!(table, players[1]) # already all-in!
+    @test_throws AssertionError("Bot5050[1] already all-in") TH.call!(table, players[1])
 
     TH.reset_round!(table)
+
+    @show TH.round_contribution.(TH.players_at_table(table))
+    @show table.current_raise_amt
 
     TH.raise_to!(table, players[2], 100) # Raise all-in
     TH.call!(table, players[3]) # call
@@ -102,7 +105,7 @@ end
 
     TH.raise_to!(table, players[1], 100) # call
     TH.call!(table, players[2]) # all-in
-    @test_throws AssertionError TH.call!(table, players[3]) # already all-in!
+    @test_throws AssertionError("Bot5050[3] already all-in") TH.call!(table, players[3])
 
     @test TH.amount.(tm.side_pots) == [300.0, 200.0, 0.0]
 

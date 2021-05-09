@@ -71,8 +71,10 @@ function force_blind_raise!(table::Table, player::Player, ::PreFlop, i::Int)
         if is_first_to_act(table, player)
             # everyone must call big blind to see flop:
             table.current_raise_amt = blinds(table).big
+            return true
         end
     end
+    return false
 end
 reset_round_bank_rolls!(game::Game, state::PreFlop) = nothing # called separately prior to deal
 reset_round_bank_rolls!(game::Game, state::AbstractGameState) = reset_round_bank_rolls!(game.table)
@@ -81,13 +83,16 @@ function act_generic!(game::Game, state::AbstractGameState)
     table = game.table
     table.winners.declared && return
     set_state!(game.table, state)
+    @info " --- $state --- "
     print_new_cards(game.table, state)
     reset_round_bank_rolls!(game, state)
 
     any_actions_required(game) || return
     for (i, player) in enumerate(circle(table, FirstToAct()))
-        force_blind_raise!(table, player, state, i)
+        cra_changed = force_blind_raise!(table, player, state, i)
         @debug "Checking to see if it's $(name(player))'s turn to act"
+        @debug "     table.current_raise_amt = $(game.table.current_raise_amt)"
+        @debug "     cra_changed = $cra_changed"
         @debug "     all_in.(players_at_table(table)) = $(all_in.(players_at_table(table)))"
         @debug "     last_to_raise.(players_at_table(table)) = $(last_to_raise.(players_at_table(table)))"
         @debug "     checked.(players_at_table(table)) = $(checked.(players_at_table(table)))"
@@ -96,6 +101,7 @@ function act_generic!(game::Game, state::AbstractGameState)
         @debug "     !any(action_required.(players_at_table(table))) = $(!any(action_required.(players_at_table(table))))"
         @debug "     all_all_in_or_folded(table) = $(all_all_in_or_folded(table))"
         @debug "     all_checked_or_folded(table) = $(all_checked_or_folded(table))"
+        @debug "     bank_roll.(players_at_table(table)) = $(bank_roll.(players_at_table(table)))"
         last_to_raise(player) && break
         all_checked_or_folded(table) && break
         all_all_in_or_folded(table) && break
@@ -126,7 +132,14 @@ function play(game::Game)
     @info "********************************"
 
     table = game.table
+    sit_down_or_sit_out!(table)
     players = players_at_table(table)
+
+    n_players = length(players)
+    if !(2 ≤ n_players ≤ 10)
+        @warn "Cannot play a game with $n_players player(s)."
+        return nothing
+    end
 
     initial_brs = deepcopy(bank_roll.(players))
     initial_∑brs = sum(initial_brs)

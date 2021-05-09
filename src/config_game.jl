@@ -61,8 +61,8 @@ function configure_basic_heads_up_game()
     bank_roll = 100
     blinds = Blinds(1, 2)
     players = (
-        Player(Human(), 1; bank_roll=bank_roll),
-        Player(ai_to_use(), 2; bank_roll=bank_roll)
+        Player(Human(); bank_roll=bank_roll),
+        Player(ai_to_use(); bank_roll=bank_roll)
     )
     return Game(players;
         blinds=blinds,
@@ -73,11 +73,11 @@ function configure_basic_1v4_game()
     bank_roll = 100
     blinds = Blinds(1, 2)
     players = (
-        Player(Human(), 1; bank_roll=bank_roll),
-        Player(ai_to_use(), 2; bank_roll=bank_roll),
-        Player(ai_to_use(), 3; bank_roll=bank_roll),
-        Player(ai_to_use(), 4; bank_roll=bank_roll),
-        Player(ai_to_use(), 5; bank_roll=bank_roll),
+        Player(Human(); bank_roll=bank_roll),
+        Player(ai_to_use(); bank_roll=bank_roll),
+        Player(ai_to_use(); bank_roll=bank_roll),
+        Player(ai_to_use(); bank_roll=bank_roll),
+        Player(ai_to_use(); bank_roll=bank_roll),
     )
     return Game(players;
         blinds=blinds,
@@ -103,9 +103,9 @@ function configure_custom_game()
 
     players = ntuple(n_players) do i
         if i in human_player_ids
-            Player(Human(), i; bank_roll=bank_roll)
+            Player(Human(); bank_roll=bank_roll)
         else
-            Player(ai_to_use(), i; bank_roll=bank_roll)
+            Player(ai_to_use(); bank_roll=bank_roll)
         end
     end
 

@@ -40,7 +40,7 @@ function Base.show(io::IO, player::Player, include_type = true)
     println(io, "$(name(player))        = $(player.cards)")
 end
 
-function Player(life_form, id, cards = nothing; bank_roll = 200)
+function Player(life_form, id=0, cards = nothing; bank_roll = 200)
     action_history = []
     action_required = true
     all_in = false

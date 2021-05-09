@@ -24,8 +24,8 @@ for submodule in submodules
     t = 0
     local logger
     if any(submodule in tests_to_debug)
-        logger = ConsoleLogger(stderr,Logging.Info)
-        # logger = ConsoleLogger(stderr,Logging.Debug;meta_formatter=metafmt)
+        # logger = ConsoleLogger(stderr,Logging.Info)
+        logger = ConsoleLogger(stderr,Logging.Debug;meta_formatter=metafmt)
     else
         logger = NullLogger()
     end

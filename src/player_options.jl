@@ -5,6 +5,7 @@ export SitDownSitOut,
     CallFold
 
 abstract type PlayerOptions end
+
 struct CheckRaiseFold <: PlayerOptions end
 struct CallRaiseFold <: PlayerOptions end
 struct CallAllInFold <: PlayerOptions end
@@ -12,6 +13,7 @@ struct CallFold <: PlayerOptions end
 struct SitDownSitOut <: PlayerOptions end
 
 function player_option!(game::Game, player::Player)
+    game_state = state(game.table)
     table = game.table
     call_amt = call_amount(table, player)
     game_state = state(table)
@@ -31,14 +33,14 @@ function player_option!(game::Game, player::Player)
     end
 end
 
-player_option(player::Player, ::SitDownSitOut) = SitDown()
+player_option(table::Table, player::Player, ::SitDownSitOut) = SitDown()
 
 #####
 ##### Human player options (ask via prompts)
 #####
 
-function player_option(player::Player{Human}, ::SitDownSitOut)
-    options = ["Pay blind", "Sit out a hand"]
+function player_option(table::Table, player::Player{Human}, ::SitDownSitOut)
+    options = ["Play", "Sit out a hand"]
     menu = RadioMenu(options, pagesize=4)
     choice = request("$(name(player))'s turn to act:", menu)
     choice == -1 && error("Uncaught case")
@@ -46,21 +48,40 @@ function player_option(player::Player{Human}, ::SitDownSitOut)
     choice == 2 && return SitOut()
 end
 function player_option!(game::Game, player::Player{Human}, ::AbstractGameState, ::CheckRaiseFold)
-    options = ["Check", "Raise", "Fold"]
+    table = game.table
+    rb = valid_raise_bounds(table, player)
+    options = ["Check", "Raise [\$$(minimum(rb)), \$$(maximum(rb))]", "Fold"]
     menu = RadioMenu(options, pagesize=4)
     choice = request("$(name(player))'s turn to act:", menu)
     choice == -1 && error("Uncaught case")
     choice == 1 && check!(game, player)
-    choice == 2 && raise_to!(game, player, input_raise_amt(game.table, player))
+    choice == 2 && raise_to!(game, player, input_raise_amt(table, player))
     choice == 3 && fold!(game, player)
 end
 function player_option!(game::Game, player::Player{Human}, ::AbstractGameState, ::CallRaiseFold)
-    options = ["Call", "Raise", "Fold"]
+    table = game.table
+    rb = valid_raise_bounds(table, player)
+    call_amt = call_amount(table, player)
+    blind_str = is_blind_call(table, player) ? " (blind)" : ""
+    options = ["Call \$$(call_amt)$blind_str", "Raise [\$$(minimum(rb)), \$$(maximum(rb))]", "Fold"]
     menu = RadioMenu(options, pagesize=4)
     choice = request("$(name(player))'s turn to act:", menu)
     choice == -1 && error("Uncaught case")
     choice == 1 && call!(game, player)
-    choice == 2 && raise_to!(game, player, input_raise_amt(game.table, player))
+    choice == 2 && raise_to!(game, player, input_raise_amt(table, player))
+    choice == 3 && fold!(game, player)
+end
+function player_option!(game::Game, player::Player{Human}, ::AbstractGameState, ::CallAllInFold)
+    table = game.table
+    call_amt = call_amount(table, player)
+    all_in_amt = round_bank_roll(player)
+    blind_str = is_blind_call(table, player) ? " (blind)" : ""
+    options = ["Call \$$(call_amt)$blind_str", "Raise all-in \$$(all_in_amt)", "Fold"]
+    menu = RadioMenu(options, pagesize=4)
+    choice = request("$(name(player))'s turn to act:", menu)
+    choice == -1 && error("Uncaught case")
+    choice == 1 && call!(game, player)
+    choice == 2 && raise_all_in!(game, player)
     choice == 3 && fold!(game, player)
 end
 function player_option!(game::Game, player::Player{Human}, ::AbstractGameState, ::CallAllInFold)
@@ -73,7 +94,10 @@ function player_option!(game::Game, player::Player{Human}, ::AbstractGameState, 
     choice == 3 && fold!(game, player)
 end
 function player_option!(game::Game, player::Player{Human}, ::AbstractGameState, ::CallFold)
-    options = ["Call", "Fold"]
+    table = game.table
+    call_amt = call_amount(table, player)
+    blind_str = is_blind_call(table, player) ? " (blind)" : ""
+    options = ["Call \$$(call_amt)$blind_str", "Fold"]
     menu = RadioMenu(options, pagesize=4)
     choice = request("$(name(player))'s turn to act:", menu)
     choice == -1 && error("Uncaught case")

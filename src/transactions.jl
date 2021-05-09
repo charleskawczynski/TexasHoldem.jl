@@ -102,12 +102,8 @@ of the (sorted) players at the start of the game.
 function contribute!(table, player, amt, call=false)
     tm = table.transactions
     @debug "$(name(player))'s bank roll (pre-contribute) = \$$(bank_roll(player))"
-    if !(0 ≤ amt ≤ bank_roll(player))
-        msg1 = "$(name(player)) has insufficient bank"
-        msg2 = "roll (\$$(bank_roll(player))) to add \$$amt to pot."
-        error(msg1*msg2)
-    end
-    @assert all_in(player) == false
+    @assert 0 ≤ amt ≤ bank_roll(player) "Incorrect contribution amount"
+    @assert all_in(player) == false "$(name(player)) already all-in"
     @assert !(amt ≈ 0)
 
     player.round_contribution += amt

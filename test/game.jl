@@ -64,6 +64,6 @@ end
     raise_to!(game, players[1], players[1].bank_roll)
     call!(game, players[2])
 
-    @test_throws AssertionError raise_to!(game, players[1], 10000) # raise exceeds bank roll!
+    @test_throws AssertionError("Invalid raise amount") raise_to!(game, players[1], 10000)
 end
 
