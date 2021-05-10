@@ -5,7 +5,7 @@ TH = TexasHoldem
 
 @testset "Game: show" begin
     players = ntuple(2) do i
-        TH.Player(BotRandom(), i)
+        Player(Bot5050(), i)
     end
     game = Game(players)
     sprint(show, game)
@@ -18,7 +18,7 @@ end
     deck = ordered_deck()
     shuffle!(deck)
     players = ntuple(3) do i
-        TH.Player(BotRandom(), i, pop!(deck, 2))
+        Player(Bot5050(), i, pop!(deck, 2))
     end
     table = Table(;players=players,deck=deck,cards=pop!(deck, 5))
     game = Game(players;deck=deck,table=table)
@@ -26,7 +26,7 @@ end
 
 @testset "Game: contrived game" begin
     players = ntuple(3) do i
-        TH.Player(BotRandom(), i)
+        Player(Bot5050(), i)
     end
     game = Game(players)
     players = TH.players_at_table(game)
@@ -50,7 +50,7 @@ end
 
     # All-in cases
     players = ntuple(3) do i
-        TH.Player(BotRandom(), i)
+        Player(Bot5050(), i)
     end
     game = Game(players)
     players = TH.players_at_table(game)

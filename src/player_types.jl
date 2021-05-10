@@ -2,21 +2,21 @@
 ##### Player types
 #####
 
-export bank_roll
+export Player, bank_roll
 export Human
-export BotRandom, BotSitOut, BotCheckFold, BotCheckCall
+export AbstractAI, Bot5050, BotSitOut, BotCheckFold, BotCheckCall
 
 abstract type AbstractLifeForm end
 
 struct Human <: AbstractLifeForm end
 
 abstract type AbstractAI <: AbstractLifeForm end
-struct BotRandom <: AbstractAI end
+struct Bot5050 <: AbstractAI end
 struct BotSitOut <: AbstractAI end
 struct BotCheckFold <: AbstractAI end
 struct BotCheckCall <: AbstractAI end
 
-ai_to_use() = BotRandom()
+ai_to_use() = Bot5050()
 
 mutable struct Player{LF}
     life_form::LF
@@ -83,3 +83,5 @@ all_in(player::Player) = player.all_in
 action_required(player::Player) = player.action_required
 sat_out(player::Player) = player.sat_out
 round_bank_roll(player::Player) = player.round_bank_roll
+pot_investment(player::Player) = player.pot_investment
+round_contribution(player::Player) = player.round_contribution

@@ -1,7 +1,7 @@
 """
     TexasHoldem
 
-A no-limit hold-em simulator.
+A no-limit Texas Holdem simulator.
 
 # Terminology
  - `game` a single "game", where players are dealt hands,
@@ -19,7 +19,7 @@ using PokerHandEvaluator.HandTypes
 using UnPack
 using Printf
 
-export PreFlop, Flop, Turn, River
+export AbstractGameState, PreFlop, Flop, Turn, River
 
 abstract type AbstractGameState end
 struct PreFlop <: AbstractGameState end

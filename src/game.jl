@@ -26,7 +26,7 @@ function Game(players::Tuple;
 
     n_player_cards = sum(map(x->cards(x)==nothing ? 0 : length(cards(x)), players))
 
-    @assert 2 ≤ length(players) ≤ 10
+    @assert 2 ≤ length(players) ≤ 10 "Invalid number of players"
 
     if length(deck) ≠ 52
         # if the deck isn't full, then players should have been dealt cards.
@@ -57,6 +57,7 @@ end
 players_at_table(game::Game) = players_at_table(game.table)
 blinds(game::Game) = blinds(game.table)
 any_actions_required(game::Game) = any_actions_required(game.table)
+state(game::Game) = state(game.table)
 
 print_new_cards(table, state::PreFlop) = nothing
 print_new_cards(table, state::Flop) =  @info "Flop: $(repeat(" ", 44)) $(table.cards[1:3])"

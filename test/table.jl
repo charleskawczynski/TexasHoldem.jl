@@ -5,7 +5,7 @@ using TexasHoldem
 TH = TexasHoldem
 
 @testset "Table: constructors / observed cards" begin
-    players = ntuple(i-> TH.Player(BotRandom(), i), 2)
+    players = ntuple(i-> Player(Bot5050(), i), 2)
     deck = ordered_deck()
     shuffle!(deck)
     blinds = TH.Blinds(1,2)
@@ -24,7 +24,7 @@ TH = TexasHoldem
 end
 
 @testset "Table: Move button" begin
-    players = ntuple(i-> TH.Player(BotRandom(), i), 3)
+    players = ntuple(i-> Player(Bot5050(), i), 3)
     table = Table(;players = players)
     @test table.button_id == 1
     move_button!(table)
@@ -56,7 +56,7 @@ end
 end
 
 @testset "Table: player position" begin
-    players = ntuple(i-> TH.Player(BotRandom(), i), 5)
+    players = ntuple(i-> Player(Bot5050(), i), 5)
     table = Table(;players = players, button_id = TH.button_id())
 
     @test TH.position(table, players[1], -5) == 1
@@ -88,7 +88,7 @@ end
 
     @test TH.button_id() == 1
 
-    players = ntuple(i-> TH.Player(BotRandom(), i), 5)
+    players = ntuple(i-> Player(Bot5050(), i), 5)
     table = Table(;players = players, button_id = TH.button_id())
     TH.deal!(table, TH.blinds(table))
 
@@ -102,7 +102,7 @@ end
     @test state==length(players)
 
     # button_id = 2
-    players = ntuple(i-> TH.Player(BotRandom(), i), 5)
+    players = ntuple(i-> Player(Bot5050(), i), 5)
     table = Table(;players = players, button_id = 2)
     TH.deal!(table, TH.blinds(table))
     state = 0
@@ -122,7 +122,7 @@ end
 
     @test TH.button_id() == 1
 
-    players = ntuple(i-> TH.Player(BotRandom(), i), 5)
+    players = ntuple(i-> Player(Bot5050(), i), 5)
     table = Table(;players = players, button_id = TH.button_id())
     TH.deal!(table, TH.blinds(table))
 
@@ -140,7 +140,7 @@ end
     @test state==length(players)
 
     # button_id = 2
-    players = ntuple(i-> TH.Player(BotRandom(), i), 5)
+    players = ntuple(i-> Player(Bot5050(), i), 5)
     table = Table(;players = players, button_id = 2)
     TH.deal!(table, TH.blinds(table))
     state = 0
@@ -160,7 +160,7 @@ end
 
     @test TH.button_id() == 1
 
-    players = ntuple(i-> TH.Player(BotRandom(), i), 5)
+    players = ntuple(i-> Player(Bot5050(), i), 5)
     table = Table(;players = players, button_id = TH.button_id())
     TH.deal!(table, TH.blinds(table))
 
@@ -178,7 +178,7 @@ end
     @test state==length(players)
 
     # button_id = 2
-    players = ntuple(i-> TH.Player(BotRandom(), i), 5)
+    players = ntuple(i-> Player(Bot5050(), i), 5)
     table = Table(;players = players, button_id = 2)
     TH.deal!(table, TH.blinds(table))
     state = 0
@@ -198,7 +198,7 @@ end
 
     @test TH.button_id() == 1
 
-    players = ntuple(i-> TH.Player(BotRandom(), i), 5)
+    players = ntuple(i-> Player(Bot5050(), i), 5)
     table = Table(;players = players, button_id = TH.button_id())
     TH.deal!(table, TH.blinds(table))
 
@@ -216,7 +216,7 @@ end
     @test state==length(players)
 
     # button_id = 2
-    players = ntuple(i-> TH.Player(BotRandom(), i), 5)
+    players = ntuple(i-> Player(Bot5050(), i), 5)
     table = Table(;players = players, button_id = 2)
     TH.deal!(table, TH.blinds(table))
     state = 0
@@ -235,7 +235,7 @@ end
 @testset "Table: iterate from player" begin
 
     @test TH.button_id() == 1
-    players = ntuple(i-> TH.Player(BotRandom(), i), 5)
+    players = ntuple(i-> Player(Bot5050(), i), 5)
     table = Table(;players = players, button_id = TH.button_id())
     TH.deal!(table, TH.blinds(table))
     # button_id = 1
@@ -247,7 +247,7 @@ end
     end
     @test state==length(players)
 
-    players = ntuple(i-> TH.Player(BotRandom(), i), 5)
+    players = ntuple(i-> Player(Bot5050(), i), 5)
     table = Table(;players = players, button_id = 2)
     TH.deal!(table, TH.blinds(table))
     # button_id = 2
@@ -259,7 +259,7 @@ end
     end
     @test state==length(players)
 
-    players = ntuple(i-> TH.Player(BotRandom(), i), 5)
+    players = ntuple(i-> Player(Bot5050(), i), 5)
     table = Table(;players = players, button_id = TH.button_id())
     TH.deal!(table, TH.blinds(table))
     # button_id = 1
@@ -275,7 +275,7 @@ end
     end
     @test state==length(players)
 
-    players = ntuple(i-> TH.Player(BotRandom(), i), 5)
+    players = ntuple(i-> Player(Bot5050(), i), 5)
     table = Table(;players = players, button_id = 2)
     TH.deal!(table, TH.blinds(table))
     # button_id = 2
