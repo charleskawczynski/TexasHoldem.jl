@@ -1,14 +1,14 @@
 using Test
 using PlayingCards
-using TexasHoldem: Player, BotRandom, TransactionManager, button_id, Table
+using TexasHoldem: Player, Bot5050, TransactionManager, button_id, Table
 TH = TexasHoldem
 
 @testset "TransactionManagers - Lowest bank roll goes all-in and wins it all" begin
     table_cards = (A♢, K♢, Q♢, 2♠, 3♠)
     players = (
-        TH.Player(BotRandom(), 1, (A♠, A♣); bank_roll = 1*100),
-        TH.Player(BotRandom(), 2, (K♠, K♣); bank_roll = 2*100),
-        TH.Player(BotRandom(), 3, (Q♠, Q♣); bank_roll = 3*100),
+        Player(Bot5050(), 1, (A♠, A♣); bank_roll = 1*100),
+        Player(Bot5050(), 2, (K♠, K♣); bank_roll = 2*100),
+        Player(Bot5050(), 3, (Q♠, Q♣); bank_roll = 3*100),
     )
     tm = TH.TransactionManager(players)
     table = Table(;players=players,cards=table_cards,transactions=tm)
@@ -30,9 +30,9 @@ end
 @testset "TransactionManagers - Highest bank roll goes all-in and wins it all" begin
     table_cards = (A♢, K♢, Q♢, 2♠, 3♠)
     players = (
-        TH.Player(BotRandom(), 1, (A♠, A♣); bank_roll = 3*100),
-        TH.Player(BotRandom(), 2, (K♠, K♣); bank_roll = 2*100),
-        TH.Player(BotRandom(), 3, (Q♠, Q♣); bank_roll = 1*100),
+        Player(Bot5050(), 1, (A♠, A♣); bank_roll = 3*100),
+        Player(Bot5050(), 2, (K♠, K♣); bank_roll = 2*100),
+        Player(Bot5050(), 3, (Q♠, Q♣); bank_roll = 1*100),
     )
     tm = TH.TransactionManager(players)
     table = Table(;players=players,cards=table_cards,transactions=tm)
@@ -53,9 +53,9 @@ end
 @testset "TransactionManagers - Lowest bank roll goes all-in and wins a split pot" begin
     table_cards = (A♢, K♢, Q♢, 2♠, 3♠)
     players = (
-        TH.Player(BotRandom(), 1, (A♠, A♣); bank_roll = 1*100),
-        TH.Player(BotRandom(), 2, (K♠, K♣); bank_roll = 2*100),
-        TH.Player(BotRandom(), 3, (Q♠, Q♣); bank_roll = 3*100),
+        Player(Bot5050(), 1, (A♠, A♣); bank_roll = 1*100),
+        Player(Bot5050(), 2, (K♠, K♣); bank_roll = 2*100),
+        Player(Bot5050(), 3, (Q♠, Q♣); bank_roll = 3*100),
     )
     tm = TH.TransactionManager(players)
     table = Table(;players=players,cards=table_cards,transactions=tm)
@@ -85,9 +85,9 @@ end
 @testset "TransactionManagers - Highest bank roll goes all-in and wins it all" begin
     table_cards = (A♢, K♢, Q♢, 2♠, 3♠)
     players = (
-        TH.Player(BotRandom(), 1, (A♠, A♣); bank_roll = 3*100),
-        TH.Player(BotRandom(), 2, (K♠, K♣); bank_roll = 2*100),
-        TH.Player(BotRandom(), 3, (Q♠, Q♣); bank_roll = 1*100),
+        Player(Bot5050(), 1, (A♠, A♣); bank_roll = 3*100),
+        Player(Bot5050(), 2, (K♠, K♣); bank_roll = 2*100),
+        Player(Bot5050(), 3, (Q♠, Q♣); bank_roll = 1*100),
     )
     tm = TH.TransactionManager(players)
     table = Table(;players=players,cards=table_cards,transactions=tm)
@@ -117,12 +117,12 @@ end
 @testset "TransactionManagers - Semi-complicated split pot (shared winners)" begin
     table_cards = (T♢, Q♢, A♠, 8♠, 9♠)
     players = (
-        TH.Player(BotRandom(), 1, (4♠, 5♣); bank_roll = 1*100), # bust
-        TH.Player(BotRandom(), 2, (K♠, K♣); bank_roll = 2*100), # win, split with player 3
-        TH.Player(BotRandom(), 3, (K♡,K♢); bank_roll = 3*100), # win, split with player 2
-        TH.Player(BotRandom(), 4, (2♡, 3♢); bank_roll = 4*100), # bust
-        TH.Player(BotRandom(), 5, (7♠, 7♣); bank_roll = 5*100), # 2nd to players 2 and 3, win remaining pot
-        TH.Player(BotRandom(), 6, (2♠, 3♣); bank_roll = 6*100), # lose, but not bust
+        Player(Bot5050(), 1, (4♠, 5♣); bank_roll = 1*100), # bust
+        Player(Bot5050(), 2, (K♠, K♣); bank_roll = 2*100), # win, split with player 3
+        Player(Bot5050(), 3, (K♡,K♢); bank_roll = 3*100), # win, split with player 2
+        Player(Bot5050(), 4, (2♡, 3♢); bank_roll = 4*100), # bust
+        Player(Bot5050(), 5, (7♠, 7♣); bank_roll = 5*100), # 2nd to players 2 and 3, win remaining pot
+        Player(Bot5050(), 6, (2♠, 3♣); bank_roll = 6*100), # lose, but not bust
     )
     tm = TH.TransactionManager(players)
     table = Table(;players=players,cards=table_cards,transactions=tm)
@@ -180,12 +180,12 @@ end
 @testset "TransactionManagers - Single round split pot (shared winners), with simple re-raises" begin
     table_cards = (T♢, Q♢, A♠, 8♠, 9♠)
     players = (
-        TH.Player(BotRandom(), 1, (4♠, 5♣); bank_roll = 1*100), # bust
-        TH.Player(BotRandom(), 2, (K♠, K♣); bank_roll = 2*100), # win, split with player 3
-        TH.Player(BotRandom(), 3, (K♡,K♢); bank_roll = 3*100), # win, split with player 2
-        TH.Player(BotRandom(), 4, (2♡, 3♢); bank_roll = 4*100), # bust
-        TH.Player(BotRandom(), 5, (7♠, 7♣); bank_roll = 5*100), # 2nd to players 2 and 3, win remaining pot
-        TH.Player(BotRandom(), 6, (2♠, 3♣); bank_roll = 6*100), # lose, but not bust
+        Player(Bot5050(), 1, (4♠, 5♣); bank_roll = 1*100), # bust
+        Player(Bot5050(), 2, (K♠, K♣); bank_roll = 2*100), # win, split with player 3
+        Player(Bot5050(), 3, (K♡,K♢); bank_roll = 3*100), # win, split with player 2
+        Player(Bot5050(), 4, (2♡, 3♢); bank_roll = 4*100), # bust
+        Player(Bot5050(), 5, (7♠, 7♣); bank_roll = 5*100), # 2nd to players 2 and 3, win remaining pot
+        Player(Bot5050(), 6, (2♠, 3♣); bank_roll = 6*100), # lose, but not bust
     )
     tm = TH.TransactionManager(players)
     table = Table(;players=players,cards=table_cards,transactions=tm)
@@ -224,12 +224,12 @@ end
 @testset "TransactionManagers - Single round split pot (shared winners), with simple re-raises, reversed bank roll order" begin
     table_cards = (T♢, Q♢, A♠, 8♠, 9♠)
     players = (
-        TH.Player(BotRandom(), 1, (2♠, 3♣); bank_roll = 6*100), # lose, but not bust
-        TH.Player(BotRandom(), 2, (7♠, 7♣); bank_roll = 5*100), # 2nd to players 2 and 3, win remaining pot
-        TH.Player(BotRandom(), 3, (2♡, 3♢); bank_roll = 4*100), # bust
-        TH.Player(BotRandom(), 4, (K♡,K♢); bank_roll = 3*100), # win, split with player 2
-        TH.Player(BotRandom(), 5, (K♠, K♣); bank_roll = 2*100), # win, split with player 3
-        TH.Player(BotRandom(), 6, (4♠, 5♣); bank_roll = 1*100), # bust
+        Player(Bot5050(), 1, (2♠, 3♣); bank_roll = 6*100), # lose, but not bust
+        Player(Bot5050(), 2, (7♠, 7♣); bank_roll = 5*100), # 2nd to players 2 and 3, win remaining pot
+        Player(Bot5050(), 3, (2♡, 3♢); bank_roll = 4*100), # bust
+        Player(Bot5050(), 4, (K♡,K♢); bank_roll = 3*100), # win, split with player 2
+        Player(Bot5050(), 5, (K♠, K♣); bank_roll = 2*100), # win, split with player 3
+        Player(Bot5050(), 6, (4♠, 5♣); bank_roll = 1*100), # bust
     )
     tm = TH.TransactionManager(players)
     table = Table(;players=players,cards=table_cards,transactions=tm)

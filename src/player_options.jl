@@ -1,36 +1,40 @@
+export SitDownSitOut,
+    CheckRaiseFold,
+    CallRaiseFold,
+    CallAllInFold,
+    CallFold
+
 abstract type PlayerOptions end
 struct CheckRaiseFold <: PlayerOptions end
 struct CallRaiseFold <: PlayerOptions end
-struct CallAllInFold <: PlayerOptions end # TODO: maybe useful?
+struct CallAllInFold <: PlayerOptions end
 struct CallFold <: PlayerOptions end
-struct PayBlindSitOut <: PlayerOptions end
+struct SitDownSitOut <: PlayerOptions end
 
 function player_option!(game::Game, player::Player)
-    cra = game.table.current_raise_amt
-    pc = player.round_contribution
-    cra ≈ 0 && (@assert pc ≈ 0)
-    call_amt = cra - pc
-    @debug "player_option! cra = $cra, pc = $pc, call_amt = $call_amt, !(call_amt ≈ 0) = $(!(call_amt ≈ 0))"
+    table = game.table
+    call_amt = call_amount(table, player)
+    game_state = state(table)
     if !(call_amt ≈ 0)
-        pc = player.round_contribution
-        amt_required_to_call = cra-pc # (i.e., call amount)
-        raise_possible = bank_roll(player) > amt_required_to_call
+        raise_possible = bank_roll(player) > call_amt
         @debug "raise_possible = $raise_possible"
         if raise_possible # all-in or fold
-            player_option!(game, player, CallRaiseFold())
+            player_option!(game, player, game_state, CallRaiseFold())
         else
-            player_option!(game, player, CallFold())
+            player_option!(game, player, game_state, CallFold())
         end
     else
-        player_option!(game, player, CheckRaiseFold())
+        player_option!(game, player, game_state, CheckRaiseFold())
     end
 end
+
+player_option(player::Player, ::SitDownSitOut) = PayBlind()
 
 #####
 ##### Human player options (ask via prompts)
 #####
 
-function player_option(player::Player{Human}, ::PayBlindSitOut)
+function player_option(player::Player{Human}, ::SitDownSitOut)
     options = ["Pay blind", "Sit out a hand"]
     menu = RadioMenu(options, pagesize=4)
     choice = request("$(name(player))'s turn to act:", menu)
@@ -38,7 +42,7 @@ function player_option(player::Player{Human}, ::PayBlindSitOut)
     choice == 1 && return PayBlind()
     choice == 2 && return SitOut()
 end
-function player_option!(game::Game, player::Player{Human}, ::CheckRaiseFold)
+function player_option!(game::Game, player::Player{Human}, ::AbstractGameState, ::CheckRaiseFold)
     options = ["Check", "Raise", "Fold"]
     menu = RadioMenu(options, pagesize=4)
     choice = request("$(name(player))'s turn to act:", menu)
@@ -47,7 +51,7 @@ function player_option!(game::Game, player::Player{Human}, ::CheckRaiseFold)
     choice == 2 && raise_to!(game, player, input_raise_amt(game.table, player))
     choice == 3 && fold!(game, player)
 end
-function player_option!(game::Game, player::Player{Human}, ::CallRaiseFold)
+function player_option!(game::Game, player::Player{Human}, ::AbstractGameState, ::CallRaiseFold)
     options = ["Call", "Raise", "Fold"]
     menu = RadioMenu(options, pagesize=4)
     choice = request("$(name(player))'s turn to act:", menu)
@@ -56,7 +60,7 @@ function player_option!(game::Game, player::Player{Human}, ::CallRaiseFold)
     choice == 2 && raise_to!(game, player, input_raise_amt(game.table, player))
     choice == 3 && fold!(game, player)
 end
-function player_option!(game::Game, player::Player{Human}, ::CallFold)
+function player_option!(game::Game, player::Player{Human}, ::AbstractGameState, ::CallFold)
     options = ["Call", "Fold"]
     menu = RadioMenu(options, pagesize=4)
     choice = request("$(name(player))'s turn to act:", menu)
@@ -89,27 +93,23 @@ end
 
 ##### BotSitOut
 
-player_option(player::Player{BotSitOut}, ::PayBlindSitOut) = SitOut() # no other options needed
+player_option(player::Player{BotSitOut}, ::SitDownSitOut) = SitOut() # no other options needed
 
 ##### BotCheckFold
 
-player_option(player::Player{BotCheckFold}, ::PayBlindSitOut) = PayBlind()
-player_option!(game::Game, player::Player{BotCheckFold}, ::CheckRaiseFold) = check!(game, player)
-player_option!(game::Game, player::Player{BotCheckFold}, ::CallRaiseFold) = fold!(game, player)
-player_option!(game::Game, player::Player{BotCheckFold}, ::CallFold) = fold!(game, player)
+player_option!(game::Game, player::Player{BotCheckFold}, ::AbstractGameState, ::CheckRaiseFold) = check!(game, player)
+player_option!(game::Game, player::Player{BotCheckFold}, ::AbstractGameState, ::CallRaiseFold) = fold!(game, player)
+player_option!(game::Game, player::Player{BotCheckFold}, ::AbstractGameState, ::CallFold) = fold!(game, player)
 
 ##### BotCheckCall
 
-player_option(player::Player{BotCheckCall}, ::PayBlindSitOut) = PayBlind()
-player_option!(game::Game, player::Player{BotCheckCall}, ::CheckRaiseFold) = check!(game, player)
-player_option!(game::Game, player::Player{BotCheckCall}, ::CallRaiseFold) = call!(game, player)
-player_option!(game::Game, player::Player{BotCheckCall}, ::CallFold) = call!(game, player)
+player_option!(game::Game, player::Player{BotCheckCall}, ::AbstractGameState, ::CheckRaiseFold) = check!(game, player)
+player_option!(game::Game, player::Player{BotCheckCall}, ::AbstractGameState, ::CallRaiseFold) = call!(game, player)
+player_option!(game::Game, player::Player{BotCheckCall}, ::AbstractGameState, ::CallFold) = call!(game, player)
 
-##### BotRandom
+##### Bot5050
 
-player_option(player::Player{BotRandom}, ::PayBlindSitOut) = PayBlind()
-
-function player_option!(game::Game, player::Player{BotRandom}, ::CheckRaiseFold)
+function player_option!(game::Game, player::Player{Bot5050}, ::AbstractGameState, ::CheckRaiseFold)
     if rand() < 0.5
         check!(game, player)
     else
@@ -118,7 +118,7 @@ function player_option!(game::Game, player::Player{BotRandom}, ::CheckRaiseFold)
         raise_to!(game, player, amt)
     end
 end
-function player_option!(game::Game, player::Player{BotRandom}, ::CallRaiseFold)
+function player_option!(game::Game, player::Player{Bot5050}, ::AbstractGameState, ::CallRaiseFold)
     if rand() < 0.5
         if rand() < 0.5 # Call
             call!(game, player)
@@ -132,7 +132,7 @@ function player_option!(game::Game, player::Player{BotRandom}, ::CallRaiseFold)
     end
 end
 
-function player_option!(game::Game, player::Player{BotRandom}, ::CallFold)
+function player_option!(game::Game, player::Player{Bot5050}, ::AbstractGameState, ::CallFold)
     if rand() < 0.5
         call!(game, player)
     else

@@ -44,12 +44,19 @@ end
 ##### Call
 #####
 
+function call_amount(table::Table, player::Player)
+    cra = table.current_raise_amt
+    prc = player.round_contribution
+    cra ≈ 0 && (@assert prc ≈ 0)
+    call_amt = cra - prc
+    @debug "cra = $cra, prc = $prc, call_amt = $call_amt"
+    return call_amt
+end
+
 call!(game::Game, player::Player) = call!(game.table, player)
 
 function call!(table::Table, player::Player)
-    cra = table.current_raise_amt
-    pc = player.round_contribution
-    call_amt = cra - pc
+    call_amt = call_amount(table, player)
     if call_amt ≤ bank_roll(player)
         call_valid_amount!(table, player, call_amt)
     else
@@ -87,6 +94,28 @@ function bound_raise(table::Table, player::Player, amt)
     return amt
 end
 
+"""
+    valid_raise_bounds(table::Table, player::Player)
+
+A tuple of valid raise bounds. Note that
+all-in is the only option if both elements
+are equal.
+"""
+function valid_raise_bounds(table::Table, player::Player)
+    cra = table.current_raise_amt
+    rbr = round_bank_roll(player)
+    if cra ≈ 0 # initial raise
+        vrb = (blinds(table).small, rbr)
+    else # re-raise
+        if rbr > 2*cra
+            vrb = (2*cra, rbr)
+        else
+            vrb = (rbr, rbr)
+        end
+    end
+    return vrb
+end
+
 # TODO: add assertion that raise amount must be
 # greater than small blind (unless all-in).
 """
@@ -100,28 +129,19 @@ function valid_raise_amount(table::Table, player::Player, amt)
     @assert !(amt ≈ 0)
     @assert amt ≤ round_bank_roll(player)
     cra = table.current_raise_amt
-    pc = player.round_contribution
-    br = round_bank_roll(player)
-    if cra ≈ 0 # initial raise
-        rb = (blinds(table).small, br) # raise bounds
-    else # re-raise
-        if br > 2*cra
-            rb = (2*cra, br) # raise bounds
-        else
-            rb = (br, br) # raise bounds
-        end
-    end
-    # @assert amt_required_to_call > 0 # right?
-    @debug "Attempting to raise to \$$(amt), already contributed \$$(pc). Valid raise bounds: [\$$(rb[1]), \$$(rb[2])]"
-    if !(rb[1] ≤ amt ≤ rb[2] || amt ≈ rb[1] ≈ rb[2])
+    prc = player.round_contribution
+    rbr = round_bank_roll(player)
+    vrb = valid_raise_bounds(table, player)
+    @debug "Attempting to raise to \$$(amt), already contributed \$$(prc). Valid raise bounds: [\$$(vrb[1]), \$$(vrb[2])]"
+    if !(vrb[1] ≤ amt ≤ vrb[2] || amt ≈ vrb[1] ≈ vrb[2])
         @debug "cra = $cra"
         @debug "amt = $amt"
-        @debug "br = $br"
-        @debug "amt ≈ br = $(amt ≈ br)"
-        @debug "2*cra ≤ amt ≤ br = $(2*cra ≤ amt ≤ br)"
+        @debug "rbr = $rbr"
+        @debug "amt ≈ rbr = $(amt ≈ rbr)"
+        @debug "2*cra ≤ amt ≤ rbr = $(2*cra ≤ amt ≤ rbr)"
     end
-    @assert rb[1] ≤ amt ≤ rb[2] || amt ≈ rb[1] ≈ rb[2]
-    @assert amt - pc > 0 # contribution amount must be > 0!
+    @assert vrb[1] ≤ amt ≤ vrb[2] || amt ≈ vrb[1] ≈ vrb[2]
+    @assert amt - prc > 0 # contribution amount must be > 0!
     return amt
 end
 
@@ -153,8 +173,8 @@ raise_to!(table::Table, player::Player, amt) =
 
 function raise_to_valid_raise_amount!(table::Table, player::Player, amt)
     @debug "$(name(player)) raising to $(amt)."
-    pc = player.round_contribution
-    contribute!(table, player, amt - pc, false)
+    prc = player.round_contribution
+    contribute!(table, player, amt - prc, false)
     table.current_raise_amt = amt
 
     push!(player.action_history, Raise(amt))
@@ -173,3 +193,7 @@ function raise_to_valid_raise_amount!(table::Table, player::Player, amt)
         @info "$(name(player)) raised to $(amt)."
     end
 end
+
+raise_all_in!(game::Game, player::Player) = raise_all_in!(game.table, player)
+raise_all_in!(table::Table, player::Player) =
+    raise_to!(table, player, round_bank_roll(player))

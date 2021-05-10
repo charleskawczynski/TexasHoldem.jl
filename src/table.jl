@@ -30,17 +30,44 @@ function Base.show(io::IO, blinds::Blinds, include_type = true)
     println(io, "Blinds           = (small=$(blinds.small),big=$(blinds.big))")
 end
 
-Base.@kwdef mutable struct Table
-    deck::PlayingCards.Deck = ordered_deck()
+mutable struct Table
+    deck::PlayingCards.Deck
     players::Tuple
-    cards::Union{Nothing,Tuple{<:Card,<:Card,<:Card,<:Card,<:Card}} = nothing
-    blinds::Blinds = Blinds()
-    pot::Float64 = Float64(0)
-    state::AbstractGameState = PreFlop()
-    button_id::Int = button_id()
-    current_raise_amt::Float64 = Float64(0)
-    transactions::TransactionManager = TransactionManager(players)
-    winners::Winners = Winners()
+    cards::Union{Nothing,Tuple{<:Card,<:Card,<:Card,<:Card,<:Card}}
+    blinds::Blinds
+    pot::Float64
+    state::AbstractGameState
+    button_id::Int
+    current_raise_amt::Float64
+    transactions::TransactionManager
+    winners::Winners
+end
+
+function Table(;
+    players::Tuple,
+    deck = ordered_deck(),
+    cards = nothing,
+    blinds = Blinds(),
+    pot = Float64(0),
+    state = PreFlop(),
+    button_id = button_id(),
+    current_raise_amt = Float64(0),
+    transactions = nothing,
+    winners = Winners(),
+)
+    if transactions == nothing
+        transactions = TransactionManager(players)
+    end
+    return Table(deck,
+        players,
+        cards,
+        blinds,
+        pot,
+        state,
+        button_id,
+        current_raise_amt,
+        transactions,
+        winners)
 end
 
 function Base.show(io::IO, table::Table, include_type = true)
@@ -63,6 +90,7 @@ observed_cards(table::Table, ::Flop) = table.cards[1:3]
 observed_cards(table::Table, ::Turn) = table.cards[1:4]
 observed_cards(table::Table, ::River) = table.cards
 
+state(table::Table) = table.state
 players_at_table(table::Table) = table.players
 all_checked_or_folded(table::Table) = all(map(x -> folded(x) || checked(x), players_at_table(table)))
 all_all_in_or_folded(table::Table) = all(map(x -> folded(x) || all_in(x), players_at_table(table)))
@@ -197,7 +225,7 @@ function deal!(table::Table, blinds::Blinds)
     players = players_at_table(table)
     shuffle!(table.deck)
     for (i, player) in enumerate(circle(table, SmallBlind()))
-        po = player_option(player, PayBlindSitOut())
+        po = player_option(player, SitDownSitOut())
         # TODO: move sit-out option to before deal! to allow earlier
         # error checking, and avoiding situations with too few players.
         if po isa SitOut
@@ -206,22 +234,18 @@ function deal!(table::Table, blinds::Blinds)
             @info "$(name(player)) sat out a hand."
             check_for_winner!(table)
         elseif po isa PayBlind
-            if player.id == small_blind(table).id && bank_roll(player) ≤ blinds.small
-                player.cards = pop!(table.deck, 2)
-                player.all_in = true
+            player.cards = pop!(table.deck, 2)
+            if is_small_blind(table, player) && bank_roll(player) ≤ blinds.small
                 @info "$(name(player)) paid the small blind (all-in) and dealt cards: $(player.cards)"
                 contribute!(table, player, bank_roll(player))
-            elseif player.id == big_blind(table).id && bank_roll(player) ≤ blinds.big
-                player.cards = pop!(table.deck, 2)
-                player.all_in = true
+            elseif is_big_blind(table, player) && bank_roll(player) ≤ blinds.big
                 @info "$(name(player)) paid the  big  blind (all-in) and dealt cards: $(player.cards)"
                 contribute!(table, player, bank_roll(player))
             else
-                player.cards = pop!(table.deck, 2)
-                if player.id == small_blind(table).id
+                if is_small_blind(table, player)
                     @info "$(name(player)) paid the small blind and dealt cards: $(player.cards)"
                     contribute!(table, player, blinds.small)
-                elseif player.id == big_blind(table).id
+                elseif is_big_blind(table, player)
                     @info "$(name(player)) paid the  big  blind and dealt cards: $(player.cards)"
                     contribute!(table, player, blinds.big)
                 else

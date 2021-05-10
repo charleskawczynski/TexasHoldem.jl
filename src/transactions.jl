@@ -134,9 +134,6 @@ function contribute!(table, player, amt, call=false)
         amt_remaining -= amt_contrib
         amt_remaining ≈ 0 && break
     end
-    if !(amt_remaining ≈ 0)
-        @show amt_remaining
-    end
     @assert amt_remaining ≈ 0 # pots better be emptied
 
     if bank_roll(player) ≈ 0 # went all-in, set exactly.
@@ -228,6 +225,9 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards)
         end
         n_winners = length(winner_ids)
         @debug "winner_ids = $(winner_ids)"
+        @debug "length(players) = $(length(players))"
+        @debug "length(hand_evals_sorted) = $(length(hand_evals_sorted))"
+        @debug "length(tm.sorted_players) = $(length(tm.sorted_players))"
         for winner_id in winner_ids
             win_id = tm.sorted_players[winner_id].id
             winning_player = players[win_id]
