@@ -6,7 +6,7 @@ export fold!, check!, raise_to!, call!
 export Fold, Check, Call, Raise
 
 abstract type AbstractAction end
-struct PayBlind <: AbstractAction end
+struct SitDown <: AbstractAction end
 struct SitOut <: AbstractAction end
 struct Fold <: AbstractAction end
 struct Check <: AbstractAction end
