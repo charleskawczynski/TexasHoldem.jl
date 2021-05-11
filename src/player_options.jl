@@ -15,8 +15,8 @@ function player_option!(game::Game, player::Player)
     game_state = state(table)
     if !(call_amt ≈ 0) # must call to stay in
         if bank_roll(player) > call_amt # raise possible
-            rb = valid_raise_bounds(table, player)
-            if first(rb) ≈ last(rb) # only all-in raise possible
+            vrb = valid_raise_bounds(table, player)
+            if first(vrb) ≈ last(vrb) # only all-in raise possible
                 player_option!(game, player, game_state, CallAllInFold())
             else
                 player_option!(game, player, game_state, CallRaiseFold())
@@ -34,16 +34,22 @@ end
 #####
 
 function player_option!(game::Game, player::Player{Human}, ::AbstractGameState, ::CheckRaiseFold, io::IO=stdin)
-    options = ["Check", "Raise", "Fold"]
+    table = game.table
+    vrb = valid_raise_bounds(table, player)
+    options = ["Check", "Raise [\$$(minimum(vrb)), \$$(maximum(vrb))]", "Fold"]
     menu = RadioMenu(options, pagesize=4)
     choice = request("$(name(player))'s turn to act:", menu)
     choice == -1 && error("Uncaught case")
     choice == 1 && check!(game, player)
-    choice == 2 && raise_to!(game, player, input_raise_amt(game.table, player, io))
+    choice == 2 && raise_to!(game, player, input_raise_amt(table, player, io))
     choice == 3 && fold!(game, player)
 end
 function player_option!(game::Game, player::Player{Human}, ::AbstractGameState, ::CallRaiseFold, io::IO=stdin)
-    options = ["Call", "Raise", "Fold"]
+    table = game.table
+    vrb = valid_raise_bounds(table, player)
+    call_amt = call_amount(table, player)
+    blind_str = is_blind_call(table, player) ? " (blind)" : ""
+    options = ["Call \$$(call_amt)$blind_str", "Raise [\$$(minimum(vrb)), \$$(maximum(vrb))]", "Fold"]
     menu = RadioMenu(options, pagesize=4)
     choice = request("$(name(player))'s turn to act:", menu)
     choice == -1 && error("Uncaught case")
@@ -52,7 +58,11 @@ function player_option!(game::Game, player::Player{Human}, ::AbstractGameState, 
     choice == 3 && fold!(game, player)
 end
 function player_option!(game::Game, player::Player{Human}, ::AbstractGameState, ::CallAllInFold)
-    options = ["Call", "All-in", "Fold"]
+    table = game.table
+    call_amt = call_amount(table, player)
+    all_in_amt = round_bank_roll(player)
+    blind_str = is_blind_call(table, player) ? " (blind)" : ""
+    options = ["Call \$$(call_amt)$blind_str", "Raise all-in (\$$(all_in_amt))", "Fold"]
     menu = RadioMenu(options, pagesize=4)
     choice = request("$(name(player))'s turn to act:", menu)
     choice == -1 && error("Uncaught case")
@@ -61,7 +71,10 @@ function player_option!(game::Game, player::Player{Human}, ::AbstractGameState, 
     choice == 3 && fold!(game, player)
 end
 function player_option!(game::Game, player::Player{Human}, ::AbstractGameState, ::CallFold)
-    options = ["Call", "Fold"]
+    table = game.table
+    call_amt = call_amount(table, player)
+    blind_str = is_blind_call(table, player) ? " (blind)" : ""
+    options = ["Call \$$(call_amt)$blind_str", "Fold"]
     menu = RadioMenu(options, pagesize=4)
     choice = request("$(name(player))'s turn to act:", menu)
     choice == -1 && error("Uncaught case")
