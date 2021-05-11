@@ -233,7 +233,7 @@ function deal!(table::Table, blinds::Blinds)
             player.sat_out = true
             @info "$(name(player)) sat out a hand."
             check_for_winner!(table)
-        elseif po isa PayBlind
+        elseif po isa SitDown
             player.cards = pop!(table.deck, 2)
             if is_small_blind(table, player) && bank_roll(player) ≤ blinds.small
                 @info "$(name(player)) paid the small blind (all-in) and dealt cards: $(player.cards)"
