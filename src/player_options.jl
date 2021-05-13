@@ -17,16 +17,18 @@ function player_option!(game::Game, player::Player)
         if bank_roll(player) > call_amt # raise possible
             vrb = valid_raise_bounds(table, player)
             if first(vrb) ≈ last(vrb) # only all-in raise possible
-                player_option!(game, player, game_state, CallAllInFold())
+                option = CallAllInFold()
             else
-                player_option!(game, player, game_state, CallRaiseFold())
+                option = CallRaiseFold()
             end
         else # only all-in possible
-            player_option!(game, player, game_state, CallFold())
+            option = CallFold()
         end
     else
-        player_option!(game, player, game_state, CheckRaiseFold())
+        option = CheckRaiseFold()
     end
+    @debug "option = $option"
+    player_option!(game, player, game_state, option)
 end
 
 #####

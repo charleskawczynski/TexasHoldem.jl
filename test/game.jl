@@ -42,10 +42,12 @@ end
 
     # Round 3
     raise_to!(game, players[1], 10)
+    @test TH.checked(players[1]) == false
     call!(game, players[2])
 
     # Round 4
     raise_to!(game, players[1], 20)
+    @test TH.checked(players[1]) == false
     fold!(game, players[2])
 
     # All-in cases
@@ -62,6 +64,7 @@ end
 
     # Round 2
     raise_to!(game, players[1], players[1].bank_roll)
+    @test TH.checked(players[1]) == false
     call!(game, players[2])
 
     @test_throws AssertionError raise_to!(game, players[1], 10000) # raise exceeds bank roll!
