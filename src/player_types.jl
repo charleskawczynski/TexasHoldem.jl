@@ -4,7 +4,7 @@
 
 export Player, bank_roll
 export Human
-export AbstractAI, Bot5050, BotSitOut, BotCheckFold, BotCheckCall
+export AbstractAI, Bot5050, BotCheckFold, BotCheckCall
 
 abstract type AbstractLifeForm end
 
@@ -12,7 +12,6 @@ struct Human <: AbstractLifeForm end
 
 abstract type AbstractAI <: AbstractLifeForm end
 struct Bot5050 <: AbstractAI end
-struct BotSitOut <: AbstractAI end
 struct BotCheckFold <: AbstractAI end
 struct BotCheckCall <: AbstractAI end
 

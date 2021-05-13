@@ -1,0 +1,16 @@
+++++++++++++++++++++++++++++++++++++++++++++++++++
+|Enter raise amt:
+|
+--------------------------------------------------
+|AAAAAAAAAAAAAAAA
+|
+++++++++++++++++++++++++++++++++++++++++++++++++++
+|Enter raise amt:
+|Raise must be a Float64
+|Enter raise amt:
+|
+--------------------------------------------------
+|AAAAAAAAAAAAAAAA
+|AAAAAAAAAAAAAAAAAAAAAAA
+|AAAAAAAAAAAAAAAA
+|

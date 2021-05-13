@@ -6,6 +6,8 @@ metafmt(level, _module, group, id, file, line) =
 submodules = [
     "players",
     "transactions",
+    "call_raise_validation",
+    "human_player_option",
     "table",
     "game",
     "play",

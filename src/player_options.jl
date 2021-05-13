@@ -1,5 +1,4 @@
-export SitDownSitOut,
-    CheckRaiseFold,
+export CheckRaiseFold,
     CallRaiseFold,
     CallAllInFold,
     CallFold
@@ -9,7 +8,6 @@ struct CheckRaiseFold <: PlayerOptions end
 struct CallRaiseFold <: PlayerOptions end
 struct CallAllInFold <: PlayerOptions end
 struct CallFold <: PlayerOptions end
-struct SitDownSitOut <: PlayerOptions end
 
 function player_option!(game::Game, player::Player)
     table = game.table
@@ -31,36 +29,26 @@ function player_option!(game::Game, player::Player)
     end
 end
 
-player_option(player::Player, ::SitDownSitOut) = SitDown()
-
 #####
 ##### Human player options (ask via prompts)
 #####
 
-function player_option(player::Player{Human}, ::SitDownSitOut)
-    options = ["Pay blind", "Sit out a hand"]
-    menu = RadioMenu(options, pagesize=4)
-    choice = request("$(name(player))'s turn to act:", menu)
-    choice == -1 && error("Uncaught case")
-    choice == 1 && return SitDown()
-    choice == 2 && return SitOut()
-end
-function player_option!(game::Game, player::Player{Human}, ::AbstractGameState, ::CheckRaiseFold)
+function player_option!(game::Game, player::Player{Human}, ::AbstractGameState, ::CheckRaiseFold, io::IO=stdin)
     options = ["Check", "Raise", "Fold"]
     menu = RadioMenu(options, pagesize=4)
     choice = request("$(name(player))'s turn to act:", menu)
     choice == -1 && error("Uncaught case")
     choice == 1 && check!(game, player)
-    choice == 2 && raise_to!(game, player, input_raise_amt(game.table, player))
+    choice == 2 && raise_to!(game, player, input_raise_amt(game.table, player, io))
     choice == 3 && fold!(game, player)
 end
-function player_option!(game::Game, player::Player{Human}, ::AbstractGameState, ::CallRaiseFold)
+function player_option!(game::Game, player::Player{Human}, ::AbstractGameState, ::CallRaiseFold, io::IO=stdin)
     options = ["Call", "Raise", "Fold"]
     menu = RadioMenu(options, pagesize=4)
     choice = request("$(name(player))'s turn to act:", menu)
     choice == -1 && error("Uncaught case")
     choice == 1 && call!(game, player)
-    choice == 2 && raise_to!(game, player, input_raise_amt(game.table, player))
+    choice == 2 && raise_to!(game, player, input_raise_amt(game.table, player, io))
     choice == 3 && fold!(game, player)
 end
 function player_option!(game::Game, player::Player{Human}, ::AbstractGameState, ::CallAllInFold)
@@ -81,31 +69,28 @@ function player_option!(game::Game, player::Player{Human}, ::AbstractGameState, 
     choice == 2 && fold!(game, player)
 end
 
-function input_raise_amt(table, player::Player{Human})
+function input_raise_amt(table, player::Player{Human}, io::IO=stdin)
     raise_amt = nothing
     while true
-        println("Enter raise amt:")
-        raise_amt = readline()
+        println(io, "Enter raise amt:")
+        raise_amt = readline(io)
         try
             raise_amt = parse(Float64, raise_amt)
-            # TODO: Write `is_valid_raise_amount`, and use for better error messages.
+            is_valid, msg = is_valid_raise_amount(table, player, raise_amt)
+            is_valid && break
+            println(io, msg)
         catch
-            println("Raise must be a Float64")
+            println(io, "Raise must be a Float64")
         end
-        raise_amt = valid_raise_amount(table, player, raise_amt)
-        break
     end
     @assert raise_amt ≠ nothing
-    return raise_amt
+    amt = valid_raise_amount(table, player, raise_amt)
+    return amt
 end
 
 #####
 ##### AbstractAI
 #####
-
-##### BotSitOut
-
-player_option(player::Player{BotSitOut}, ::SitDownSitOut) = SitOut() # no other options needed
 
 ##### BotCheckFold
 

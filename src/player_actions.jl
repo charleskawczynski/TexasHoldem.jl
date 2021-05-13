@@ -4,16 +4,15 @@
 
 export fold!, check!, raise_to!, call!
 export Fold, Check, Call, Raise
+export call_amount
 
 abstract type AbstractAction end
-struct SitDown <: AbstractAction end
-struct SitOut <: AbstractAction end
 struct Fold <: AbstractAction end
 struct Check <: AbstractAction end
-struct Call{T} <: AbstractAction
+struct Call{T <: Real} <: AbstractAction
     amt::T
 end
-struct Raise{T} <: AbstractAction
+struct Raise{T <: Real} <: AbstractAction
     amt::T
 end
 
@@ -45,11 +44,14 @@ end
 #####
 
 function call_amount(table::Table, player::Player)
-    cra = table.current_raise_amt
-    prc = player.round_contribution
-    cra ≈ 0 && (@assert prc ≈ 0)
+    cra = current_raise_amt(table)
+    prc = round_contribution(player)
+    if cra ≈ 0
+        @assert prc ≈ 0 "Round contribution must be zero if current raise is zero."
+    end
     call_amt = cra - prc
     @debug "cra = $cra, prc = $prc, call_amt = $call_amt"
+    @assert !(call_amt < 0) "Call amount cannot be negative"
     return call_amt
 end
 
@@ -64,7 +66,7 @@ function call!(table::Table, player::Player)
     end
 end
 
-function call_valid_amount!(table::Table, player::Player, amt)
+function call_valid_amount!(table::Table, player::Player, amt::Real)
     @debug "$(name(player)) calling $(amt)."
     push!(player.action_history, Call(amt))
     player.action_required = false
@@ -79,20 +81,10 @@ end
 """
     bound_raise(table::Table, player::Player, amt)
 
-Given a raise amount `amt`, return a valid raise
-amount by ensuring the raise:
- - is at least the small blind
- - is less than the player's bank roll
- - is twice the current raise amount
+Given a raise amount `amt`, return a valid raise amount.
 """
-function bound_raise(table::Table, player::Player, amt)
-    @debug "Bounding raise amout. Input amount = \$$(amt)"
-    amt = max(amt, 2*table.current_raise_amt)
-    amt = min(amt, round_bank_roll(player))
-    amt = max(amt, blinds(table).small)
-    @debug "Bounding raise amout. Output amount = \$$(amt)"
-    return amt
-end
+bound_raise(table::Table, player::Player, amt::Real) =
+    clamp(amt, valid_raise_bounds(table, player)...)
 
 """
     valid_raise_bounds(table::Table, player::Player)
@@ -102,7 +94,7 @@ all-in is the only option if both elements
 are equal.
 """
 function valid_raise_bounds(table::Table, player::Player)
-    cra = table.current_raise_amt
+    cra = current_raise_amt(table)
     rbr = round_bank_roll(player)
     if cra ≈ 0 # initial raise
         vrb = (blinds(table).small, rbr)
@@ -116,32 +108,44 @@ function valid_raise_bounds(table::Table, player::Player)
     return vrb
 end
 
-# TODO: add assertion that raise amount must be
-# greater than small blind (unless all-in).
+"""
+    is_valid, msg = is_valid_raise_amount(table::Table, player::Player, amt)
+
+A `Tuple` of two elements:
+ - A `Bool`, `is_valid`, indicating if the raise amount is valid or not
+ - A `String`, `msg`, of the error message (`msg` = "" if `is_valid = true`).
+"""
+function is_valid_raise_amount(table::Table, player::Player, amt::Real)
+    prc = round_contribution(player)
+    rbr = round_bank_roll(player)
+    vrb = valid_raise_bounds(table, player)
+    if amt ≈ 0
+        return false, "Cannot raise $amt. Raise must be between [\$$(vrb[1]), \$$(vrb[2])]"
+    end
+    if !(amt ≤ rbr)
+        return false, "Insufficient funds (\$$rbr) to raise \$$amt. Raise must be between [\$$(vrb[1]), \$$(vrb[2])]"
+    end
+    if !(vrb[1] ≤ amt ≤ vrb[2] || amt ≈ vrb[1] ≈ vrb[2])
+        if vrb[1] ≈ vrb[2]
+            return false, "Only allowable raise is \$$(vrb[1]) (all-in)"
+        else
+            return false, "Raise must be between [\$$(vrb[1]), \$$(vrb[2])]"
+        end
+    end
+    if !(amt - prc > 0)
+        return false, "Cannot contribute \$$(amt - prc) to the pot."
+    end
+    return true, ""
+end
+
 """
     valid_raise_amount(table::Table, player::Player, amt)
 
 Return back `amt` if `amt` is a valid raise amount.
-## Scenario 1 (`2*current_raise_amt > bank_roll(player)`) - only _raise_ option is all-in
-## Scenario 2 (`2*current_raise_amt < bank_roll(player)`) - raise option has a range
 """
-function valid_raise_amount(table::Table, player::Player, amt)
-    @assert !(amt ≈ 0)
-    @assert amt ≤ round_bank_roll(player)
-    cra = table.current_raise_amt
-    prc = player.round_contribution
-    rbr = round_bank_roll(player)
-    vrb = valid_raise_bounds(table, player)
-    @debug "Attempting to raise to \$$(amt), already contributed \$$(prc). Valid raise bounds: [\$$(vrb[1]), \$$(vrb[2])]"
-    if !(vrb[1] ≤ amt ≤ vrb[2] || amt ≈ vrb[1] ≈ vrb[2])
-        @debug "cra = $cra"
-        @debug "amt = $amt"
-        @debug "rbr = $rbr"
-        @debug "amt ≈ rbr = $(amt ≈ rbr)"
-        @debug "2*cra ≤ amt ≤ rbr = $(2*cra ≤ amt ≤ rbr)"
-    end
-    @assert vrb[1] ≤ amt ≤ vrb[2] || amt ≈ vrb[1] ≈ vrb[2]
-    @assert amt - prc > 0 # contribution amount must be > 0!
+function valid_raise_amount(table::Table, player::Player, amt::Real)
+    is_valid, msg = is_valid_raise_amount(table, player, amt)
+    @assert is_valid "$msg"
     return amt
 end
 
@@ -166,14 +170,14 @@ Player[2] call
 Player[3] call
 ```
 """
-raise_to!(game::Game, player::Player, amt) = raise_to!(game.table, player, amt)
+raise_to!(game::Game, player::Player, amt::Real) = raise_to!(game.table, player, amt)
 
-raise_to!(table::Table, player::Player, amt) =
+raise_to!(table::Table, player::Player, amt::Real) =
     raise_to_valid_raise_amount!(table, player, valid_raise_amount(table, player, amt))
 
-function raise_to_valid_raise_amount!(table::Table, player::Player, amt)
+function raise_to_valid_raise_amount!(table::Table, player::Player, amt::Real)
     @debug "$(name(player)) raising to $(amt)."
-    prc = player.round_contribution
+    prc = round_contribution(player)
     contribute!(table, player, amt - prc, false)
     table.current_raise_amt = amt
 
