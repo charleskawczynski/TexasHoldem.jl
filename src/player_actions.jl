@@ -70,8 +70,13 @@ function call_valid_amount!(table::Table, player::Player, amt::Real)
     @debug "$(name(player)) calling $(amt)."
     push!(player.action_history, Call(amt))
     player.action_required = false
+    blind_str = is_blind_call(table, player, amt) ? " (blind)" : ""
     contribute!(table, player, amt, true)
-    @info "$(name(player)) called $(amt)."
+    if all_in(player)
+        @info "$(name(player)) called $(amt)$blind_str (now all-in)."
+    else
+        @info "$(name(player)) called $(amt)$blind_str."
+    end
 end
 
 #####

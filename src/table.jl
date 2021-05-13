@@ -98,6 +98,20 @@ all_all_in_or_folded(table::Table) = all(map(x -> folded(x) || all_in(x), player
 
 blinds(table::Table) = table.blinds
 
+function is_blind_call(table::Table, player::Player, amt = call_amount(table, player))
+    pot_inv = pot_investment(player)
+    @debug "amt = $amt, pot_investment(player) = $pot_inv"
+    bb = blinds(table).big
+    sb = blinds(table).small
+    if is_small_blind(table, player)
+        return amt ≈ sb && pot_inv ≈ sb
+    elseif is_big_blind(table, player)
+        return amt ≈ 0 && pot_inv ≈ bb
+    else
+        return amt ≈ bb && pot_inv ≈ 0
+    end
+end
+
 function reset_round_bank_rolls!(table::Table)
     players = players_at_table(table)
     for player in players
