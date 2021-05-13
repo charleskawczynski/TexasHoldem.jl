@@ -14,8 +14,3 @@ end
 @testset "Game: Play (BotCheckFold)" begin
     play(Game(ntuple(i->Player(BotCheckFold(), i), 3)))
 end
-
-@testset "Game: Play (BotSitOut)" begin
-    players = (Player(BotSitOut(), 1),Player(BotCheckCall(), 2),Player(BotCheckCall(), 3))
-    play(Game(players))
-end

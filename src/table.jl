@@ -89,6 +89,7 @@ observed_cards(table::Table, ::PreFlop) = ()
 observed_cards(table::Table, ::Flop) = table.cards[1:3]
 observed_cards(table::Table, ::Turn) = table.cards[1:4]
 observed_cards(table::Table, ::River) = table.cards
+current_raise_amt(table::Table) = table.current_raise_amt
 
 state(table::Table) = table.state
 players_at_table(table::Table) = table.players
@@ -225,35 +226,23 @@ function deal!(table::Table, blinds::Blinds)
     players = players_at_table(table)
     shuffle!(table.deck)
     for (i, player) in enumerate(circle(table, SmallBlind()))
-        po = player_option(player, SitDownSitOut())
-        # TODO: move sit-out option to before deal! to allow earlier
-        # error checking, and avoiding situations with too few players.
-        if po isa SitOut
-            player.folded = true
-            player.sat_out = true
-            @info "$(name(player)) sat out a hand."
-            check_for_winner!(table)
-        elseif po isa SitDown
-            player.cards = pop!(table.deck, 2)
-            if is_small_blind(table, player) && bank_roll(player) ≤ blinds.small
-                @info "$(name(player)) paid the small blind (all-in) and dealt cards: $(player.cards)"
-                contribute!(table, player, bank_roll(player))
-            elseif is_big_blind(table, player) && bank_roll(player) ≤ blinds.big
-                @info "$(name(player)) paid the  big  blind (all-in) and dealt cards: $(player.cards)"
-                contribute!(table, player, bank_roll(player))
-            else
-                if is_small_blind(table, player)
-                    @info "$(name(player)) paid the small blind and dealt cards: $(player.cards)"
-                    contribute!(table, player, blinds.small)
-                elseif is_big_blind(table, player)
-                    @info "$(name(player)) paid the  big  blind and dealt cards: $(player.cards)"
-                    contribute!(table, player, blinds.big)
-                else
-                    @info "$(name(player)) dealt (free) cards:                   $(player.cards)"
-                end
-            end
+        player.cards = pop!(table.deck, 2)
+        if is_small_blind(table, player) && bank_roll(player) ≤ blinds.small
+            @info "$(name(player)) paid the small blind (all-in) and dealt cards: $(player.cards)"
+            contribute!(table, player, bank_roll(player))
+        elseif is_big_blind(table, player) && bank_roll(player) ≤ blinds.big
+            @info "$(name(player)) paid the  big  blind (all-in) and dealt cards: $(player.cards)"
+            contribute!(table, player, bank_roll(player))
         else
-            error("Uncaught case")
+            if is_small_blind(table, player)
+                @info "$(name(player)) paid the small blind and dealt cards: $(player.cards)"
+                contribute!(table, player, blinds.small)
+            elseif is_big_blind(table, player)
+                @info "$(name(player)) paid the  big  blind and dealt cards: $(player.cards)"
+                contribute!(table, player, blinds.big)
+            else
+                @info "$(name(player)) dealt (free) cards:                   $(player.cards)"
+            end
         end
         i==length(players) && break
     end
