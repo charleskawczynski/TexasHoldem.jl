@@ -70,6 +70,7 @@ function call_valid_amount!(table::Table, player::Player, amt::Real)
     @debug "$(name(player)) calling $(amt)."
     push!(player.action_history, Call(amt))
     player.action_required = false
+    player.checked = false
     blind_str = is_blind_call(table, player, amt) ? " (blind)" : ""
     contribute!(table, player, amt, true)
     if all_in(player)
@@ -189,6 +190,7 @@ function raise_to_valid_raise_amount!(table::Table, player::Player, amt::Real)
     push!(player.action_history, Raise(amt))
     player.action_required = false
     player.last_to_raise = true
+    player.checked = false
     players = players_at_table(table)
     for oponent in players
         oponent.id == player.id && continue
