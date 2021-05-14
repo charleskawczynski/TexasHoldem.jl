@@ -2,7 +2,7 @@
 ##### Player actions
 #####
 
-export fold!, check!, raise_to!, call!
+export fold!, check!, raise_to!, call!, raise_all_in!
 export Fold, Check, Call, Raise
 export call_amount
 

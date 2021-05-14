@@ -3,8 +3,8 @@
 #####
 
 export Player, bank_roll
-export Human
-export AbstractAI, Bot5050, BotCheckFold, BotCheckCall
+export Human, round_bank_roll
+export AbstractAI, Bot5050
 
 abstract type AbstractLifeForm end
 
@@ -12,8 +12,6 @@ struct Human <: AbstractLifeForm end
 
 abstract type AbstractAI <: AbstractLifeForm end
 struct Bot5050 <: AbstractAI end
-struct BotCheckFold <: AbstractAI end
-struct BotCheckCall <: AbstractAI end
 
 ai_to_use() = Bot5050()
 

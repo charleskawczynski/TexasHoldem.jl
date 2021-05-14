@@ -108,7 +108,7 @@ function contribute!(table, player, amt, call=false)
         error(msg1*msg2)
     end
     @assert all_in(player) == false
-    @assert !(amt ≈ 0)
+    @assert !(amt ≈ 0) "Cannot contribute \$$amt to the pot!"
 
     player.round_contribution += amt
     player.pot_investment += amt
