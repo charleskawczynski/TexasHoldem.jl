@@ -1,4 +1,5 @@
-export CheckRaiseFold,
+export PlayerOptions,
+    CheckRaiseFold,
     CallRaiseFold,
     CallAllInFold,
     CallFold
@@ -8,6 +9,27 @@ struct CheckRaiseFold <: PlayerOptions end
 struct CallRaiseFold <: PlayerOptions end
 struct CallAllInFold <: PlayerOptions end
 struct CallFold <: PlayerOptions end
+
+validate_action(::Fold, ::CheckRaiseFold) = nothing
+validate_action(::Fold, ::CallRaiseFold) = nothing
+validate_action(::Fold, ::CallAllInFold) = nothing
+validate_action(::Fold, ::CallFold) = nothing
+
+validate_action(::Check, ::CheckRaiseFold) = nothing
+validate_action(::Check, ::CallRaiseFold) = error("Cannot check. Available options: CallRaiseFold")
+validate_action(::Check, ::CallAllInFold) = error("Cannot check. Available options: CallAllInFold")
+validate_action(::Check, ::CallFold) = error("Cannot check. Available options: CallFold")
+
+# We catch this error before `call!` completes, so we don't need to catch here.
+# validate_action(::Call, ::CheckRaiseFold) = error("Cannot call. Available options: CheckRaiseFold")
+validate_action(::Call, ::CallRaiseFold) = nothing
+validate_action(::Call, ::CallAllInFold) = nothing
+validate_action(::Call, ::CallFold) = nothing
+
+validate_action(::Raise, ::CheckRaiseFold) = nothing
+validate_action(::Raise, ::CallRaiseFold) = nothing
+validate_action(::Raise, ::CallAllInFold) = nothing
+validate_action(::Raise, ::CallFold) = error("Cannot Raise. Available options: CallFold")
 
 function player_option!(game::Game, player::Player)
     table = game.table
@@ -28,7 +50,15 @@ function player_option!(game::Game, player::Player)
         option = CheckRaiseFold()
     end
     @debug "option = $option"
+
+    n_actions = length(action_history(player))
+
     player_option!(game, player, game_state, option)
+
+    # exactly 1 action must be taken
+    player_action = action_history(player)
+    @assert n_actions + 1 == length(player_action) "Must take exactly 1 action."
+    validate_action(last(player_action), option)
 end
 
 #####
@@ -106,20 +136,6 @@ end
 #####
 ##### AbstractAI
 #####
-
-##### BotCheckFold
-
-player_option!(game::Game, player::Player{BotCheckFold}, ::AbstractGameState, ::CheckRaiseFold) = check!(game, player)
-player_option!(game::Game, player::Player{BotCheckFold}, ::AbstractGameState, ::CallRaiseFold) = fold!(game, player)
-player_option!(game::Game, player::Player{BotCheckFold}, ::AbstractGameState, ::CallAllInFold) = fold!(game, player)
-player_option!(game::Game, player::Player{BotCheckFold}, ::AbstractGameState, ::CallFold) = fold!(game, player)
-
-##### BotCheckCall
-
-player_option!(game::Game, player::Player{BotCheckCall}, ::AbstractGameState, ::CheckRaiseFold) = check!(game, player)
-player_option!(game::Game, player::Player{BotCheckCall}, ::AbstractGameState, ::CallRaiseFold) = call!(game, player)
-player_option!(game::Game, player::Player{BotCheckCall}, ::AbstractGameState, ::CallAllInFold) = call!(game, player)
-player_option!(game::Game, player::Player{BotCheckCall}, ::AbstractGameState, ::CallFold) = call!(game, player)
 
 ##### Bot5050
 
