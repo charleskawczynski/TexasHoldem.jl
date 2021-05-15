@@ -14,6 +14,7 @@ A no-limit Texas Holdem simulator.
 module TexasHoldem
 
 using PlayingCards
+using Accessors
 using PokerHandEvaluator
 using PokerHandEvaluator.HandTypes
 using Printf

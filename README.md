@@ -35,7 +35,7 @@ Games can be played with:
 
 ```julia
 using TexasHoldem
-play(configure_game())
+play!(configure_game())
 ```
 
 # Creating your own bot
@@ -108,5 +108,5 @@ function TH.player_option!(game::Game, player::Player{MyBot}, ::AbstractGameStat
 end
 
 # Heads-up against the MyBot!
-play(Game((Player(Human(), 1), Player(MyBot(), 2))))
+play!(Game((Player(Human(), 1), Player(MyBot(), 2))))
 ```

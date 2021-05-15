@@ -2,7 +2,7 @@
 ##### Game
 #####
 
-export Game, play
+export Game, play!, tournament!
 
 mutable struct Game
     table::Table
@@ -59,6 +59,7 @@ players_at_table(game::Game) = players_at_table(game.table)
 blinds(game::Game) = blinds(game.table)
 any_actions_required(game::Game) = any_actions_required(game.table)
 state(game::Game) = state(game.table)
+move_button!(game) = move_button!(game.table)
 
 print_new_cards(table, state::PreFlop) = nothing
 print_new_cards(table, state::Flop) =  @info "Flop: $(repeat(" ", 44)) $(table.cards[1:3])"
@@ -115,13 +116,13 @@ function act!(game::Game, state::AbstractGameState)
 end
 
 """
-    play(::Game)
+    play!(::Game)
 
 Play a game. Note that this method
 expects no cards (players and table)
 to be dealt.
 """
-function play(game::Game)
+function play!(game::Game)
     @info "********************************"
     @info "******************************** Playing Game!"
     @info "********************************"
@@ -166,5 +167,64 @@ function play(game::Game)
     @info "******************************** Game finished!"
     @info "********************************"
     return winners
+end
+
+function reset_game!(game::Game)
+    table = game.table
+    players = players_at_table(table)
+    for (i, player) in enumerate(players)
+        player.cards = nothing
+        player.pot_investment = 0
+    end
+    players_new = deepcopy(players)
+    game = Game(players)
+end
+
+function remove_losers!(game::Game)
+    table = game.table
+    players = players_at_table(table)
+    players_remaining = filter(player->!(bank_roll(player) ≈ 0), collect(players))
+    game.table = Table(;players=Tuple(players_remaining))
+    players = players_at_table(table) # in case...
+    for (i, player) in enumerate(players)
+        @set player.id = i
+    end
+    for player in players
+        @show player_id(player)
+    end
+end
+
+"""
+    continuous_play!(game::Game)
+
+Continuously play. When a player busts
+"""
+function continuous_play!(game::Game)
+end
+
+"""
+    tournament!(game::Game)
+
+Play until a single player remains!
+"""
+function tournament!(game::Game)
+    table = game.table
+    players = players_at_table(table)
+    while length(players) > 1
+
+        play!(game)
+        reset_game!(game)
+
+        remove_losers!(game)
+        n_players_remaining = count(map(x->!(bank_roll(x) ≈ 0), players))
+        if n_players_remaining ≤ 1
+            println("Victor emerges!")
+            break
+        end
+
+        move_button!(game)
+
+    end
+    return game.winners
 end
 

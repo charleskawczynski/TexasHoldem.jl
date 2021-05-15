@@ -134,5 +134,5 @@ export configure_play_game
 function configure_play_game()
     # game = configure_game()
     game = configure_basic_heads_up_game()
-    play(game)
+    play!(game)
 end
