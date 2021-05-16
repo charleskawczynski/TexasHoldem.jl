@@ -2,6 +2,7 @@ using Test
 using PlayingCards
 using Logging
 using TexasHoldem
+using TexasHoldem: seat_number
 TH = TexasHoldem
 
 @testset "Table: constructors / observed cards" begin
@@ -96,7 +97,7 @@ end
     state = 0
     for player in TH.circle(table, Button())
         state+=1
-        @test player.id == state
+        @test seat_number(player) == state
         state == length(players) && break
     end
     @test state==length(players)
@@ -108,11 +109,11 @@ end
     state = 0
     for player in TH.circle(table, Button())
         state+=1
-        state == 1 && @test player.id == 2
-        state == 2 && @test player.id == 3
-        state == 3 && @test player.id == 4
-        state == 4 && @test player.id == 5
-        state == 5 && @test player.id == 1
+        state == 1 && @test seat_number(player) == 2
+        state == 2 && @test seat_number(player) == 3
+        state == 3 && @test seat_number(player) == 4
+        state == 4 && @test seat_number(player) == 5
+        state == 5 && @test seat_number(player) == 1
         state == length(players) && break
     end
     @test state==length(players)
@@ -130,11 +131,11 @@ end
     state = 0
     for player in TH.circle(table, SmallBlind())
         state+=1
-        state == 1 && @test player.id == 2
-        state == 2 && @test player.id == 3
-        state == 3 && @test player.id == 4
-        state == 4 && @test player.id == 5
-        state == 5 && @test player.id == 1
+        state == 1 && @test seat_number(player) == 2
+        state == 2 && @test seat_number(player) == 3
+        state == 3 && @test seat_number(player) == 4
+        state == 4 && @test seat_number(player) == 5
+        state == 5 && @test seat_number(player) == 1
         state == length(players) && break
     end
     @test state==length(players)
@@ -146,11 +147,11 @@ end
     state = 0
     for player in TH.circle(table, SmallBlind())
         state+=1
-        state == 1 && @test player.id == 3
-        state == 2 && @test player.id == 4
-        state == 3 && @test player.id == 5
-        state == 4 && @test player.id == 1
-        state == 5 && @test player.id == 2
+        state == 1 && @test seat_number(player) == 3
+        state == 2 && @test seat_number(player) == 4
+        state == 3 && @test seat_number(player) == 5
+        state == 4 && @test seat_number(player) == 1
+        state == 5 && @test seat_number(player) == 2
         state == length(players) && break
     end
     @test state==length(players)
@@ -168,11 +169,11 @@ end
     state = 0
     for player in TH.circle(table, BigBlind())
         state+=1
-        state == 1 && @test player.id == 3
-        state == 2 && @test player.id == 4
-        state == 3 && @test player.id == 5
-        state == 4 && @test player.id == 1
-        state == 5 && @test player.id == 2
+        state == 1 && @test seat_number(player) == 3
+        state == 2 && @test seat_number(player) == 4
+        state == 3 && @test seat_number(player) == 5
+        state == 4 && @test seat_number(player) == 1
+        state == 5 && @test seat_number(player) == 2
         state == length(players) && break
     end
     @test state==length(players)
@@ -184,11 +185,11 @@ end
     state = 0
     for player in TH.circle(table, BigBlind())
         state+=1
-        state == 1 && @test player.id == 4
-        state == 2 && @test player.id == 5
-        state == 3 && @test player.id == 1
-        state == 4 && @test player.id == 2
-        state == 5 && @test player.id == 3
+        state == 1 && @test seat_number(player) == 4
+        state == 2 && @test seat_number(player) == 5
+        state == 3 && @test seat_number(player) == 1
+        state == 4 && @test seat_number(player) == 2
+        state == 5 && @test seat_number(player) == 3
         state == length(players) && break
     end
     @test state==length(players)
@@ -206,11 +207,11 @@ end
     state = 0
     for player in TH.circle(table, FirstToAct())
         state+=1
-        state == 1 && @test player.id == 4
-        state == 2 && @test player.id == 5
-        state == 3 && @test player.id == 1
-        state == 4 && @test player.id == 2
-        state == 5 && @test player.id == 3
+        state == 1 && @test seat_number(player) == 4
+        state == 2 && @test seat_number(player) == 5
+        state == 3 && @test seat_number(player) == 1
+        state == 4 && @test seat_number(player) == 2
+        state == 5 && @test seat_number(player) == 3
         state == length(players) && break
     end
     @test state==length(players)
@@ -222,11 +223,11 @@ end
     state = 0
     for player in TH.circle(table, FirstToAct())
         state+=1
-        state == 1 && @test player.id == 5
-        state == 2 && @test player.id == 1
-        state == 3 && @test player.id == 2
-        state == 4 && @test player.id == 3
-        state == 5 && @test player.id == 4
+        state == 1 && @test seat_number(player) == 5
+        state == 2 && @test seat_number(player) == 1
+        state == 3 && @test seat_number(player) == 2
+        state == 4 && @test seat_number(player) == 3
+        state == 5 && @test seat_number(player) == 4
         state == length(players) && break
     end
     @test state==length(players)
@@ -242,7 +243,7 @@ end
     state = 0
     for player in TH.circle(table, players[1])
         state+=1
-        @test player.id == state
+        @test seat_number(player) == state
         state == length(players) && break
     end
     @test state==length(players)
@@ -254,7 +255,7 @@ end
     state = 0
     for player in TH.circle(table, players[1])
         state+=1
-        @test player.id == state
+        @test seat_number(player) == state
         state == length(players) && break
     end
     @test state==length(players)
@@ -266,11 +267,11 @@ end
     state = 0
     for player in TH.circle(table, players[2])
         state+=1
-        state == 1 && @test player.id == 2
-        state == 2 && @test player.id == 3
-        state == 3 && @test player.id == 4
-        state == 4 && @test player.id == 5
-        state == 5 && @test player.id == 1
+        state == 1 && @test seat_number(player) == 2
+        state == 2 && @test seat_number(player) == 3
+        state == 3 && @test seat_number(player) == 4
+        state == 4 && @test seat_number(player) == 5
+        state == 5 && @test seat_number(player) == 1
         state == length(players) && break
     end
     @test state==length(players)
@@ -282,11 +283,11 @@ end
     state = 0
     for player in TH.circle(table, players[2])
         state+=1
-        state == 1 && @test player.id == 2
-        state == 2 && @test player.id == 3
-        state == 3 && @test player.id == 4
-        state == 4 && @test player.id == 5
-        state == 5 && @test player.id == 1
+        state == 1 && @test seat_number(player) == 2
+        state == 2 && @test seat_number(player) == 3
+        state == 3 && @test seat_number(player) == 4
+        state == 4 && @test seat_number(player) == 5
+        state == 5 && @test seat_number(player) == 1
         state == length(players) && break
     end
     @test state==length(players)

@@ -17,7 +17,8 @@ function Base.show(io::IO, game::Game)
     println(io, "-----------------------")
 end
 
-function Game(players::Tuple;
+function Game(
+        players::Tuple;
         deck = ordered_deck(),
         table = nothing,
         button_id::Int = button_id(),
@@ -80,8 +81,8 @@ reset_round_bank_rolls!(game::Game, state::AbstractGameState) = reset_round_bank
 function act_generic!(game::Game, state::AbstractGameState)
     table = game.table
     table.winners.declared && return
-    set_state!(game.table, state)
-    print_new_cards(game.table, state)
+    set_state!(table, state)
+    print_new_cards(table, state)
     reset_round_bank_rolls!(game, state)
 
     any_actions_required(game) || return

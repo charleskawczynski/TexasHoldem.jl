@@ -90,19 +90,19 @@ function configure_human_players(n_players)
     choices = request("Select which players are human:", menu)
     println("$(length(choices)) human players ($(join(sort(collect(choices)), ", ")))")
     length(choices) > 0 || println("Menu canceled.")
-    human_player_ids = collect(choices)
-    return human_player_ids
+    human_seat_numbers = collect(choices)
+    return human_seat_numbers
 end
 
 function configure_custom_game()
 
     n_players = cofigure_n_players()
     blinds = cofigure_blinds()
-    human_player_ids = configure_human_players(n_players)
+    human_seat_numbers = configure_human_players(n_players)
     bank_roll = cofigure_bank_roll(blinds)
 
     players = ntuple(n_players) do i
-        if i in human_player_ids
+        if i in human_seat_numbers
             Player(Human(), i; bank_roll=bank_roll)
         else
             Player(ai_to_use(), i; bank_roll=bank_roll)
