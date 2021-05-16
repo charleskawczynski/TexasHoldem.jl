@@ -17,7 +17,7 @@ ai_to_use() = Bot5050()
 
 mutable struct Player{LF}
     life_form::LF
-    id::Int
+    seat_number::Int
     cards::Union{Nothing,Tuple{<:Card,<:Card}}
     bank_roll::Float64
     action_history::Vector
@@ -37,7 +37,7 @@ function Base.show(io::IO, player::Player, include_type = true)
     println(io, "$(name(player))        = $(player.cards)")
 end
 
-function Player(life_form, id, cards = nothing; bank_roll = 200)
+function Player(life_form, seat_number, cards = nothing; bank_roll = 200)
     action_history = []
     action_required = true
     all_in = false
@@ -50,7 +50,7 @@ function Player(life_form, id, cards = nothing; bank_roll = 200)
     last_to_raise = false
     args = (
         life_form,
-        id,
+        seat_number,
         cards,
         Float64(bank_roll),
         action_history,
@@ -69,8 +69,8 @@ end
 
 cards(player::Player) = player.cards
 bank_roll(player::Player) = player.bank_roll
-player_id(player::Player) = player.id
-name(player::Player{LF}) where {LF <: AbstractLifeForm} = "$(nameof(LF))[$(player.id)]"
+seat_number(player::Player) = player.seat_number
+name(player::Player{LF}) where {LF <: AbstractLifeForm} = "$(nameof(LF))[$(seat_number(player))]"
 folded(player::Player) = player.folded
 still_playing(player::Player) = !player.folded
 action_history(player::Player) = player.action_history

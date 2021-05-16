@@ -193,7 +193,7 @@ function raise_to_valid_raise_amount!(table::Table, player::Player, amt::Real)
     player.checked = false
     players = players_at_table(table)
     for oponent in players
-        oponent.id == player.id && continue
+        seat_number(oponent) == seat_number(player) && continue
         folded(oponent) && continue
         oponent.action_required = true
         oponent.last_to_raise = false

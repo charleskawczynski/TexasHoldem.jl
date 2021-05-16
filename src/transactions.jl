@@ -5,15 +5,15 @@
 """
     SidePot
 
-A side-pot for player `player_id`,
+A side-pot for player `seat_number`,
 who has gone all-in with amount `amt`.
 """
 mutable struct SidePot
-  player_id::Int
+  seat_number::Int
   amt::Float64
   cap::Float64 # total amount any individual player can contribute to this side-pot
 end
-player_id(sp::SidePot) = sp.player_id
+seat_number(sp::SidePot) = sp.seat_number
 amount(sp::SidePot) = sp.amt
 cap(sp::SidePot) = sp.cap
 
@@ -51,7 +51,7 @@ function TransactionManager(players)
         sorted_players,
         deepcopy(collect(bank_roll.(players))),
         Int[1],
-        [SidePot(pid, 0, cap_i) for (cap_i, pid, amt) in zip(cap, player_id.(sorted_players), bank_roll.(sorted_players))],
+        [SidePot(sn, 0, cap_i) for (cap_i, sn, amt) in zip(cap, seat_number.(sorted_players), bank_roll.(sorted_players))],
     )
 end
 amount(tm::TransactionManager) = amount(tm.side_pots[tm.pot_id[1]])
@@ -59,7 +59,7 @@ cap(tm::TransactionManager) = cap(tm.side_pots[tm.pot_id[1]])
 
 function last_action_of_round(table, player, call)
     for (i,oponent) in enumerate(circle(table, player))
-        oponent.id == player.id && continue
+        seat_number(oponent) == seat_number(player) && continue
         folded(oponent) && continue
         all_in(oponent) && !last_to_raise(oponent) && continue
         return last_to_raise(oponent) && call
@@ -185,10 +185,10 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards)
     if count(still_playing.(players)) == 1
         return distribute_winnings_1_player_left!(players, tm, table_cards)
     end
-    hand_evals_sorted = map(enumerate(tm.sorted_players)) do (spid, player)
+    hand_evals_sorted = map(enumerate(tm.sorted_players)) do (ssn, player)
         fhe = sat_out(player) ? nothing : FullHandEval((player.cards..., table_cards...))
         eligible = !folded(player) && !sat_out(player)
-        (; eligible=eligible, player=player, fhe=fhe, spid=spid)
+        (; eligible=eligible, player=player, fhe=fhe, ssn=ssn)
     end
 
     side_pot_winnings = map(players) do player
@@ -199,11 +199,11 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards)
     for i in 1:length(tm.side_pots)
         sidepot_winnings(tm, length(players)) ≈ 0 && continue # no money left to distribute
 
-        hand_evals_sorted = map(hand_evals_sorted) do (eligible, player, fhe, spid)
-            if spid ≥ i # only (sorted) players i:end can win the ith side-pot
-                (; eligible=eligible, player=player, fhe=fhe, spid=spid)
+        hand_evals_sorted = map(hand_evals_sorted) do (eligible, player, fhe, ssn)
+            if ssn ≥ i # only (sorted) players i:end can win the ith side-pot
+                (; eligible=eligible, player=player, fhe=fhe, ssn=ssn)
             else
-                (; eligible=false, player=player, fhe=fhe, spid=spid)
+                (; eligible=false, player=player, fhe=fhe, ssn=ssn)
             end
         end
         @debug begin
@@ -211,8 +211,8 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards)
             for hes in hand_evals_sorted
                 sat_out(hes.player) && continue # (don't have cards to eval)
                 s *= "eligible=$(hes.eligible), "
-                s *= "pid=$(player_id(hes.player)), "
-                s *= "spid=$(hes.spid), "
+                s *= "sn=$(seat_number(hes.player)), "
+                s *= "ssn=$(hes.ssn), "
                 s *= "hr=$(hand_rank(hes.fhe)), "
                 s *= "ht=$(nameof(typeof(hand_type(hes.fhe))))\n"
             end
@@ -229,12 +229,12 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards)
         @debug "length(hand_evals_sorted) = $(length(hand_evals_sorted))"
         @debug "length(tm.sorted_players) = $(length(tm.sorted_players))"
         for winner_id in winner_ids
-            win_id = tm.sorted_players[winner_id].id
-            winning_player = players[win_id]
+            win_seat = seat_number(tm.sorted_players[winner_id])
+            winning_player = players[win_seat]
             folded(winning_player) && continue
             amt = sidepot_winnings(tm, i) / n_winners
-            side_pot_winnings[win_id][i] = amt
-            winning_hands[win_id] = hand_type(hand_evals_sorted[winner_id].fhe)
+            side_pot_winnings[win_seat][i] = amt
+            winning_hands[win_seat] = hand_type(hand_evals_sorted[winner_id].fhe)
         end
         for j in 1:i
             tm.side_pots[j].amt = 0 # empty out distributed winnings

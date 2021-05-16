@@ -171,7 +171,7 @@ Player position, given
  - `relative::Int = 0` the relative location to the player
 """
 position(table, player::Player, relative=0) =
-    mod(relative + player.id - 1, length(table.players))+1
+    mod(relative + seat_number(player) - 1, length(table.players))+1
 
 """
     circle_table(n_players, button_id, state)
@@ -192,9 +192,9 @@ small_blind(table::Table) = players_at_table(table)[circle_table(table, 2)]
 big_blind(table::Table) = players_at_table(table)[circle_table(table, 3)]
 first_to_act(table::Table) = players_at_table(table)[circle_table(table, 4)]
 
-is_small_blind(table::Table, player::Player) = player.id == small_blind(table).id
-is_big_blind(table::Table, player::Player) = player.id == big_blind(table).id
-is_first_to_act(table::Table, player::Player) = player.id == first_to_act(table).id
+is_small_blind(table::Table, player::Player) = seat_number(player) == seat_number(small_blind(table))
+is_big_blind(table::Table, player::Player) = seat_number(player) == seat_number(big_blind(table))
+is_first_to_act(table::Table, player::Player) = seat_number(player) == seat_number(first_to_act(table))
 
 any_actions_required(table::Table) = any(action_required.(players_at_table(table)))
 
@@ -230,7 +230,7 @@ Base.iterate(ct::CircleTable{FirstToAct}, state = 4) =
     (ct.players[circle_table(ct.n_players, ct.button_id, state)], state+1)
 
 Base.iterate(ct::CircleTable{P}, state = 1) where {P <: Player} =
-    (ct.players[circle_table(ct.n_players, ct.player.id, state)], state+1)
+    (ct.players[circle_table(ct.n_players, seat_number(ct.player), state)], state+1)
 
 #####
 ##### Deal
