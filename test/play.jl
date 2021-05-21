@@ -59,6 +59,12 @@ end
 end
 @testset "Non-valid option using BotRaiseOnCallFold" begin
     game = Game((Player(BotRaiseOnCallFold(), 1), Player(BotRaiseAllIn(), 2)))
-    @test_throws AssertionError("Only allowable raise is \$200.0 (all-in)") play!(game)
+    @test_throws AssertionError("Cannot raise 0.") play!(game)
+end
+
+@testset "Player limps all in" begin
+    # Note that the order of the players seems to be important here.
+    game = Game((Player(BotCheckCall(), 2; bank_roll = 11), Player(BotLimpAllIn(), 1; bank_roll = 1)))
+    play!(game)
 end
 

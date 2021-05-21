@@ -64,9 +64,7 @@ function configure_basic_heads_up_game()
         Player(Human(), 1; bank_roll=bank_roll),
         Player(ai_to_use(), 2; bank_roll=bank_roll)
     )
-    return Game(players;
-        blinds=blinds,
-    )
+    return Game(players; blinds=blinds)
 end
 
 function configure_basic_1v4_game()
@@ -79,9 +77,29 @@ function configure_basic_1v4_game()
         Player(ai_to_use(), 4; bank_roll=bank_roll),
         Player(ai_to_use(), 5; bank_roll=bank_roll),
     )
-    return Game(players;
-        blinds=blinds,
+    return Game(players; blinds=blinds)
+end
+
+function configure_basic_2_bots_game()
+    bank_roll = 100
+    blinds = Blinds(1, 2)
+    players = (
+        Player(ai_to_use(), 1; bank_roll=bank_roll),
+        Player(ai_to_use(), 2; bank_roll=bank_roll),
     )
+    return Game(players; blinds=blinds)
+end
+
+function configure_basic_4_bots_game()
+    bank_roll = 100
+    blinds = Blinds(1, 2)
+    players = (
+        Player(ai_to_use(), 1; bank_roll=bank_roll),
+        Player(ai_to_use(), 2; bank_roll=bank_roll),
+        Player(ai_to_use(), 3; bank_roll=bank_roll),
+        Player(ai_to_use(), 4; bank_roll=bank_roll),
+    )
+    return Game(players; blinds=blinds)
 end
 
 function configure_human_players(n_players)
@@ -89,7 +107,7 @@ function configure_human_players(n_players)
     menu = MultiSelectMenu(options) # charset=:unicode is not supported in earlier Julia versions
     choices = request("Select which players are human:", menu)
     println("$(length(choices)) human players ($(join(sort(collect(choices)), ", ")))")
-    length(choices) > 0 || println("Menu canceled.")
+    length(choices) > 0 || println("No human players.")
     human_seat_numbers = collect(choices)
     return human_seat_numbers
 end
@@ -114,16 +132,20 @@ end
 
 function configure_game()
     options = [
-        "Heads up-- you vs AI, \$1-\$2 blinds, \$100 bank roll",
-        "1v4-- you vs 4 AI, \$1-\$2 blinds, \$100 bank roll",
-        "custom game"
+        "1) Heads up-- you vs AI, \$1-\$2 blinds, \$100 bank roll",
+        "2) 1v4-- you vs 4 AI, \$1-\$2 blinds, \$100 bank roll",
+        "3) 2 bots!, \$1-\$2 blinds, \$100 bank roll",
+        "4) 4 bots!, \$1-\$2 blinds, \$100 bank roll",
+        "5) custom game"
     ]
     menu = RadioMenu(options, pagesize=4)
     choice = request("Configure game:", menu)
     if choice != -1
-        choice == 3 && return configure_custom_game()
-        choice == 2 && return configure_basic_1v4_game()
         choice == 1 && return configure_basic_heads_up_game()
+        choice == 2 && return configure_basic_1v4_game()
+        choice == 3 && return configure_basic_2_bots_game()
+        choice == 4 && return configure_basic_4_bots_game()
+        choice == 5 && return configure_custom_game()
         error("Uncaught case")
     else
         println("Menu canceled.")

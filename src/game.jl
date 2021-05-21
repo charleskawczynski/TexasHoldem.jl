@@ -98,9 +98,18 @@ function act_generic!(game::Game, state::AbstractGameState)
         @debug "     !any(action_required.(players_at_table(table))) = $(!any(action_required.(players_at_table(table))))"
         @debug "     all_all_in_or_folded(table) = $(all_all_in_or_folded(table))"
         @debug "     all_checked_or_folded(table) = $(all_checked_or_folded(table))"
+        @debug "     all_all_in_or_checked(table) = $(all_all_in_or_checked(table))"
+        @debug "     all_all_in_except_bank_roll_leader(table) = $(all_all_in_except_bank_roll_leader(table))"
         last_to_raise(player) && break
         all_checked_or_folded(table) && break
         all_all_in_or_folded(table) && break
+
+        # all_all_in_except_bank_roll_leader does not supersede
+        # all_all_in_or_folded, since it always returns false if
+        # there are multiple players (still playing) with the
+        # same (max) bank roll:
+        all_all_in_except_bank_roll_leader(table) && break
+        all_all_in_or_checked(table) && break
         !any(action_required.(players_at_table(table))) && break
         folded(player) && continue
         all_in(player) && continue
@@ -172,34 +181,36 @@ end
 function reset_game!(game::Game)
     table = game.table
     players = players_at_table(table)
-    for (i, player) in enumerate(players)
-        player.cards = nothing
-        player.pot_investment = 0
+    for player in players
+        if bank_roll(player) ≈ 0 # TODO: should we remove these players from the table?
+            player.folded = true
+        end
     end
-    players_new = deepcopy(players)
-    game = Game(players)
-end
 
-function remove_losers!(game::Game)
+    game.table = Table(;
+        deck=ordered_deck(),
+        players=players,
+        button_id=table.button_id,
+        blinds=table.blinds
+    )
     table = game.table
     players = players_at_table(table)
-    players_remaining = filter(player->!(bank_roll(player) ≈ 0), collect(players))
-    game.table = Table(;players=Tuple(players_remaining))
-    players = players_at_table(table) # in case...
-    for (i, player) in enumerate(players)
-        @set player.id = i
-    end
     for player in players
-        @show player_id(player)
+        player.cards = nothing
+        player.pot_investment = 0
+        player.action_required = true
+        player.all_in = false
+        if bank_roll(player) ≈ 0
+            player.folded = true
+        else
+            player.folded = false
+        end
+        player.round_bank_roll = bank_roll(player)
+        player.checked = false
+        player.last_to_raise = false
+        player.round_contribution = 0
+        player.sat_out = false
     end
-end
-
-"""
-    continuous_play!(game::Game)
-
-Continuously play. When a player busts
-"""
-function continuous_play!(game::Game)
 end
 
 """
@@ -211,20 +222,15 @@ function tournament!(game::Game)
     table = game.table
     players = players_at_table(table)
     while length(players) > 1
-
         play!(game)
         reset_game!(game)
-
-        remove_losers!(game)
         n_players_remaining = count(map(x->!(bank_roll(x) ≈ 0), players))
         if n_players_remaining ≤ 1
             println("Victor emerges!")
             break
         end
-
         move_button!(game)
-
     end
-    return game.winners
+    return game.table.winners
 end
 

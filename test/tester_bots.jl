@@ -2,6 +2,9 @@
 ##### Tester bots
 #####
 
+using TexasHoldem
+import TexasHoldem
+TH = TexasHoldem
 const AGS = AbstractGameState
 
 ##### BotCheckFold
@@ -88,3 +91,8 @@ TH.player_option!(game::Game, player::Player{BotCallOnCheckRaiseFold}, ::AGS, ::
 struct BotRaiseOnCallFold <: AbstractAI end
 
 TH.player_option!(game::Game, player::Player{BotRaiseOnCallFold}, ::AGS, ::CallFold) = raise_to!(game, player, bank_roll(player))
+
+##### BotLimpAllIn
+struct BotLimpAllIn <: AbstractAI end
+
+TH.player_option!(game::Game, player::Player{BotLimpAllIn}, ::AGS, ::PlayerOptions) = call!(game, player)

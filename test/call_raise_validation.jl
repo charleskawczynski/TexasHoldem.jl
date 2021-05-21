@@ -4,24 +4,112 @@ using PlayingCards
 using TexasHoldem
 TH = TexasHoldem
 
+function valid_raise_bounds_simple(table::Table, player::Player)
+    cra = TH.current_raise_amt(table)
+    rbr = TH.round_bank_roll(player)
+    max_orbr = TH.max_opponent_round_bank_roll(table, player)
+    if cra ≈ 0 # initial raise
+        bb = TH.blinds(table).big
+        if max_orbr > rbr # at least one opponent can cover `player`'s all-in
+            if bb > rbr
+                vrb, case = (rbr, rbr), 1
+            else
+                vrb, case = (bb, rbr), 2
+            end
+        else # raise limited by opponent's bank roll
+            if bb > max_orbr
+                vrb, case = (max_orbr, max_orbr), 3
+            else
+                vrb, case = (bb, max_orbr), 4
+            end
+        end
+    else # re-raise
+        if max_orbr > rbr # at least one opponent can cover `player`'s all-in
+            if 2*cra > rbr
+                vrb, case = (rbr, rbr), 5
+            else
+                vrb, case = (2*cra, rbr), 6
+            end
+        else # raise limited by opponent's bank roll
+            if 2*cra > max_orbr
+                vrb, case = (max_orbr, max_orbr), 7
+            else
+                vrb, case = (2*cra, max_orbr), 8
+            end
+        end
+    end
+    @assert vrb[2] ≥ vrb[1] "Min valid raise bound must be ≤ max valid raise bound."
+    return vrb, case
+end
+
+@testset "valid_raise_bounds" begin
+    # Case 1
+    table = Game((Player(Bot5050(), 1; bank_roll=1), Player(Bot5050(), 2))).table
+    players = TH.players_at_table(table)
+    table.current_raise_amt = 0
+    @test valid_raise_bounds_simple(table, players[1]) == (TH.valid_raise_bounds(table, players[1]), 1)
+
+    # Case 2
+    table = Game((Player(Bot5050(), 1), Player(Bot5050(), 2; bank_roll = 300))).table
+    players = TH.players_at_table(table)
+    table.current_raise_amt = 0
+    @test valid_raise_bounds_simple(table, players[1]) == (TH.valid_raise_bounds(table, players[1]), 2)
+
+    # Case 3
+    table = Game((Player(Bot5050(), 1; bank_roll=1), Player(Bot5050(), 2; bank_roll = 0.5))).table
+    players = TH.players_at_table(table)
+    table.current_raise_amt = 0
+    @test valid_raise_bounds_simple(table, players[1]) == (TH.valid_raise_bounds(table, players[1]), 3)
+
+    # Case 4
+    table = Game((Player(Bot5050(), 1), Player(Bot5050(), 2; bank_roll = 50))).table
+    players = TH.players_at_table(table)
+    table.current_raise_amt = 0
+    @test valid_raise_bounds_simple(table, players[1]) == (TH.valid_raise_bounds(table, players[1]), 4)
+
+    # Case 5
+    table = Game((Player(Bot5050(), 1; bank_roll=1), Player(Bot5050(), 2))).table
+    players = TH.players_at_table(table)
+    table.current_raise_amt = 1
+    @test valid_raise_bounds_simple(table, players[1]) == (TH.valid_raise_bounds(table, players[1]), 5)
+
+    # Case 6
+    table = Game((Player(Bot5050(), 1), Player(Bot5050(), 2; bank_roll = 300))).table
+    players = TH.players_at_table(table)
+    table.current_raise_amt = 1
+    @test valid_raise_bounds_simple(table, players[1]) == (TH.valid_raise_bounds(table, players[1]), 6)
+
+    # Case 7
+    table = Game((Player(Bot5050(), 1; bank_roll=1), Player(Bot5050(), 2; bank_roll = 0.5))).table
+    players = TH.players_at_table(table)
+    table.current_raise_amt = 1
+    @test valid_raise_bounds_simple(table, players[1]) == (TH.valid_raise_bounds(table, players[1]), 7)
+
+    # Case 8
+    table = Game((Player(Bot5050(), 1), Player(Bot5050(), 2; bank_roll = 50))).table
+    players = TH.players_at_table(table)
+    table.current_raise_amt = 1
+    @test valid_raise_bounds_simple(table, players[1]) == (TH.valid_raise_bounds(table, players[1]), 8)
+end
+
 @testset "is_valid_raise_amount" begin
     players = (Player(Human(), 1), Player(Bot5050(), 2))
     table = Game(players).table
-    @test TH.is_valid_raise_amount(table, players[1], 0) == (false, "Cannot raise 0. Raise must be between [\$1, \$200.0]")
-    @test TH.is_valid_raise_amount(table, players[1], TH.bank_roll(players[1])+1) == (false, "Insufficient funds (\$200.0) to raise \$201.0. Raise must be between [\$1, \$200.0]")
-    @test TH.is_valid_raise_amount(table, players[1], -1) == (false, "Raise must be between [\$1, \$200.0]")
+    @test TH.is_valid_raise_amount(table, players[1], 0) == (false, "Cannot raise 0. Raise must be between [\$2, \$200.0]")
+    @test TH.is_valid_raise_amount(table, players[1], TH.bank_roll(players[1])+1) == (false, "Insufficient funds (\$200.0) to raise \$201.0. Raise must be between [\$2, \$200.0]")
+    @test TH.is_valid_raise_amount(table, players[1], -1) == (false, "Raise must be between [\$2, \$200.0]")
 
     @test TH.is_valid_raise_amount(table, players[1], TH.bank_roll(players[1])-1) == (true, "")
-    @test TH.is_valid_raise_amount(table, players[1], TH.blinds(table).small) == (true, "")
+    @test TH.is_valid_raise_amount(table, players[1], TH.blinds(table).small) == (false, "Raise must be between [\$2, \$200.0]")
     @test TH.is_valid_raise_amount(table, players[1], TH.blinds(table).big) == (true, "")
     @test TH.is_valid_raise_amount(table, players[1], TH.bank_roll(players[1])) == (true, "")
 
     players = (Player(Human(), 1), Player(Bot5050(), 2))
     table = Game(players).table
-    table.current_raise_amt = 200.0
-    players[1].round_contribution = 400
-    players[1].round_bank_roll = 5000
-    @test TH.is_valid_raise_amount(table, players[1], 400) == (false, "Cannot contribute \$0.0 to the pot.")
+    table.current_raise_amt = 20.0
+    players[1].round_contribution = 200
+    players[1].round_bank_roll = 500 # oops
+    @test TH.is_valid_raise_amount(table, players[1], 200) == (false, "Cannot contribute \$0.0 to the pot.")
 
     players = (Player(Human(), 1), Player(Bot5050(), 2))
     table = Game(players).table
