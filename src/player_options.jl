@@ -117,18 +117,23 @@ function player_option!(game::Game, player::Player{Human}, ::AbstractGameState, 
     choice == 2 && fold!(game, player)
 end
 
+# io only works for tests, but does not for user input
+# so we have a switch for the test suite
+use_input_io() = false
+println_io(io::IO, msg) = use_input_io() ? println(io, msg) : println(msg)
+
 function input_raise_amt(table, player::Player{Human}, io::IO=stdin)
     raise_amt = nothing
     while true
-        println(io, "Enter raise amt:") # TODO: io only works for tests, but does not for user input
+        println_io(io, "Enter raise amt:")
         raise_amt = readline(io)
         try
             raise_amt = parse(Float64, raise_amt)
             is_valid, msg = is_valid_raise_amount(table, player, raise_amt)
             is_valid && break
-            println(io, msg) # TODO: io only works for tests, but does not for user input
+            println_io(io, msg)
         catch
-            println(io, "Raise must be a Float64") # TODO: io only works for tests, but does not for user input
+            println_io(io, "Raise must be a Float64")
         end
     end
     @assert raise_amt ≠ nothing
