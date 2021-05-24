@@ -4,5 +4,6 @@
 TexasHoldem
 TexasHoldem.raise_to!
 TexasHoldem.move_button!
-TexasHoldem.play
+TexasHoldem.play!
+TexasHoldem.tournament!
 ```

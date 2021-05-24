@@ -36,7 +36,10 @@ function player_option!(game::Game, player::Player)
     call_amt = call_amount(table, player)
     game_state = state(table)
     if !(call_amt ≈ 0) # must call to stay in
-        if bank_roll(player) > call_amt # raise possible
+        cond_1 = bank_roll(player) > call_amt
+        cond_2 = an_opponent_can_call_a_raise(table, player)
+        raise_possible = cond_1 && cond_2
+        if raise_possible # raise possible
             vrb = valid_raise_bounds(table, player)
             if first(vrb) ≈ last(vrb) # only all-in raise possible
                 option = CallAllInFold()
@@ -114,18 +117,23 @@ function player_option!(game::Game, player::Player{Human}, ::AbstractGameState, 
     choice == 2 && fold!(game, player)
 end
 
+# io only works for tests, but does not for user input
+# so we have a switch for the test suite
+use_input_io() = false
+println_io(io::IO, msg) = use_input_io() ? println(io, msg) : println(msg)
+
 function input_raise_amt(table, player::Player{Human}, io::IO=stdin)
     raise_amt = nothing
     while true
-        println(io, "Enter raise amt:")
+        println_io(io, "Enter raise amt:")
         raise_amt = readline(io)
         try
             raise_amt = parse(Float64, raise_amt)
             is_valid, msg = is_valid_raise_amount(table, player, raise_amt)
             is_valid && break
-            println(io, msg)
+            println_io(io, msg)
         catch
-            println(io, "Raise must be a Float64")
+            println_io(io, "Raise must be a Float64")
         end
     end
     @assert raise_amt ≠ nothing

@@ -58,13 +58,11 @@ amount(tm::TransactionManager) = amount(tm.side_pots[tm.pot_id[1]])
 cap(tm::TransactionManager) = cap(tm.side_pots[tm.pot_id[1]])
 
 function last_action_of_round(table, player, call)
-    for (i,oponent) in enumerate(circle(table, player))
-        seat_number(oponent) == seat_number(player) && continue
-        folded(oponent) && continue
-        all_in(oponent) && !last_to_raise(oponent) && continue
-        return last_to_raise(oponent) && call
-        i > length(players_at_table(table)) && error("Broken logic in last_action_of_round")
-    end
+    @debug "Determining last_action_of_round"
+    @debug "    action_required.(players_at_table(table)) = $(action_required.(players_at_table(table)))"
+    @debug "    all_oppononents_all_in(table, player) = $(all_oppononents_all_in(table, player))"
+    @debug "    call = $call"
+    return all_oppononents_all_in(table, player) || (count(action_required.(players_at_table(table))) == 0 && call)
 end
 
 """
@@ -138,6 +136,7 @@ function contribute!(table, player, amt, call=false)
 
     if bank_roll(player) ≈ 0 # went all-in, set exactly.
         player.all_in = true
+        player.action_required = false
         player.bank_roll = 0
     end
 

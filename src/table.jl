@@ -95,6 +95,72 @@ state(table::Table) = table.state
 players_at_table(table::Table) = table.players
 all_checked_or_folded(table::Table) = all(map(x -> folded(x) || checked(x), players_at_table(table)))
 all_all_in_or_folded(table::Table) = all(map(x -> folded(x) || all_in(x), players_at_table(table)))
+all_all_in_or_checked(table::Table) = all(map(x -> checked(x) || all_in(x), players_at_table(table)))
+
+"""
+    bank_roll_leader(table::Table)
+
+Return the player who
+ - Is still playing and
+ - Has the highest bank roll
+and a `Bool` indicating if there
+are multiple players with the largest
+bank roll.
+"""
+function bank_roll_leader(table::Table)
+    max_rbr = 0
+    players = players_at_table(table)
+    br_leader = first(players)
+    for player in players
+        folded(player) && continue # only consider players still playing
+        pbr = round_bank_roll(player)
+        if pbr > max_rbr
+            br_leader = player
+            max_rbr = pbr
+        end
+    end
+    multiple_leaders = count(map(players) do player
+        round_bank_roll(player) ≈ max_rbr && !folded(player)
+    end) > 1
+    return br_leader, multiple_leaders
+end
+
+# Can be true in exactly 2 cases:
+#  1) Everyone (still playing) is all-in.
+#  2) Everyone (still playing), except `player`, is all-in.
+function all_oppononents_all_in(table::Table, player::Player)
+    all_opp_all_in = true
+    for opponent in players_at_table(table)
+        seat_number(opponent) == seat_number(player) && continue
+        folded(opponent) && continue
+        if action_required(opponent)
+            all_opp_all_in = false
+        else
+            all_opp_all_in = all_opp_all_in && all_in(opponent)
+        end
+    end
+    return all_opp_all_in
+end
+
+# One case that we need to catch is when everyone, except
+# the bank roll leader, has folded or gone all-in. In this
+# case, while the bank roll leader may have required actions
+# everyone else does not, so nobody can respond to their raise
+# (if they chose to do so). Therefore, we must "play out" the
+# entire game with no further actions.
+function all_all_in_except_bank_roll_leader(table::Table)
+    br_leader, multiple_leaders = bank_roll_leader(table)
+    players = players_at_table(table)
+    @debug "all_all_in_except_bank_roll_leader"
+    @debug "   rbrs = $(round_bank_roll.(players)), multiple_leaders=$multiple_leaders"
+    multiple_leaders && return false # the bank roll leader can go all-in
+
+    @assert !multiple_leaders # We have a single bank roll leader
+
+    return all(map(players) do player
+        folded(player) || all_in(player) || seat_number(player) == seat_number(br_leader)
+    end)
+end
 
 blinds(table::Table) = table.blinds
 
@@ -122,8 +188,9 @@ end
 function reset_round!(table::Table)
     players = players_at_table(table)
     for player in players
-        player.checked = false
         folded(player) && continue
+        all_in(player) && continue
+        player.checked = false
         player.action_required = true
         player.last_to_raise = false
         player.round_contribution = 0
@@ -160,6 +227,18 @@ the table.
 """
 function move_button!(table::Table)
     table.button_id = mod(table.button_id, length(table.players))+1
+    players = players_at_table(table)
+    player_folded = folded(players[table.button_id])
+    counter = 0
+    if player_folded
+        while !player_folded
+            table.button_id = mod(table.button_id, length(table.players))+1
+            counter+=1
+            if counter > length(players)
+                error("Button has nowhere to move!")
+            end
+        end
+    end
 end
 
 """
@@ -239,26 +318,34 @@ Base.iterate(ct::CircleTable{P}, state = 1) where {P <: Player} =
 function deal!(table::Table, blinds::Blinds)
     players = players_at_table(table)
     shuffle!(table.deck)
+    call_blinds = true
     for (i, player) in enumerate(circle(table, SmallBlind()))
+
+        i>length(players) && break # deal cards to each player once
+
         player.cards = pop!(table.deck, 2)
+
+        folded(player) && continue # TODO: folded players should not get cards.
+        # Right now they do to allow calling FullHandEval on their hand, but we should remove
+        # this, or remove the players entirely.
+
         if is_small_blind(table, player) && bank_roll(player) ≤ blinds.small
+            contribute!(table, player, bank_roll(player), call_blinds)
             @info "$(name(player)) paid the small blind (all-in) and dealt cards: $(player.cards)"
-            contribute!(table, player, bank_roll(player))
         elseif is_big_blind(table, player) && bank_roll(player) ≤ blinds.big
+            contribute!(table, player, bank_roll(player), call_blinds)
             @info "$(name(player)) paid the  big  blind (all-in) and dealt cards: $(player.cards)"
-            contribute!(table, player, bank_roll(player))
         else
             if is_small_blind(table, player)
+                contribute!(table, player, blinds.small, call_blinds)
                 @info "$(name(player)) paid the small blind and dealt cards: $(player.cards)"
-                contribute!(table, player, blinds.small)
             elseif is_big_blind(table, player)
+                contribute!(table, player, blinds.big, call_blinds)
                 @info "$(name(player)) paid the  big  blind and dealt cards: $(player.cards)"
-                contribute!(table, player, blinds.big)
             else
                 @info "$(name(player)) dealt (free) cards:                   $(player.cards)"
             end
         end
-        i==length(players) && break
     end
 
     table.cards = get_table_cards!(table.deck)

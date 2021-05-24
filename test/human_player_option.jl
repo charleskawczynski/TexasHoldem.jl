@@ -2,6 +2,7 @@ using Test
 using REPL.TerminalMenus
 using PlayingCards
 using TexasHoldem
+import TexasHoldem
 TH = TexasHoldem
 
 function simulate_keystrokes(keys...)
@@ -84,6 +85,7 @@ these tests. We can't seem to, however.
    so we need to use TerminalRegressionTests.
 =#
 
+TH.use_input_io() = true
 @static if !Sys.iswindows()
     using TerminalRegressionTests
     TRT = TerminalRegressionTests
@@ -123,4 +125,5 @@ these tests. We can't seem to, however.
         end
     end
 end
+TH.use_input_io() = false
 

@@ -85,6 +85,25 @@ end
 #####
 
 """
+    an_opponent_can_call_a_raise(table::Table, player::Player)
+
+A `Bool` indicating that at least one of `player`'s
+opponents can call a raise by `player`.
+"""
+function an_opponent_can_call_a_raise(table::Table, player::Player)
+    occr = false
+    for opponent in players_at_table(table)
+        seat_number(opponent) == seat_number(player) && continue
+        folded(opponent) && continue
+        all_in(opponent) && continue
+        if round_bank_roll(opponent) > current_raise_amt(table)
+            occr = true
+        end
+    end
+    return occr
+end
+
+"""
     bound_raise(table::Table, player::Player, amt)
 
 Given a raise amount `amt`, return a valid raise amount.
@@ -92,27 +111,43 @@ Given a raise amount `amt`, return a valid raise amount.
 bound_raise(table::Table, player::Player, amt::Real) =
     clamp(amt, valid_raise_bounds(table, player)...)
 
+function max_opponent_round_bank_roll(table::Table, player::Player)
+    max_orbr = 0
+    for opponent in players_at_table(table)
+        seat_number(opponent) == seat_number(player) && continue
+        folded(opponent) && continue
+        all_in(opponent) && continue
+        max_orbr = max(max_orbr, round_bank_roll(opponent))
+    end
+    return max_orbr
+end
+
+custom_clamp(br, lim) = lim > br ? (br, br) : (lim, br)
+
 """
     valid_raise_bounds(table::Table, player::Player)
 
 A tuple of valid raise bounds. Note that
 all-in is the only option if both elements
 are equal.
+
+See `valid_raise_bounds_simple` in the test suite
+for a more verbose but simpler implementation.
 """
 function valid_raise_bounds(table::Table, player::Player)
     cra = current_raise_amt(table)
     rbr = round_bank_roll(player)
-    if cra ≈ 0 # initial raise
-        vrb = (blinds(table).small, rbr)
-    else # re-raise
-        if rbr > 2*cra
-            vrb = (2*cra, rbr)
-        else
-            vrb = (rbr, rbr)
-        end
-    end
+    max_orbr = max_opponent_round_bank_roll(table, player)
+    @debug "determining valid_raise_bounds"
+    @debug "   rbr = $rbr, max_orbr = $max_orbr"
+    @debug "   cra ≈ 0 = $(cra ≈ 0)"
+    @debug "   max_orbr > rbr = $(max_orbr > rbr)"
+    lim = cra ≈ 0 ? blinds(table).big : 2*cra
+    vrb = custom_clamp(min(max_orbr, rbr), lim)
+    @assert vrb[2] ≥ vrb[1] "Min valid raise bound must be ≤ max valid raise bound."
     return vrb
 end
+
 
 """
     is_valid, msg = is_valid_raise_amount(table::Table, player::Player, amt)
@@ -125,6 +160,8 @@ function is_valid_raise_amount(table::Table, player::Player, amt::Real)
     prc = round_contribution(player)
     rbr = round_bank_roll(player)
     vrb = valid_raise_bounds(table, player)
+    @debug "vrb = $vrb, amt = $amt, prc = $prc"
+    @assert !(vrb[1] == vrb[2] ≈ 0) "Cannot raise 0."
     if amt ≈ 0
         return false, "Cannot raise $amt. Raise must be between [\$$(vrb[1]), \$$(vrb[2])]"
     end
@@ -181,7 +218,21 @@ raise_to!(game::Game, player::Player, amt::Real) = raise_to!(game.table, player,
 raise_to!(table::Table, player::Player, amt::Real) =
     raise_to_valid_raise_amount!(table, player, valid_raise_amount(table, player, amt))
 
+function opponents_being_put_all_in(table::Table, player::Player, amt::Real)
+    # TODO: can we do this better?
+    opponents = filter(players_at_table(table)) do opponent
+        rbr = round_bank_roll(opponent)
+        cond1 = !all_in(opponent)
+        cond2 = !folded(opponent)
+        cond3 = seat_number(opponent) ≠ seat_number(player)
+        cond4 = amt > rbr || amt ≈ rbr
+        all((cond1, cond2, cond3, cond4))
+    end
+    return name.(opponents)
+end
+
 function raise_to_valid_raise_amount!(table::Table, player::Player, amt::Real)
+    pbpai = opponents_being_put_all_in(table, player, amt)
     @debug "$(name(player)) raising to $(amt)."
     prc = round_contribution(player)
     contribute!(table, player, amt - prc, false)
@@ -192,19 +243,31 @@ function raise_to_valid_raise_amount!(table::Table, player::Player, amt::Real)
     player.last_to_raise = true
     player.checked = false
     players = players_at_table(table)
-    for oponent in players
-        seat_number(oponent) == seat_number(player) && continue
-        folded(oponent) && continue
-        oponent.action_required = true
-        oponent.last_to_raise = false
+    for opponent in players
+        seat_number(opponent) == seat_number(player) && continue
+        folded(opponent) && continue
+        all_in(opponent) && continue
+        opponent.action_required = true
+        opponent.checked = false # to avoid exiting on all_all_in_or_checked(table). TODO: there's got to be a cleaner way
+        opponent.last_to_raise = false
     end
     if bank_roll(player) ≈ 0
-        @info "$(name(player)) raised to $(amt) (all-in)."
+        if isempty(pbpai)
+            @info "$(name(player)) raised to $(amt) (all-in)."
+        else
+            @info "$(name(player)) raised to $(amt). Puts player(s) $(join(pbpai, ", ")) all-in."
+        end
     else
-        @info "$(name(player)) raised to $(amt)."
+        if isempty(pbpai)
+            @info "$(name(player)) raised to $(amt)."
+        else
+            @info "$(name(player)) raised to $(amt). Puts player(s) $(join(pbpai, ", ")) all-in."
+        end
     end
 end
 
 raise_all_in!(game::Game, player::Player) = raise_all_in!(game.table, player)
-raise_all_in!(table::Table, player::Player) =
-    raise_to!(table, player, round_bank_roll(player))
+function raise_all_in!(table::Table, player::Player)
+    vrb = valid_raise_bounds(table, player)
+    raise_to!(table, player, last(vrb))
+end
