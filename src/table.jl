@@ -235,6 +235,40 @@ function all_all_in_except_bank_roll_leader(table::Table)
     end)
 end
 
+function last_player_to_raise(table::Table)
+    for player in players_at_table(table)
+        last_to_raise(player) && return player
+    end
+    return nothing
+end
+
+function raise_needs_to_be_called(table::Table)
+    players = players_at_table(table)
+    ltr = last_to_raise.(players)
+    @assert count(ltr) == 0 || count(ltr) == 1
+    if count(ltr) == 1
+        lptr = last_player_to_raise(table)
+        raise_called = false
+        n_folds = 0
+        for (i, opponent) in enumerate(circle(table, lptr))
+            i>length(players) && break
+            seat_number(opponent) == seat_number(lptr) && continue
+            if folded(opponent)
+                n_folds+=1
+                continue
+            end
+            ah = action_history(opponent)
+            if !isempty(ah)
+                if last(ah) isa Call
+                    raise_called = true
+                end
+            end
+        end
+        return !(raise_called || n_folds == length(players)-1)
+    end
+    return false
+end
+
 blinds(table::Table) = table.blinds
 
 function is_blind_call(table::Table, player::Player, amt = call_amount(table, player))

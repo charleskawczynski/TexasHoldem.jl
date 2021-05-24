@@ -98,9 +98,10 @@ function end_of_actions(table::Table, player)
     case_1 = last_to_raise(player)
     case_2 = all_playing_checked(table)
     case_3 = all_playing_all_in(table)
-    case_4 = all_all_in_except_bank_roll_leader(table)
+    case_4 = all_all_in_except_bank_roll_leader(table) && !raise_needs_to_be_called(table)
     case_5 = all_all_in_or_checked(table)
     case_6 = !any(action_required.(players))
+
     @debug "     cases = $((case_1, case_2, case_3, case_4, case_5, case_6))"
 
     return any((case_1, case_2, case_3, case_4, case_5, case_6))
@@ -115,9 +116,11 @@ function act_generic!(game::Game, state::AbstractGameState)
 
     any_actions_required(game) || return
     for (i, player) in enumerate(circle(table, FirstToAct()))
+        @debug "Checking to see if it's $(name(player))'s turn to act"
+        @debug "     not_playing(player) = $(not_playing(player))"
+        @debug "     all_in(player) = $(all_in(player))"
         not_playing(player) && continue # skip players not playing
         set_preflop_blind_raise!(table, player, state, i)
-        @debug "Checking to see if it's $(name(player))'s turn to act"
         if end_of_actions(table, player)
             break
         end
@@ -125,6 +128,10 @@ function act_generic!(game::Game, state::AbstractGameState)
         @debug "$(name(player))'s turn to act"
         player_option!(game, player)
         table.winners.declared && break
+    end
+
+    if raise_needs_to_be_called(table)
+        error("Raise was not called")
     end
 end
 

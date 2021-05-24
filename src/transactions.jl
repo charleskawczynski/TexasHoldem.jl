@@ -58,10 +58,11 @@ amount(tm::TransactionManager) = amount(tm.side_pots[tm.pot_id[1]])
 cap(tm::TransactionManager) = cap(tm.side_pots[tm.pot_id[1]])
 
 function last_action_of_round(table, player, call)
-    @debug "Determining last_action_of_round"
-    @debug "    action_required.(players_at_table(table)) = $(action_required.(players_at_table(table)))"
-    @debug "    all_oppononents_all_in(table, player) = $(all_oppononents_all_in(table, player))"
-    @debug "    call = $call"
+    laor = all_oppononents_all_in(table, player) || (count(action_required.(players_at_table(table))) == 0 && call)
+    @debug "last_action_of_round = $laor"
+    #@debug "    action_required.(players_at_table(table)) = $(action_required.(players_at_table(table)))"
+    #@debug "    all_oppononents_all_in(table, player) = $(all_oppononents_all_in(table, player))"
+    #@debug "    call = $call"
     return all_oppononents_all_in(table, player) || (count(action_required.(players_at_table(table))) == 0 && call)
 end
 
