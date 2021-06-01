@@ -57,12 +57,50 @@ end
 amount(tm::TransactionManager) = amount(tm.side_pots[tm.pot_id[1]])
 cap(tm::TransactionManager) = cap(tm.side_pots[tm.pot_id[1]])
 
-function last_action_of_round(table, player, call)
-    @debug "Determining last_action_of_round"
+# Must be called after the action history is populated.
+# TODO: don't use action history
+function last_action_of_round(table, player)
+    ah = action_history(player)
+    cond = count(action_required.(players_at_table(table))) == 0
+    if isempty(ah) # player's first action, could be all-in call
+        return cond, 3
+    else
+        last_action_isa_raise = last(ah) isa Raise
+        if last_action_isa_raise
+            return (false, 1)
+        else
+            return cond, 2
+        end
+    end
+end
+
+function last_action_of_round(table, player::Player, not_raise)
+    laor = all_oppononents_all_in(table, player) || (count(action_required.(players_at_table(table))) == 0 && not_raise)
+    @debug "last_action_of_round = $laor"
     @debug "    action_required.(players_at_table(table)) = $(action_required.(players_at_table(table)))"
     @debug "    all_oppononents_all_in(table, player) = $(all_oppononents_all_in(table, player))"
-    @debug "    call = $call"
-    return all_oppononents_all_in(table, player) || (count(action_required.(players_at_table(table))) == 0 && call)
+    @debug "    not_raise = $not_raise"
+    laor_new, case = last_action_of_round(table, player)
+    #if laor ≠ laor_new
+    #    println("-------------")
+    #    @show laor, laor_new
+    #    @show case
+    #    @show seat_number(player)
+    #    @show seat_number.(players_at_table(table))
+    #    @show action_required.(players_at_table(table))
+    #    @show count(action_required.(players_at_table(table))) == 0
+    #    @show action_required.(players_at_table(table))
+    #    @show all_oppononents_all_in(table, player)
+    #    ah = action_history(player)
+    #    if !isempty(ah)
+    #        @show last(ah) isa Raise
+    #    end
+    #    @show not_raise
+    #    @show action_history(player)
+    #    error("Done")
+    #end
+    #return laor
+    return laor_new
 end
 
 """
@@ -97,7 +135,7 @@ of the (sorted) players at the start of the game.
 1   2   3   4   5   6
 ```
 """
-function contribute!(table, player, amt, call=false)
+function contribute!(table, player, amt, not_raise=false)
     tm = table.transactions
     @debug "$(name(player))'s bank roll (pre-contribute) = \$$(bank_roll(player))"
     if !(0 ≤ amt ≤ bank_roll(player))
@@ -140,19 +178,19 @@ function contribute!(table, player, amt, call=false)
         player.bank_roll = 0
     end
 
-    if is_side_pot_full(tm, table, player, call)
+    if is_side_pot_full(tm, table, player, not_raise)
         set_side_pot_full!(tm)
     end
     @debug "$(name(player))'s bank roll (post-contribute) = \$$(bank_roll(player))"
     @debug "all_in($(name(player))) = $(all_in(player))"
 end
 
-function is_side_pot_full(tm::TransactionManager, table, player, call)
+function is_side_pot_full(tm::TransactionManager, table, player, not_raise)
     players = players_at_table(table)
     # To switch from pot_id = 1 to pot_id = 2, then exactly 1 player  should be all-in:
     # To switch from pot_id = 2 to pot_id = 3, then exactly 2 players should be all-in:
     # ...
-    return last_action_of_round(table, player, call) && count(all_in.(players)) == tm.pot_id[1]
+    return last_action_of_round(table, player, not_raise) && count(all_in.(players)) == tm.pot_id[1]
 end
 
 set_side_pot_full!(tm::TransactionManager) = (tm.pot_id[1]+=1)

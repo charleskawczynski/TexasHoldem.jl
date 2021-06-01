@@ -217,6 +217,19 @@ function all_oppononents_all_in(table::Table, player::Player)
     return all_opp_all_in
 end
 
+function all_oppononents_have_no_required_action(table::Table, player::Player)
+    all_opp_hnra = true
+    for opponent in players_at_table(table)
+        seat_number(opponent) == seat_number(player) && continue
+        folded(opponent) && continue
+        inactive(opponent) && continue
+        if action_required(opponent)
+            all_opp_hnra = false
+        end
+    end
+    return all_opp_hnra
+end
+
 # One case that we need to catch is when everyone, except
 # the bank roll leader, has folded or gone all-in. In this
 # case, while the bank roll leader may have required actions
@@ -233,6 +246,40 @@ function all_all_in_except_bank_roll_leader(table::Table)
     return all(map(players) do player
         not_playing(player) || all_in(player) || seat_number(player) == seat_number(br_leader)
     end)
+end
+
+function last_player_to_raise(table::Table)
+    for player in players_at_table(table)
+        last_to_raise(player) && return player
+    end
+    return nothing
+end
+
+function raise_needs_to_be_called(table::Table)
+    players = players_at_table(table)
+    ltr = last_to_raise.(players)
+    @assert count(ltr) == 0 || count(ltr) == 1
+    if count(ltr) == 1
+        lptr = last_player_to_raise(table)
+        raise_called = false
+        n_folds_or_inactive = 0
+        for (i, opponent) in enumerate(circle(table, lptr))
+            i>length(players) && break
+            seat_number(opponent) == seat_number(lptr) && continue
+            if folded(opponent) || inactive(opponent)
+                n_folds_or_inactive+=1
+                continue
+            end
+            ah = action_history(opponent)
+            if !isempty(ah)
+                if last(ah) isa Call
+                    raise_called = true
+                end
+            end
+        end
+        return !(raise_called || n_folds_or_inactive == length(players)-1)
+    end
+    return false
 end
 
 blinds(table::Table) = table.blinds
@@ -278,7 +325,7 @@ end
 function check_for_winner!(table::Table)
     players = players_at_table(table)
     n_players = length(players)
-    table.winners.declared = count(folded.(players)) == n_players-1
+    table.winners.declared = count(folded.(players))+count(inactive.(players)) == n_players-1
     if table.winners.declared
         for player in players
             folded(player) && continue
@@ -385,9 +432,10 @@ function deal!(table::Table, blinds::Blinds)
 
         i>length(players) && break # deal cards to each player once
 
+        active(player) || continue
+
         player.cards = pop!(table.deck, 2)
 
-        folded(player) && continue # TODO: folded players should not get cards.
         # Right now they do to allow calling FullHandEval on their hand, but we should remove
         # this, or remove the players entirely.
 

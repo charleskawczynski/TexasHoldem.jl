@@ -226,22 +226,15 @@ function opponents_being_put_all_in(table::Table, player::Player, amt::Real)
         cond2 = still_playing(opponent)
         cond3 = seat_number(opponent) ≠ seat_number(player)
         cond4 = amt > rbr || amt ≈ rbr
-        all((cond1, cond2, cond3, cond4))
+        cond5 = active(opponent)
+        all((cond1, cond2, cond3, cond4, cond5))
     end
     return name.(opponents)
 end
 
 function raise_to_valid_raise_amount!(table::Table, player::Player, amt::Real)
-    pbpai = opponents_being_put_all_in(table, player, amt)
-    @debug "$(name(player)) raising to $(amt)."
-    prc = round_contribution(player)
-    contribute!(table, player, amt - prc, false)
-    table.current_raise_amt = amt
-
     push!(player.action_history, Raise(amt))
     player.action_required = false
-    player.last_to_raise = true
-    player.checked = false
     players = players_at_table(table)
     for opponent in players
         seat_number(opponent) == seat_number(player) && continue
@@ -251,6 +244,15 @@ function raise_to_valid_raise_amount!(table::Table, player::Player, amt::Real)
         opponent.checked = false # to avoid exiting on all_all_in_or_checked(table). TODO: there's got to be a cleaner way
         opponent.last_to_raise = false
     end
+
+    pbpai = opponents_being_put_all_in(table, player, amt)
+    @debug "$(name(player)) raising to $(amt)."
+    prc = round_contribution(player)
+    contribute!(table, player, amt - prc, false)
+    table.current_raise_amt = amt
+
+    player.last_to_raise = true
+    player.checked = false
     if bank_roll(player) ≈ 0
         if isempty(pbpai)
             @info "$(name(player)) raised to $(amt) (all-in)."
