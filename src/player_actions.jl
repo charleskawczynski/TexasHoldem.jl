@@ -94,7 +94,7 @@ function an_opponent_can_call_a_raise(table::Table, player::Player)
     occr = false
     for opponent in players_at_table(table)
         seat_number(opponent) == seat_number(player) && continue
-        folded(opponent) && continue
+        not_playing(opponent) && continue
         all_in(opponent) && continue
         if round_bank_roll(opponent) > current_raise_amt(table)
             occr = true
@@ -115,7 +115,7 @@ function max_opponent_round_bank_roll(table::Table, player::Player)
     max_orbr = 0
     for opponent in players_at_table(table)
         seat_number(opponent) == seat_number(player) && continue
-        folded(opponent) && continue
+        not_playing(opponent) && continue
         all_in(opponent) && continue
         max_orbr = max(max_orbr, round_bank_roll(opponent))
     end
@@ -223,7 +223,7 @@ function opponents_being_put_all_in(table::Table, player::Player, amt::Real)
     opponents = filter(players_at_table(table)) do opponent
         rbr = round_bank_roll(opponent)
         cond1 = !all_in(opponent)
-        cond2 = !folded(opponent)
+        cond2 = still_playing(opponent)
         cond3 = seat_number(opponent) ≠ seat_number(player)
         cond4 = amt > rbr || amt ≈ rbr
         all((cond1, cond2, cond3, cond4))
@@ -245,7 +245,7 @@ function raise_to_valid_raise_amount!(table::Table, player::Player, amt::Real)
     players = players_at_table(table)
     for opponent in players
         seat_number(opponent) == seat_number(player) && continue
-        folded(opponent) && continue
+        not_playing(opponent) && continue
         all_in(opponent) && continue
         opponent.action_required = true
         opponent.checked = false # to avoid exiting on all_all_in_or_checked(table). TODO: there's got to be a cleaner way
