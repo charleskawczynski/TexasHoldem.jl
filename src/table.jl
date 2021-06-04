@@ -113,7 +113,7 @@ function bank_roll_leader(table::Table)
     players = players_at_table(table)
     br_leader = first(players)
     for player in players
-        folded(player) && continue # only consider players still playing
+        still_playing(player) || continue # only consider players still playing
         pbr = round_bank_roll(player)
         if pbr > max_rbr
             br_leader = player
@@ -133,7 +133,7 @@ function all_oppononents_all_in(table::Table, player::Player)
     all_opp_all_in = true
     for opponent in players_at_table(table)
         seat_number(opponent) == seat_number(player) && continue
-        folded(opponent) && continue
+        not_playing(opponent) && continue
         if action_required(opponent)
             all_opp_all_in = false
         else
@@ -152,14 +152,12 @@ end
 function all_all_in_except_bank_roll_leader(table::Table)
     br_leader, multiple_leaders = bank_roll_leader(table)
     players = players_at_table(table)
-    @debug "all_all_in_except_bank_roll_leader"
-    @debug "   rbrs = $(round_bank_roll.(players)), multiple_leaders=$multiple_leaders"
     multiple_leaders && return false # the bank roll leader can go all-in
 
     @assert !multiple_leaders # We have a single bank roll leader
 
     return all(map(players) do player
-        folded(player) || all_in(player) || seat_number(player) == seat_number(br_leader)
+        not_playing(player) || all_in(player) || seat_number(player) == seat_number(br_leader)
     end)
 end
 
@@ -229,10 +227,10 @@ the table.
 function move_button!(table::Table)
     table.button_id = mod(button_id(table), length(table.players))+1
     players = players_at_table(table)
-    player_folded = folded(players[button_id(table)])
+    player_not_playing = not_playing(players[button_id(table)])
     counter = 0
-    if player_folded
-        while !player_folded
+    if player_not_playing
+        while !player_not_playing
             table.button_id = mod(button_id(table), length(table.players))+1
             counter+=1
             if counter > length(players)

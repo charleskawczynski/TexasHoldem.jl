@@ -164,7 +164,7 @@ function distribute_winnings_1_player_left!(players, tm::TransactionManager, tab
     @assert count(still_playing.(players)) == 1
     n = length(tm.side_pots)
     for (player, initial_br) in zip(players, tm.initial_brs)
-        folded(player) && continue
+        not_playing(player) && continue
         amt_contributed = initial_br - bank_roll(player)
         ∑spw = sidepot_winnings(tm, n)
         prof = ∑spw-amt_contributed
@@ -186,7 +186,7 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards)
     end
     hand_evals_sorted = map(enumerate(tm.sorted_players)) do (ssn, player)
         fhe = inactive(player) ? nothing : FullHandEval((player.cards..., table_cards...))
-        eligible = !folded(player) && active(player)
+        eligible = still_playing(player)
         (; eligible=eligible, player=player, fhe=fhe, ssn=ssn)
     end
 
@@ -230,7 +230,7 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards)
         for winner_id in winner_ids
             win_seat = seat_number(tm.sorted_players[winner_id])
             winning_player = players[win_seat]
-            folded(winning_player) && continue
+            not_playing(winning_player) && continue
             amt = sidepot_winnings(tm, i) / n_winners
             side_pot_winnings[win_seat][i] = amt
             winning_hands[win_seat] = hand_type(hand_evals_sorted[winner_id].fhe)

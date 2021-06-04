@@ -66,8 +66,8 @@ print_game_state(table, state::Flop) =  @info "Flop: $(repeat(" ", 44)) $(table.
 print_game_state(table, state::Turn) =  @info "Turn: $(repeat(" ", 44)) $(table.cards[4])"
 print_game_state(table, state::River) = @info "River: $(repeat(" ", 43)) $(table.cards[5])"
 
-force_blind_raise!(table::Table, player, ::AbstractGameState, i::Int) = nothing
-function force_blind_raise!(table::Table, player::Player, ::PreFlop, i::Int)
+set_preflop_blind_raise!(table::Table, player, ::AbstractGameState, i::Int) = nothing
+function set_preflop_blind_raise!(table::Table, player::Player, ::PreFlop, i::Int)
     if 1 ≤ i ≤ length(players_at_table(table))
         # TODO: what if only two players?
         if is_first_to_act(table, player)
@@ -88,7 +88,8 @@ function act_generic!(game::Game, state::AbstractGameState)
 
     any_actions_required(game) || return
     for (i, player) in enumerate(circle(table, FirstToAct()))
-        force_blind_raise!(table, player, state, i)
+        not_playing(player) && continue # skip players not playing
+        set_preflop_blind_raise!(table, player, state, i)
         @debug "Checking to see if it's $(name(player))'s turn to act"
         @debug "     all_in.(players_at_table(table)) = $(all_in.(players_at_table(table)))"
         @debug "     last_to_raise.(players_at_table(table)) = $(last_to_raise.(players_at_table(table)))"
@@ -111,7 +112,6 @@ function act_generic!(game::Game, state::AbstractGameState)
         all_all_in_except_bank_roll_leader(table) && break
         all_all_in_or_checked(table) && break
         !any(action_required.(players_at_table(table))) && break
-        folded(player) && continue
         all_in(player) && continue
         @debug "$(name(player))'s turn to act"
         player_option!(game, player)
