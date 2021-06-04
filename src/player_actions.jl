@@ -46,11 +46,11 @@ end
 function call_amount(table::Table, player::Player)
     cra = current_raise_amt(table)
     prc = round_contribution(player)
+    call_amt = cra - prc
+    @debug "cra = $cra, prc = $prc, call_amt = $call_amt"
     if cra ≈ 0
         @assert prc ≈ 0 "Round contribution must be zero if current raise is zero."
     end
-    call_amt = cra - prc
-    @debug "cra = $cra, prc = $prc, call_amt = $call_amt"
     @assert !(call_amt < 0) "Call amount cannot be negative"
     return call_amt
 end

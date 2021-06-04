@@ -21,7 +21,7 @@ function Game(
         players::Tuple;
         deck = ordered_deck(),
         table = nothing,
-        button_id::Int = button_id(),
+        button_id::Int = default_button_id(),
         blinds::Blinds = Blinds(1,2),
     )
 
@@ -61,10 +61,10 @@ any_actions_required(game::Game) = any_actions_required(game.table)
 state(game::Game) = state(game.table)
 move_button!(game) = move_button!(game.table)
 
-print_new_cards(table, state::PreFlop) = nothing
-print_new_cards(table, state::Flop) =  @info "Flop: $(repeat(" ", 44)) $(table.cards[1:3])"
-print_new_cards(table, state::Turn) =  @info "Turn: $(repeat(" ", 44)) $(table.cards[4])"
-print_new_cards(table, state::River) = @info "River: $(repeat(" ", 43)) $(table.cards[5])"
+print_game_state(table, state::PreFlop) = @info "Pre-flop!"
+print_game_state(table, state::Flop) =  @info "Flop: $(repeat(" ", 44)) $(table.cards[1:3])"
+print_game_state(table, state::Turn) =  @info "Turn: $(repeat(" ", 44)) $(table.cards[4])"
+print_game_state(table, state::River) = @info "River: $(repeat(" ", 43)) $(table.cards[5])"
 
 force_blind_raise!(table::Table, player, ::AbstractGameState, i::Int) = nothing
 function force_blind_raise!(table::Table, player::Player, ::PreFlop, i::Int)
@@ -83,7 +83,7 @@ function act_generic!(game::Game, state::AbstractGameState)
     table = game.table
     table.winners.declared && return
     set_state!(table, state)
-    print_new_cards(table, state)
+    print_game_state(table, state)
     reset_round_bank_rolls!(game, state)
 
     any_actions_required(game) || return
@@ -132,9 +132,7 @@ expects no cards (players and table)
 to be dealt.
 """
 function play!(game::Game)
-    @info "********************************"
-    @info "******************************** Playing Game!"
-    @info "********************************"
+    @info "------ Playing Game!"
 
     table = game.table
     players = players_at_table(table)
@@ -143,6 +141,11 @@ function play!(game::Game)
     initial_∑brs = sum(initial_brs)
 
     @info "Initial bank roll summary: $(bank_roll.(players))"
+    button = button_id(table)
+    sb = seat_number(small_blind(table))
+    bb = seat_number(big_blind(table))
+    f2a = seat_number(first_to_act(table))
+    @info "Blinds (button, small, big, 1ˢᵗToAct): ($button, $sb, $bb, $f2a)"
 
     table.transactions = TransactionManager(players)
 
@@ -172,9 +175,7 @@ function play!(game::Game)
 
     @info "Final bank roll summary: $(bank_roll.(players))"
 
-    @info "********************************"
-    @info "******************************** Game finished!"
-    @info "********************************"
+    @info "------ Finished game!"
     return winners
 end
 
@@ -190,7 +191,7 @@ function reset_game!(game::Game)
     game.table = Table(;
         deck=ordered_deck(),
         players=players,
-        button_id=table.button_id,
+        button_id=button_id(table),
         blinds=table.blinds
     )
     table = game.table
@@ -209,7 +210,7 @@ function reset_game!(game::Game)
         player.checked = false
         player.last_to_raise = false
         player.round_contribution = 0
-        player.sat_out = false
+        player.active = true
     end
 end
 
@@ -219,6 +220,9 @@ end
 Play until a single player remains!
 """
 function tournament!(game::Game)
+    @info "********************************"
+    @info "******************************** Playing game!"
+    @info "********************************"
     table = game.table
     players = players_at_table(table)
     while length(players) > 1
@@ -231,6 +235,9 @@ function tournament!(game::Game)
         end
         move_button!(game)
     end
+    @info "********************************"
+    @info "******************************** Finished game!"
+    @info "********************************"
     return game.table.winners
 end
 
