@@ -185,8 +185,8 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards)
         return distribute_winnings_1_player_left!(players, tm, table_cards)
     end
     hand_evals_sorted = map(enumerate(tm.sorted_players)) do (ssn, player)
-        fhe = sat_out(player) ? nothing : FullHandEval((player.cards..., table_cards...))
-        eligible = !folded(player) && !sat_out(player)
+        fhe = inactive(player) ? nothing : FullHandEval((player.cards..., table_cards...))
+        eligible = !folded(player) && active(player)
         (; eligible=eligible, player=player, fhe=fhe, ssn=ssn)
     end
 
@@ -208,7 +208,7 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards)
         @debug begin
             s = "Sorted hand evals: \n"
             for hes in hand_evals_sorted
-                sat_out(hes.player) && continue # (don't have cards to eval)
+                inactive(hes.player) && continue # (don't have cards to eval)
                 s *= "eligible=$(hes.eligible), "
                 s *= "sn=$(seat_number(hes.player)), "
                 s *= "ssn=$(hes.ssn), "

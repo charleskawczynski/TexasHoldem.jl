@@ -23,7 +23,7 @@ struct Blinds{S,B}
 end
 
 Blinds() = Blinds(1,2) # default
-button_id() = 1 # default
+default_button_id() = 1 # default
 
 function Base.show(io::IO, blinds::Blinds, include_type = true)
     include_type && println(io, typeof(blinds))
@@ -50,7 +50,7 @@ function Table(;
     blinds = Blinds(),
     pot = Float64(0),
     state = PreFlop(),
-    button_id = button_id(),
+    button_id = default_button_id(),
     current_raise_amt = Float64(0),
     transactions = nothing,
     winners = Winners(),
@@ -74,7 +74,7 @@ function Base.show(io::IO, table::Table, include_type = true)
     include_type && println(io, typeof(table))
     show(io, blinds(table), false)
     show(io, table.winners, false)
-    println(io, "Button           = $(table.button_id)")
+    println(io, "Button           = $(button_id(table))")
     println(io, "Pot              = $(table.transactions)")
     println(io, "All cards        = $(table.cards)")
     println(io, "Observed cards   = $(observed_cards(table))")
@@ -92,6 +92,7 @@ observed_cards(table::Table, ::River) = table.cards
 current_raise_amt(table::Table) = table.current_raise_amt
 
 state(table::Table) = table.state
+button_id(table::Table) = table.button_id
 players_at_table(table::Table) = table.players
 all_checked_or_folded(table::Table) = all(map(x -> folded(x) || checked(x), players_at_table(table)))
 all_all_in_or_folded(table::Table) = all(map(x -> folded(x) || all_in(x), players_at_table(table)))
@@ -226,13 +227,13 @@ Move the button to the next player on
 the table.
 """
 function move_button!(table::Table)
-    table.button_id = mod(table.button_id, length(table.players))+1
+    table.button_id = mod(button_id(table), length(table.players))+1
     players = players_at_table(table)
-    player_folded = folded(players[table.button_id])
+    player_folded = folded(players[button_id(table)])
     counter = 0
     if player_folded
         while !player_folded
-            table.button_id = mod(table.button_id, length(table.players))+1
+            table.button_id = mod(button_id(table), length(table.players))+1
             counter+=1
             if counter > length(players)
                 error("Button has nowhere to move!")
@@ -265,7 +266,7 @@ circle_table(n_players, button_id, state) =
     mod(state + button_id-2, n_players)+1
 
 circle_table(table::Table, state) =
-    circle_table(length(table.players), table.button_id, state)
+    circle_table(length(table.players), button_id(table), state)
 
 small_blind(table::Table) = players_at_table(table)[circle_table(table, 2)]
 big_blind(table::Table) = players_at_table(table)[circle_table(table, 3)]
@@ -291,10 +292,10 @@ struct CircleTable{CircType,P}
 end
 
 circle(table::Table, tp::TablePosition) =
-    CircleTable{typeof(tp),Nothing}(table.players, table.button_id, length(table.players), nothing)
+    CircleTable{typeof(tp),Nothing}(table.players, button_id(table), length(table.players), nothing)
 
 circle(table::Table, player::Player) =
-    CircleTable{typeof(player),typeof(player)}(table.players, table.button_id, length(table.players), player)
+    CircleTable{typeof(player),typeof(player)}(table.players, button_id(table), length(table.players), player)
 
 Base.iterate(ct::CircleTable{Button}, state = 1) =
     (ct.players[circle_table(ct.n_players, ct.button_id, state)], state+1)

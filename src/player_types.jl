@@ -28,7 +28,7 @@ mutable struct Player{LF}
     pot_investment::Float64 # accumulation of round_contribution, TODO: needs to be added to reset_game!
     checked::Bool
     last_to_raise::Bool
-    sat_out::Bool
+    active::Bool
     round_contribution::Float64
 end
 
@@ -45,7 +45,7 @@ function Player(life_form, seat_number, cards = nothing; bank_roll = 200)
     folded = false
     pot_investment = Float64(0)
     checked = false
-    sat_out = false
+    active = true
     round_contribution = Float64(0)
     last_to_raise = false
     args = (
@@ -61,7 +61,7 @@ function Player(life_form, seat_number, cards = nothing; bank_roll = 200)
         pot_investment,
         checked,
         last_to_raise,
-        sat_out,
+        active,
         round_contribution,
     )
     Player(args...)
@@ -78,7 +78,8 @@ checked(player::Player) = player.checked
 last_to_raise(player::Player) = player.last_to_raise
 all_in(player::Player) = player.all_in
 action_required(player::Player) = player.action_required
-sat_out(player::Player) = player.sat_out
+active(player::Player) = player.active
+inactive(player::Player) = !active(player)
 round_bank_roll(player::Player) = player.round_bank_roll
 pot_investment(player::Player) = player.pot_investment
 round_contribution(player::Player) = player.round_contribution

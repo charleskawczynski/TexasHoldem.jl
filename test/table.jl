@@ -27,13 +27,13 @@ end
 @testset "Table: Move button" begin
     players = ntuple(i-> Player(Bot5050(), i), 3)
     table = Table(;players = players)
-    @test table.button_id == 1
+    @test TH.button_id(table) == 1
     move_button!(table)
-    @test table.button_id == 2
+    @test TH.button_id(table) == 2
     move_button!(table)
-    @test table.button_id == 3
+    @test TH.button_id(table) == 3
     move_button!(table)
-    @test table.button_id == 1
+    @test TH.button_id(table) == 1
 end
 
 @testset "Table: Circle table" begin
@@ -58,7 +58,7 @@ end
 
 @testset "Table: player position" begin
     players = ntuple(i-> Player(Bot5050(), i), 5)
-    table = Table(;players = players, button_id = TH.button_id())
+    table = Table(;players = players, button_id = TH.default_button_id())
 
     @test TH.position(table, players[1], -5) == 1
     @test TH.position(table, players[1], -4) == 2
@@ -87,10 +87,10 @@ end
 
 @testset "Table: Button iterator" begin
 
-    @test TH.button_id() == 1
+    @test TH.default_button_id() == 1
 
     players = ntuple(i-> Player(Bot5050(), i), 5)
-    table = Table(;players = players, button_id = TH.button_id())
+    table = Table(;players = players, button_id = TH.default_button_id())
     TH.deal!(table, TH.blinds(table))
 
     # button_id = 1
@@ -121,10 +121,10 @@ end
 
 @testset "Table: SmallBlind iterator" begin
 
-    @test TH.button_id() == 1
+    @test TH.default_button_id() == 1
 
     players = ntuple(i-> Player(Bot5050(), i), 5)
-    table = Table(;players = players, button_id = TH.button_id())
+    table = Table(;players = players, button_id = TH.default_button_id())
     TH.deal!(table, TH.blinds(table))
 
     # button_id = 1
@@ -159,10 +159,10 @@ end
 
 @testset "Table: BigBlind iterator" begin
 
-    @test TH.button_id() == 1
+    @test TH.default_button_id() == 1
 
     players = ntuple(i-> Player(Bot5050(), i), 5)
-    table = Table(;players = players, button_id = TH.button_id())
+    table = Table(;players = players, button_id = TH.default_button_id())
     TH.deal!(table, TH.blinds(table))
 
     # button_id = 1
@@ -197,10 +197,10 @@ end
 
 @testset "Table: FirstToAct iterator" begin
 
-    @test TH.button_id() == 1
+    @test TH.default_button_id() == 1
 
     players = ntuple(i-> Player(Bot5050(), i), 5)
-    table = Table(;players = players, button_id = TH.button_id())
+    table = Table(;players = players, button_id = TH.default_button_id())
     TH.deal!(table, TH.blinds(table))
 
     # button_id = 1
@@ -235,9 +235,9 @@ end
 
 @testset "Table: iterate from player" begin
 
-    @test TH.button_id() == 1
+    @test TH.default_button_id() == 1
     players = ntuple(i-> Player(Bot5050(), i), 5)
-    table = Table(;players = players, button_id = TH.button_id())
+    table = Table(;players = players, button_id = TH.default_button_id())
     TH.deal!(table, TH.blinds(table))
     # button_id = 1
     state = 0
@@ -261,7 +261,7 @@ end
     @test state==length(players)
 
     players = ntuple(i-> Player(Bot5050(), i), 5)
-    table = Table(;players = players, button_id = TH.button_id())
+    table = Table(;players = players, button_id = TH.default_button_id())
     TH.deal!(table, TH.blinds(table))
     # button_id = 1
     state = 0
