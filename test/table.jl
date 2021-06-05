@@ -25,15 +25,46 @@ TH = TexasHoldem
 end
 
 @testset "Table: Move button" begin
+    # All players playing
     players = ntuple(i-> Player(Bot5050(), i), 3)
     table = Table(;players = players)
-    @test TH.button_id(table) == 1
-    move_button!(table)
-    @test TH.button_id(table) == 2
-    move_button!(table)
-    @test TH.button_id(table) == 3
-    move_button!(table)
-    @test TH.button_id(table) == 1
+    @test TH.buttons(table.buttons) == (1, 2, 3, 1)
+    move_buttons!(table)
+    @test TH.buttons(table.buttons) == (2, 3, 1, 2)
+    move_buttons!(table)
+    @test TH.buttons(table.buttons) == (3, 1, 2, 3)
+    move_buttons!(table)
+    @test TH.buttons(table.buttons) == (1, 2, 3, 1)
+
+    # Some players not playing
+    players = (
+        Player(Bot5050(), 1),
+        Player(Bot5050(), 2; bank_roll=0),
+        Player(Bot5050(), 3),
+    )
+    table = Table(;players = players)
+    @test TH.buttons(table.buttons) == (1, 3, 1, 3)
+    move_buttons!(table)
+    @test TH.buttons(table.buttons) == (3, 1, 3, 1)
+    move_buttons!(table)
+    @test TH.buttons(table.buttons) == (1, 3, 1, 3)
+    move_buttons!(table)
+    @test TH.buttons(table.buttons) == (3, 1, 3, 1)
+
+    # Some players not playing
+    players = (
+        Player(Bot5050(), 1),
+        Player(Bot5050(), 2; bank_roll=0),
+        Player(Bot5050(), 3),
+    )
+    table = Table(;players = players, dealer_id=2)
+    @test TH.buttons(table.buttons) == (3, 1, 3, 1)
+    move_buttons!(table)
+    @test TH.buttons(table.buttons) == (1, 3, 1, 3)
+    move_buttons!(table)
+    @test TH.buttons(table.buttons) == (3, 1, 3, 1)
+    move_buttons!(table)
+    @test TH.buttons(table.buttons) == (1, 3, 1, 3)
 end
 
 @testset "Table: Circle table" begin
@@ -58,7 +89,7 @@ end
 
 @testset "Table: player position" begin
     players = ntuple(i-> Player(Bot5050(), i), 5)
-    table = Table(;players = players, button_id = TH.default_button_id())
+    table = Table(;players = players, dealer_id = TH.default_dealer_id())
 
     @test TH.position(table, players[1], -5) == 1
     @test TH.position(table, players[1], -4) == 2
@@ -87,13 +118,13 @@ end
 
 @testset "Table: Button iterator" begin
 
-    @test TH.default_button_id() == 1
+    @test TH.default_dealer_id() == 1
 
     players = ntuple(i-> Player(Bot5050(), i), 5)
-    table = Table(;players = players, button_id = TH.default_button_id())
+    table = Table(;players = players, dealer_id = TH.default_dealer_id())
     TH.deal!(table, TH.blinds(table))
 
-    # button_id = 1
+    # dealer_id = 1
     state = 0
     for player in TH.circle(table, Button())
         state+=1
@@ -102,9 +133,9 @@ end
     end
     @test state==length(players)
 
-    # button_id = 2
+    # dealer_id = 2
     players = ntuple(i-> Player(Bot5050(), i), 5)
-    table = Table(;players = players, button_id = 2)
+    table = Table(;players = players, dealer_id = 2)
     TH.deal!(table, TH.blinds(table))
     state = 0
     for player in TH.circle(table, Button())
@@ -121,13 +152,13 @@ end
 
 @testset "Table: SmallBlind iterator" begin
 
-    @test TH.default_button_id() == 1
+    @test TH.default_dealer_id() == 1
 
     players = ntuple(i-> Player(Bot5050(), i), 5)
-    table = Table(;players = players, button_id = TH.default_button_id())
+    table = Table(;players = players, dealer_id = TH.default_dealer_id())
     TH.deal!(table, TH.blinds(table))
 
-    # button_id = 1
+    # dealer_id = 1
     state = 0
     for player in TH.circle(table, SmallBlind())
         state+=1
@@ -140,9 +171,9 @@ end
     end
     @test state==length(players)
 
-    # button_id = 2
+    # dealer_id = 2
     players = ntuple(i-> Player(Bot5050(), i), 5)
-    table = Table(;players = players, button_id = 2)
+    table = Table(;players = players, dealer_id = 2)
     TH.deal!(table, TH.blinds(table))
     state = 0
     for player in TH.circle(table, SmallBlind())
@@ -159,13 +190,13 @@ end
 
 @testset "Table: BigBlind iterator" begin
 
-    @test TH.default_button_id() == 1
+    @test TH.default_dealer_id() == 1
 
     players = ntuple(i-> Player(Bot5050(), i), 5)
-    table = Table(;players = players, button_id = TH.default_button_id())
+    table = Table(;players = players, dealer_id = TH.default_dealer_id())
     TH.deal!(table, TH.blinds(table))
 
-    # button_id = 1
+    # dealer_id = 1
     state = 0
     for player in TH.circle(table, BigBlind())
         state+=1
@@ -178,9 +209,9 @@ end
     end
     @test state==length(players)
 
-    # button_id = 2
+    # dealer_id = 2
     players = ntuple(i-> Player(Bot5050(), i), 5)
-    table = Table(;players = players, button_id = 2)
+    table = Table(;players = players, dealer_id = 2)
     TH.deal!(table, TH.blinds(table))
     state = 0
     for player in TH.circle(table, BigBlind())
@@ -197,13 +228,13 @@ end
 
 @testset "Table: FirstToAct iterator" begin
 
-    @test TH.default_button_id() == 1
+    @test TH.default_dealer_id() == 1
 
     players = ntuple(i-> Player(Bot5050(), i), 5)
-    table = Table(;players = players, button_id = TH.default_button_id())
+    table = Table(;players = players, dealer_id = TH.default_dealer_id())
     TH.deal!(table, TH.blinds(table))
 
-    # button_id = 1
+    # dealer_id = 1
     state = 0
     for player in TH.circle(table, FirstToAct())
         state+=1
@@ -216,9 +247,9 @@ end
     end
     @test state==length(players)
 
-    # button_id = 2
+    # dealer_id = 2
     players = ntuple(i-> Player(Bot5050(), i), 5)
-    table = Table(;players = players, button_id = 2)
+    table = Table(;players = players, dealer_id = 2)
     TH.deal!(table, TH.blinds(table))
     state = 0
     for player in TH.circle(table, FirstToAct())
@@ -235,11 +266,11 @@ end
 
 @testset "Table: iterate from player" begin
 
-    @test TH.default_button_id() == 1
+    @test TH.default_dealer_id() == 1
     players = ntuple(i-> Player(Bot5050(), i), 5)
-    table = Table(;players = players, button_id = TH.default_button_id())
+    table = Table(;players = players, dealer_id = TH.default_dealer_id())
     TH.deal!(table, TH.blinds(table))
-    # button_id = 1
+    # dealer_id = 1
     state = 0
     for player in TH.circle(table, players[1])
         state+=1
@@ -249,9 +280,9 @@ end
     @test state==length(players)
 
     players = ntuple(i-> Player(Bot5050(), i), 5)
-    table = Table(;players = players, button_id = 2)
+    table = Table(;players = players, dealer_id = 2)
     TH.deal!(table, TH.blinds(table))
-    # button_id = 2
+    # dealer_id = 2
     state = 0
     for player in TH.circle(table, players[1])
         state+=1
@@ -261,9 +292,9 @@ end
     @test state==length(players)
 
     players = ntuple(i-> Player(Bot5050(), i), 5)
-    table = Table(;players = players, button_id = TH.default_button_id())
+    table = Table(;players = players, dealer_id = TH.default_dealer_id())
     TH.deal!(table, TH.blinds(table))
-    # button_id = 1
+    # dealer_id = 1
     state = 0
     for player in TH.circle(table, players[2])
         state+=1
@@ -277,9 +308,9 @@ end
     @test state==length(players)
 
     players = ntuple(i-> Player(Bot5050(), i), 5)
-    table = Table(;players = players, button_id = 2)
+    table = Table(;players = players, dealer_id = 2)
     TH.deal!(table, TH.blinds(table))
-    # button_id = 2
+    # dealer_id = 2
     state = 0
     for player in TH.circle(table, players[2])
         state+=1
