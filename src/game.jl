@@ -230,7 +230,7 @@ Play until a single player remains!
 """
 function tournament!(game::Game)
     @info "********************************"
-    @info "******************************** Playing game!"
+    @info "******************************** Playing tournament!"
     @info "********************************"
     table = game.table
     players = players_at_table(table)
@@ -245,7 +245,7 @@ function tournament!(game::Game)
         move_buttons!(game)
     end
     @info "********************************"
-    @info "******************************** Finished game!"
+    @info "******************************** Finished tournament!"
     @info "********************************"
     return game.table.winners
 end
