@@ -1,6 +1,6 @@
 using Test
 using PlayingCards
-using TexasHoldem: Player, Bot5050, TransactionManager, button_id, Table
+using TexasHoldem: Player, Bot5050, TransactionManager, dealer_id, Table
 TH = TexasHoldem
 
 @testset "TransactionManagers - Lowest bank roll goes all-in and wins it all" begin

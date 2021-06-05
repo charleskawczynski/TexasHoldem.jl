@@ -21,7 +21,7 @@ function Game(
         players::Tuple;
         deck = ordered_deck(),
         table = nothing,
-        button_id::Int = default_button_id(),
+        dealer_id::Int = default_dealer_id(),
         blinds::Blinds = Blinds(1,2),
     )
 
@@ -43,7 +43,7 @@ function Game(
         table = Table(;
             deck=deck,
             players=players,
-            button_id=button_id,
+            dealer_id=dealer_id,
             blinds=blinds
         )
 
@@ -59,7 +59,7 @@ players_at_table(game::Game) = players_at_table(game.table)
 blinds(game::Game) = blinds(game.table)
 any_actions_required(game::Game) = any_actions_required(game.table)
 state(game::Game) = state(game.table)
-move_button!(game) = move_button!(game.table)
+move_buttons!(game) = move_buttons!(game.table)
 
 print_game_state(table, state::PreFlop) = @info "Pre-flop!"
 print_game_state(table, state::Flop) =  @info "Flop: $(repeat(" ", 44)) $(table.cards[1:3])"
@@ -141,11 +141,11 @@ function play!(game::Game)
     initial_∑brs = sum(initial_brs)
 
     @info "Initial bank roll summary: $(bank_roll.(players))"
-    button = button_id(table)
+    dealer = dealer_id(table)
     sb = seat_number(small_blind(table))
     bb = seat_number(big_blind(table))
     f2a = seat_number(first_to_act(table))
-    @info "Blinds (button, small, big, 1ˢᵗToAct): ($button, $sb, $bb, $f2a)"
+    @info "Blinds (dealer, small, big, 1ˢᵗToAct): ($dealer, $sb, $bb, $f2a)"
 
     table.transactions = TransactionManager(players)
 
@@ -191,7 +191,7 @@ function reset_game!(game::Game)
     game.table = Table(;
         deck=ordered_deck(),
         players=players,
-        button_id=button_id(table),
+        dealer_id=dealer_id(table),
         blinds=table.blinds
     )
     table = game.table
@@ -227,13 +227,13 @@ function tournament!(game::Game)
     players = players_at_table(table)
     while length(players) > 1
         play!(game)
-        reset_game!(game)
         n_players_remaining = count(map(x->!(bank_roll(x) ≈ 0), players))
         if n_players_remaining ≤ 1
             println("Victor emerges!")
             break
         end
-        move_button!(game)
+        reset_game!(game)
+        move_buttons!(game)
     end
     @info "********************************"
     @info "******************************** Finished game!"

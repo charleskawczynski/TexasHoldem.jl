@@ -4,7 +4,7 @@
 
 export Button, SmallBlind, BigBlind, FirstToAct
 export Table
-export move_button!
+export move_buttons!
 
 Base.@kwdef mutable struct Winners
     declared::Bool = false
@@ -23,12 +23,29 @@ struct Blinds{S,B}
 end
 
 Blinds() = Blinds(1,2) # default
-default_button_id() = 1 # default
+default_dealer_id() = 1 # default
 
 function Base.show(io::IO, blinds::Blinds, include_type = true)
     include_type && println(io, typeof(blinds))
     println(io, "Blinds           = (small=$(blinds.small),big=$(blinds.big))")
 end
+
+# TODO: this should probably not be mutable
+mutable struct Buttons
+    dealer::Int
+    small_blind::Int
+    big_blind::Int
+    first_to_act::Int
+end
+
+dealer(b::Buttons) = b.dealer
+
+buttons(b::Buttons) = (
+    b.dealer,
+    b.small_blind,
+    b.big_blind,
+    b.first_to_act,
+)
 
 mutable struct Table
     deck::PlayingCards.Deck
@@ -37,11 +54,13 @@ mutable struct Table
     blinds::Blinds
     pot::Float64
     state::AbstractGameState
-    button_id::Int
+    buttons::Buttons
     current_raise_amt::Float64
     transactions::TransactionManager
     winners::Winners
 end
+
+buttons(table::Table) = table.buttons
 
 function Table(;
     players::Tuple,
@@ -50,7 +69,7 @@ function Table(;
     blinds = Blinds(),
     pot = Float64(0),
     state = PreFlop(),
-    button_id = default_button_id(),
+    dealer_id = default_dealer_id(),
     current_raise_amt = Float64(0),
     transactions = nothing,
     winners = Winners(),
@@ -58,23 +77,59 @@ function Table(;
     if transactions == nothing
         transactions = TransactionManager(players)
     end
+    buttons = Buttons(dealer_id, players)
     return Table(deck,
         players,
         cards,
         blinds,
         pot,
         state,
-        button_id,
+        buttons,
         current_raise_amt,
         transactions,
         winners)
+end
+
+function Buttons(dealer_id, players::Tuple)
+    dealer_id       = this_or_next_valid_id(dealer_id       , players)
+    small_blind_id  = this_or_next_valid_id(dealer_id     +1, players)
+    big_blind_id    = this_or_next_valid_id(small_blind_id+1, players)
+    first_to_act_id = this_or_next_valid_id(big_blind_id  +1, players)
+    return Buttons(dealer_id, small_blind_id, big_blind_id, first_to_act_id)
+end
+
+valid_button(player::Player) = !(bank_roll(player) ≈ 0) && still_playing(player)
+
+"""
+    this_or_next_valid_id(id, players::Tuple)
+
+Given an index `id`, return this index, if valid,
+otherwise find the next valid index.
+"""
+function this_or_next_valid_id(id, players::Tuple)
+    n_players = length(players)
+    id = circle_index(n_players, id) # so that we can pass in id+1
+    if valid_button(players[id])
+        return id
+    else
+        state = id
+        id_need_defined = true
+        while id_need_defined
+            state > 2*n_players && error("Broken logic in this_or_next_valid_id")
+            id = circle_index(n_players, state)
+            if valid_button(players[id])
+                return id
+            end
+            state+=1
+        end
+    end
 end
 
 function Base.show(io::IO, table::Table, include_type = true)
     include_type && println(io, typeof(table))
     show(io, blinds(table), false)
     show(io, table.winners, false)
-    println(io, "Button           = $(button_id(table))")
+    println(io, "Dealer           = $(dealer_id(table))")
     println(io, "Pot              = $(table.transactions)")
     println(io, "All cards        = $(table.cards)")
     println(io, "Observed cards   = $(observed_cards(table))")
@@ -92,7 +147,7 @@ observed_cards(table::Table, ::River) = table.cards
 current_raise_amt(table::Table) = table.current_raise_amt
 
 state(table::Table) = table.state
-button_id(table::Table) = table.button_id
+dealer_id(table::Table) = table.buttons.dealer
 players_at_table(table::Table) = table.players
 all_checked_or_folded(table::Table) = all(map(x -> folded(x) || checked(x), players_at_table(table)))
 all_all_in_or_folded(table::Table) = all(map(x -> folded(x) || all_in(x), players_at_table(table)))
@@ -219,25 +274,17 @@ end
 #####
 
 """
-    move_button!(table::Table)
+    move_buttons!(table::Table)
 
 Move the button to the next player on
 the table.
 """
-function move_button!(table::Table)
-    table.button_id = mod(button_id(table), length(table.players))+1
+function move_buttons!(table::Table)
     players = players_at_table(table)
-    player_not_playing = not_playing(players[button_id(table)])
-    counter = 0
-    if player_not_playing
-        while !player_not_playing
-            table.button_id = mod(button_id(table), length(table.players))+1
-            counter+=1
-            if counter > length(players)
-                error("Button has nowhere to move!")
-            end
-        end
-    end
+    table.buttons.dealer       = this_or_next_valid_id(table.buttons.dealer      +1, players)
+    table.buttons.small_blind  = this_or_next_valid_id(table.buttons.dealer      +1, players)
+    table.buttons.big_blind    = this_or_next_valid_id(table.buttons.small_blind +1, players)
+    table.buttons.first_to_act = this_or_next_valid_id(table.buttons.big_blind   +1, players)
 end
 
 """
@@ -251,20 +298,24 @@ Player position, given
 position(table, player::Player, relative=0) =
     mod(relative + seat_number(player) - 1, length(table.players))+1
 
-"""
-    circle_table(n_players, button_id, state)
+circle_index(n_players, i) = mod(i-1, n_players)+1
 
-Circle the table, starting from the `button_id`
+"""
+    circle_table(n_players, dealer_id, state)
+
+Circle the table, starting from the `dealer_id`
 which corresponds to `state = 1`.
  - `state` the global iteration state (starting from 1)
  - `n_players` the total number of players
- - `button_id` the dealer ID (from `1:n_players`)
+ - `dealer_id` the dealer ID (from `1:n_players`)
 """
-circle_table(n_players, button_id, state) =
-    mod(state + button_id-2, n_players)+1
+circle_table(n_players, dealer_id, state) =
+    # circle_index(n_players, state + dealer_id-1)
+    mod(state + dealer_id-2, n_players)+1
+
 
 circle_table(table::Table, state) =
-    circle_table(length(table.players), button_id(table), state)
+    circle_table(length(table.players), dealer_id(table), state)
 
 small_blind(table::Table) = players_at_table(table)[circle_table(table, 2)]
 big_blind(table::Table) = players_at_table(table)[circle_table(table, 3)]
@@ -284,28 +335,28 @@ struct FirstToAct <: TablePosition end # (after BigBlind)
 
 struct CircleTable{CircType,P}
     players::Tuple
-    button_id::Int
+    buttons::Buttons
     n_players::Int
     player::P
 end
 
 circle(table::Table, tp::TablePosition) =
-    CircleTable{typeof(tp),Nothing}(table.players, button_id(table), length(table.players), nothing)
+    CircleTable{typeof(tp),Nothing}(table.players, buttons(table), length(table.players), nothing)
 
 circle(table::Table, player::Player) =
-    CircleTable{typeof(player),typeof(player)}(table.players, button_id(table), length(table.players), player)
+    CircleTable{typeof(player),typeof(player)}(table.players, buttons(table), length(table.players), player)
 
 Base.iterate(ct::CircleTable{Button}, state = 1) =
-    (ct.players[circle_table(ct.n_players, ct.button_id, state)], state+1)
+    (ct.players[circle_table(ct.n_players, dealer(ct.buttons), state)], state+1)
 
 Base.iterate(ct::CircleTable{SmallBlind}, state = 2) =
-    (ct.players[circle_table(ct.n_players, ct.button_id, state)], state+1)
+    (ct.players[circle_table(ct.n_players, dealer(ct.buttons), state)], state+1)
 
 Base.iterate(ct::CircleTable{BigBlind}, state = 3) =
-    (ct.players[circle_table(ct.n_players, ct.button_id, state)], state+1)
+    (ct.players[circle_table(ct.n_players, dealer(ct.buttons), state)], state+1)
 
 Base.iterate(ct::CircleTable{FirstToAct}, state = 4) =
-    (ct.players[circle_table(ct.n_players, ct.button_id, state)], state+1)
+    (ct.players[circle_table(ct.n_players, dealer(ct.buttons), state)], state+1)
 
 Base.iterate(ct::CircleTable{P}, state = 1) where {P <: Player} =
     (ct.players[circle_table(ct.n_players, seat_number(ct.player), state)], state+1)
