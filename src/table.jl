@@ -295,8 +295,9 @@ end
 """
     move_buttons!(table::Table)
 
-Move the button to the next player on
-the table.
+Move the dealer, small blind, big blind,
+and first-to-act buttons to the next set
+of players.
 """
 function move_buttons!(table::Table)
     players = players_at_table(table)
