@@ -38,7 +38,11 @@ mutable struct Buttons
     first_to_act::Int
 end
 
-dealer(b::Buttons) = b.dealer
+dealer_id(b::Buttons) = b.dealer
+small_blind_id(b::Buttons) = b.small_blind
+big_blind_id(b::Buttons) = b.big_blind
+first_to_act_id(b::Buttons) = b.first_to_act
+
 
 buttons(b::Buttons) = (
     b.dealer,
@@ -147,7 +151,22 @@ observed_cards(table::Table, ::River) = table.cards
 current_raise_amt(table::Table) = table.current_raise_amt
 
 state(table::Table) = table.state
-dealer_id(table::Table) = table.buttons.dealer
+
+dealer_id(table::Table) = dealer_id(table.buttons)
+small_blind_id(table::Table) = small_blind_id(table.buttons)
+big_blind_id(table::Table) = big_blind_id(table.buttons)
+first_to_act_id(table::Table) = first_to_act_id(table.buttons)
+
+dealer(table::Table) = players_at_table(table)[dealer_id(table)]
+small_blind(table::Table) = players_at_table(table)[small_blind_id(table)]
+big_blind(table::Table) = players_at_table(table)[big_blind_id(table)]
+first_to_act(table::Table) = players_at_table(table)[first_to_act_id(table)]
+
+is_dealer(table::Table, player::Player) = seat_number(player) == seat_number(dealer(table))
+is_small_blind(table::Table, player::Player) = seat_number(player) == seat_number(small_blind(table))
+is_big_blind(table::Table, player::Player) = seat_number(player) == seat_number(big_blind(table))
+is_first_to_act(table::Table, player::Player) = seat_number(player) == seat_number(first_to_act(table))
+
 players_at_table(table::Table) = table.players
 all_checked_or_folded(table::Table) = all(map(x -> folded(x) || checked(x), players_at_table(table)))
 all_all_in_or_folded(table::Table) = all(map(x -> folded(x) || all_in(x), players_at_table(table)))
@@ -317,14 +336,6 @@ circle_table(n_players, dealer_id, state) =
 circle_table(table::Table, state) =
     circle_table(length(table.players), dealer_id(table), state)
 
-small_blind(table::Table) = players_at_table(table)[circle_table(table, 2)]
-big_blind(table::Table) = players_at_table(table)[circle_table(table, 3)]
-first_to_act(table::Table) = players_at_table(table)[circle_table(table, 4)]
-
-is_small_blind(table::Table, player::Player) = seat_number(player) == seat_number(small_blind(table))
-is_big_blind(table::Table, player::Player) = seat_number(player) == seat_number(big_blind(table))
-is_first_to_act(table::Table, player::Player) = seat_number(player) == seat_number(first_to_act(table))
-
 any_actions_required(table::Table) = any(action_required.(players_at_table(table)))
 
 abstract type TablePosition end
@@ -347,16 +358,16 @@ circle(table::Table, player::Player) =
     CircleTable{typeof(player),typeof(player)}(table.players, buttons(table), length(table.players), player)
 
 Base.iterate(ct::CircleTable{Button}, state = 1) =
-    (ct.players[circle_table(ct.n_players, dealer(ct.buttons), state)], state+1)
+    (ct.players[circle_table(ct.n_players, dealer_id(ct.buttons), state)], state+1)
 
 Base.iterate(ct::CircleTable{SmallBlind}, state = 2) =
-    (ct.players[circle_table(ct.n_players, dealer(ct.buttons), state)], state+1)
+    (ct.players[circle_table(ct.n_players, dealer_id(ct.buttons), state)], state+1)
 
 Base.iterate(ct::CircleTable{BigBlind}, state = 3) =
-    (ct.players[circle_table(ct.n_players, dealer(ct.buttons), state)], state+1)
+    (ct.players[circle_table(ct.n_players, dealer_id(ct.buttons), state)], state+1)
 
 Base.iterate(ct::CircleTable{FirstToAct}, state = 4) =
-    (ct.players[circle_table(ct.n_players, dealer(ct.buttons), state)], state+1)
+    (ct.players[circle_table(ct.n_players, dealer_id(ct.buttons), state)], state+1)
 
 Base.iterate(ct::CircleTable{P}, state = 1) where {P <: Player} =
     (ct.players[circle_table(ct.n_players, seat_number(ct.player), state)], state+1)

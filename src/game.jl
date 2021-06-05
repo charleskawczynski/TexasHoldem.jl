@@ -141,11 +141,20 @@ function play!(game::Game)
     initial_∑brs = sum(initial_brs)
 
     @info "Initial bank roll summary: $(bank_roll.(players))"
-    dealer = dealer_id(table)
+    did = dealer_id(table)
     sb = seat_number(small_blind(table))
     bb = seat_number(big_blind(table))
     f2a = seat_number(first_to_act(table))
-    @info "Blinds (dealer, small, big, 1ˢᵗToAct): ($dealer, $sb, $bb, $f2a)"
+    @info "Blinds (dealer, small, big, 1ˢᵗToAct): ($did, $sb, $bb, $f2a)"
+
+    @assert !folded(dealer(table)) "The button must be placed on a non-folded player"
+    @assert !folded(small_blind(table)) "The small blind button must be placed on a non-folded player"
+    @assert !folded(big_blind(table)) "The big blind button must be placed on a non-folded player"
+    @assert !folded(first_to_act(table)) "The first-to-act button must be placed on a non-folded player"
+
+    @assert dealer_id(table) ≠ small_blind_id(table) "The button and small blind cannot coincide"
+    @assert small_blind_id(table) ≠ big_blind_id(table) "The small and big blinds cannot coincide"
+    @assert big_blind_id(table) ≠ first_to_act_id(table) "The big blind and first to act cannot coincide"
 
     table.transactions = TransactionManager(players)
 
