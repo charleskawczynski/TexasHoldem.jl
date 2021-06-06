@@ -72,6 +72,7 @@ bank_roll(player::Player) = player.bank_roll
 seat_number(player::Player) = player.seat_number
 name(player::Player{LF}) where {LF <: AbstractLifeForm} = "$(nameof(LF))[$(seat_number(player))]"
 folded(player::Player) = player.folded
+zero_bank_roll(player::Player) = bank_roll(player) ≈ 0
 still_playing(player::Player) = active(player) && !folded(player)
 not_playing(player::Player) = !still_playing(player)
 action_history(player::Player) = player.action_history

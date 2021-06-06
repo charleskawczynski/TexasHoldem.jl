@@ -102,7 +102,7 @@ function Buttons(dealer_id, players::Tuple)
     return Buttons(dealer_id, small_blind_id, big_blind_id, first_to_act_id)
 end
 
-valid_button(player::Player) = !(bank_roll(player) ≈ 0) && still_playing(player)
+valid_button(player::Player) = !zero_bank_roll(player) && still_playing(player)
 
 """
     this_or_next_valid_id(id, players::Tuple)
@@ -168,8 +168,8 @@ is_big_blind(table::Table, player::Player) = seat_number(player) == seat_number(
 is_first_to_act(table::Table, player::Player) = seat_number(player) == seat_number(first_to_act(table))
 
 players_at_table(table::Table) = table.players
-all_checked_or_folded(table::Table) = all(map(x -> folded(x) || checked(x), players_at_table(table)))
-all_all_in_or_folded(table::Table) = all(map(x -> folded(x) || all_in(x), players_at_table(table)))
+all_playing_checked(table::Table) = all(map(x -> not_playing(x) || checked(x), players_at_table(table)))
+all_playing_all_in(table::Table) = all(map(x -> not_playing(x) || all_in(x), players_at_table(table)))
 all_all_in_or_checked(table::Table) = all(map(x -> checked(x) || all_in(x), players_at_table(table)))
 
 """
@@ -195,7 +195,7 @@ function bank_roll_leader(table::Table)
         end
     end
     multiple_leaders = count(map(players) do player
-        round_bank_roll(player) ≈ max_rbr && !folded(player)
+        round_bank_roll(player) ≈ max_rbr && still_playing(player)
     end) > 1
     return br_leader, multiple_leaders
 end
@@ -261,7 +261,7 @@ end
 function reset_round!(table::Table)
     players = players_at_table(table)
     for player in players
-        folded(player) && continue
+        not_playing(player) && continue
         all_in(player) && continue
         player.checked = false
         player.action_required = true
@@ -278,10 +278,10 @@ end
 function check_for_winner!(table::Table)
     players = players_at_table(table)
     n_players = length(players)
-    table.winners.declared = count(folded.(players)) == n_players-1
+    table.winners.declared = count(not_playing.(players)) == n_players-1
     if table.winners.declared
         for player in players
-            folded(player) && continue
+            not_playing(player) && continue
             table.winners.players = player
         end
     end
@@ -385,11 +385,9 @@ function deal!(table::Table, blinds::Blinds)
 
         i>length(players) && break # deal cards to each player once
 
-        player.cards = pop!(table.deck, 2)
+        not_playing(player) && continue
 
-        folded(player) && continue # TODO: folded players should not get cards.
-        # Right now they do to allow calling FullHandEval on their hand, but we should remove
-        # this, or remove the players entirely.
+        player.cards = pop!(table.deck, 2)
 
         if is_small_blind(table, player) && bank_roll(player) ≤ blinds.small
             contribute!(table, player, bank_roll(player), call_blinds)

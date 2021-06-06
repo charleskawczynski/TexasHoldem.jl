@@ -79,6 +79,33 @@ end
 reset_round_bank_rolls!(game::Game, state::PreFlop) = nothing # called separately prior to deal
 reset_round_bank_rolls!(game::Game, state::AbstractGameState) = reset_round_bank_rolls!(game.table)
 
+function end_of_actions(table::Table, player)
+    players = players_at_table(table)
+    @debug "     last_to_raise.(players) = $(last_to_raise.(players))"
+    @debug "     checked.(players) = $(checked.(players))"
+    @debug "     folded.(players) = $(folded.(players))"
+    @debug "     action_required.(players) = $(action_required.(players))"
+    @debug "     !any(action_required.(players)) = $(!any(action_required.(players)))"
+    @debug "     all_playing_all_in(table) = $(all_playing_all_in(table))"
+    @debug "     all_playing_checked(table) = $(all_playing_checked(table))"
+    @debug "     all_all_in_or_checked(table) = $(all_all_in_or_checked(table))"
+    @debug "     all_all_in_except_bank_roll_leader(table) = $(all_all_in_except_bank_roll_leader(table))"
+    # all_all_in_except_bank_roll_leader does not supersede
+    # all_playing_all_in, since it always returns false if
+    # there are multiple players (still playing) with the
+    # same (max) bank roll:
+
+    case_1 = last_to_raise(player)
+    case_2 = all_playing_checked(table)
+    case_3 = all_playing_all_in(table)
+    case_4 = all_all_in_except_bank_roll_leader(table)
+    case_5 = all_all_in_or_checked(table)
+    case_6 = !any(action_required.(players))
+    @debug "     cases = $((case_1, case_2, case_3, case_4, case_5, case_6))"
+
+    return any((case_1, case_2, case_3, case_4, case_5, case_6))
+end
+
 function act_generic!(game::Game, state::AbstractGameState)
     table = game.table
     table.winners.declared && return
@@ -91,27 +118,9 @@ function act_generic!(game::Game, state::AbstractGameState)
         not_playing(player) && continue # skip players not playing
         set_preflop_blind_raise!(table, player, state, i)
         @debug "Checking to see if it's $(name(player))'s turn to act"
-        @debug "     all_in.(players_at_table(table)) = $(all_in.(players_at_table(table)))"
-        @debug "     last_to_raise.(players_at_table(table)) = $(last_to_raise.(players_at_table(table)))"
-        @debug "     checked.(players_at_table(table)) = $(checked.(players_at_table(table)))"
-        @debug "     folded.(players_at_table(table)) = $(folded.(players_at_table(table)))"
-        @debug "     action_required.(players_at_table(table)) = $(action_required.(players_at_table(table)))"
-        @debug "     !any(action_required.(players_at_table(table))) = $(!any(action_required.(players_at_table(table))))"
-        @debug "     all_all_in_or_folded(table) = $(all_all_in_or_folded(table))"
-        @debug "     all_checked_or_folded(table) = $(all_checked_or_folded(table))"
-        @debug "     all_all_in_or_checked(table) = $(all_all_in_or_checked(table))"
-        @debug "     all_all_in_except_bank_roll_leader(table) = $(all_all_in_except_bank_roll_leader(table))"
-        last_to_raise(player) && break
-        all_checked_or_folded(table) && break
-        all_all_in_or_folded(table) && break
-
-        # all_all_in_except_bank_roll_leader does not supersede
-        # all_all_in_or_folded, since it always returns false if
-        # there are multiple players (still playing) with the
-        # same (max) bank roll:
-        all_all_in_except_bank_roll_leader(table) && break
-        all_all_in_or_checked(table) && break
-        !any(action_required.(players_at_table(table))) && break
+        if end_of_actions(table, player)
+            break
+        end
         all_in(player) && continue
         @debug "$(name(player))'s turn to act"
         player_option!(game, player)
@@ -132,7 +141,7 @@ expects no cards (players and table)
 to be dealt.
 """
 function play!(game::Game)
-    @info "------ Playing Game!"
+    @info "------ Playing game!"
 
     table = game.table
     players = players_at_table(table)
@@ -145,12 +154,12 @@ function play!(game::Game)
     sb = seat_number(small_blind(table))
     bb = seat_number(big_blind(table))
     f2a = seat_number(first_to_act(table))
-    @info "Blinds (dealer, small, big, 1ˢᵗToAct): ($did, $sb, $bb, $f2a)"
+    @info "Buttons (dealer, small, big, 1ˢᵗToAct): ($did, $sb, $bb, $f2a)"
 
-    @assert !folded(dealer(table)) "The button must be placed on a non-folded player"
-    @assert !folded(small_blind(table)) "The small blind button must be placed on a non-folded player"
-    @assert !folded(big_blind(table)) "The big blind button must be placed on a non-folded player"
-    @assert !folded(first_to_act(table)) "The first-to-act button must be placed on a non-folded player"
+    @assert still_playing(dealer(table)) "The button must be placed on a non-folded player"
+    @assert still_playing(small_blind(table)) "The small blind button must be placed on a non-folded player"
+    @assert still_playing(big_blind(table)) "The big blind button must be placed on a non-folded player"
+    @assert still_playing(first_to_act(table)) "The first-to-act button must be placed on a non-folded player"
 
     @assert dealer_id(table) ≠ small_blind_id(table) "The button and small blind cannot coincide"
     @assert small_blind_id(table) ≠ big_blind_id(table) "The small and big blinds cannot coincide"
@@ -188,14 +197,23 @@ function play!(game::Game)
     return winners
 end
 
+function set_active_status!(table::Table)
+    players = players_at_table(table)
+    for player in players
+        if zero_bank_roll(player) # TODO: should we remove these players from the table?
+            player.active = false
+            player.folded = true
+        else
+            player.active = true
+            player.folded = false
+        end
+    end
+end
+
 function reset_game!(game::Game)
     table = game.table
     players = players_at_table(table)
-    for player in players
-        if bank_roll(player) ≈ 0 # TODO: should we remove these players from the table?
-            player.folded = true
-        end
-    end
+    set_active_status!(game.table)
 
     game.table = Table(;
         deck=ordered_deck(),
@@ -210,17 +228,13 @@ function reset_game!(game::Game)
         player.pot_investment = 0
         player.action_required = true
         player.all_in = false
-        if bank_roll(player) ≈ 0
-            player.folded = true
-        else
-            player.folded = false
-        end
         player.round_bank_roll = bank_roll(player)
         player.checked = false
         player.last_to_raise = false
         player.round_contribution = 0
         player.active = true
     end
+    set_active_status!(game.table)
 end
 
 """
