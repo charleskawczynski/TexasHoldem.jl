@@ -2,7 +2,7 @@
 ##### Table
 #####
 
-export Button, SmallBlind, BigBlind, FirstToAct
+export Dealer, SmallBlind, BigBlind, FirstToAct
 export Table
 export move_buttons!
 
@@ -308,70 +308,87 @@ function move_buttons!(table::Table)
 end
 
 """
-    position(table, player::Player, relative)
+    circle_index(n_players, state)
 
-Player position, given
- - `table` the table
- - `player` the player
- - `relative::Int = 0` the relative location to the player
+A circular index for indexing into `players`.
+`state = 1` corresponds to `player[1]`.
 """
-position(table, player::Player, relative=0) =
-    mod(relative + seat_number(player) - 1, length(table.players))+1
-
 circle_index(n_players, i) = mod(i-1, n_players)+1
-
-"""
-    circle_table(n_players, dealer_id, state)
-
-Circle the table, starting from the `dealer_id`
-which corresponds to `state = 1`.
- - `state` the global iteration state (starting from 1)
- - `n_players` the total number of players
- - `dealer_id` the dealer ID (from `1:n_players`)
-"""
-circle_table(n_players, dealer_id, state) =
-    # circle_index(n_players, state + dealer_id-1)
-    mod(state + dealer_id-2, n_players)+1
-
-
-circle_table(table::Table, state) =
-    circle_table(length(table.players), dealer_id(table), state)
 
 any_actions_required(table::Table) = any(action_required.(players_at_table(table)))
 
 abstract type TablePosition end
-struct Button <: TablePosition end
+struct Dealer <: TablePosition end
 struct SmallBlind <: TablePosition end
 struct BigBlind <: TablePosition end
 struct FirstToAct <: TablePosition end # (after BigBlind)
 
-struct CircleTable{CircType,P}
+struct CircleTable{CircType,P, NITER}
     players::Tuple
     buttons::Buttons
     n_players::Int
     player::P
 end
 
-circle(table::Table, tp::TablePosition) =
-    CircleTable{typeof(tp),Nothing}(table.players, buttons(table), length(table.players), nothing)
+n_iterations(::CircleTable{CircType,P,NITER}) where {CircType,P,NITER} = NITER
 
-circle(table::Table, player::Player) =
-    CircleTable{typeof(player),typeof(player)}(table.players, buttons(table), length(table.players), player)
+function Base.length(ct::CircleTable)
+    n_iter = n_iterations(ct)
+    if !(n_iter === Inf)
+        return n_iter
+    else
+        error("CircleTable has an infinite length")
+    end
+end
 
-Base.iterate(ct::CircleTable{Button}, state = 1) =
-    (ct.players[circle_table(ct.n_players, dealer_id(ct.buttons), state)], state+1)
+circle(table::Table, tp::TablePosition, n_iter = Inf) =
+    CircleTable{typeof(tp),Nothing, n_iter}(table.players, buttons(table), length(table.players), nothing)
 
-Base.iterate(ct::CircleTable{SmallBlind}, state = 2) =
-    (ct.players[circle_table(ct.n_players, dealer_id(ct.buttons), state)], state+1)
+circle(table::Table, player::Player, n_iter = Inf) =
+    CircleTable{typeof(player),typeof(player), n_iter}(table.players, buttons(table), length(table.players), player)
 
-Base.iterate(ct::CircleTable{BigBlind}, state = 3) =
-    (ct.players[circle_table(ct.n_players, dealer_id(ct.buttons), state)], state+1)
 
-Base.iterate(ct::CircleTable{FirstToAct}, state = 4) =
-    (ct.players[circle_table(ct.n_players, dealer_id(ct.buttons), state)], state+1)
+function Base.iterate(ct::CircleTable{Dealer}, state = dealer_id(ct.buttons))
+    state > n_iterations(ct)+dealer_id(ct.buttons)-1 && return nothing
+    i_circ = circle_index(ct.n_players, state)
+    player = ct.players[i_circ]
+    state == dealer_id(ct.buttons) && @assert active(player)
+    return (player, state+1)
+end
 
-Base.iterate(ct::CircleTable{P}, state = 1) where {P <: Player} =
-    (ct.players[circle_table(ct.n_players, seat_number(ct.player), state)], state+1)
+function Base.iterate(ct::CircleTable{SmallBlind}, state = small_blind_id(ct.buttons))
+    state > n_iterations(ct)+small_blind_id(ct.buttons)-1 && return nothing
+    i_circ = circle_index(ct.n_players, state)
+    player = ct.players[i_circ]
+    state == small_blind_id(ct.buttons) && @assert active(player)
+    return (player, state+1)
+end
+
+function Base.iterate(ct::CircleTable{BigBlind}, state = big_blind_id(ct.buttons))
+    state > n_iterations(ct)+big_blind_id(ct.buttons)-1 && return nothing
+    i_circ = circle_index(ct.n_players, state)
+    player = ct.players[i_circ]
+    state == big_blind_id(ct.buttons) && @assert active(player)
+    return (player, state+1)
+end
+
+function Base.iterate(ct::CircleTable{FirstToAct}, state = first_to_act_id(ct.buttons))
+    state > n_iterations(ct)+first_to_act_id(ct.buttons)-1 && return nothing
+    i_circ = circle_index(ct.n_players, state)
+    player = ct.players[i_circ]
+    state == first_to_act_id(ct.buttons) && @assert active(player)
+    return (player, state+1)
+end
+
+function Base.iterate(ct::CircleTable{P},
+        state = circle_index(ct.n_players, seat_number(ct.player))
+    ) where {P <: Player}
+    state > n_iterations(ct)+circle_index(ct.n_players, seat_number(ct.player))-1 && return nothing
+    i_circ = circle_index(ct.n_players, state)
+    player = ct.players[i_circ]
+    state == circle_index(ct.n_players, seat_number(ct.player)) && @assert active(player)
+    return (player, state+1)
+end
 
 #####
 ##### Deal
