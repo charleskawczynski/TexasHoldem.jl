@@ -115,9 +115,11 @@ function act_generic!(game::Game, state::AbstractGameState)
 
     any_actions_required(game) || return
     for (i, player) in enumerate(circle(table, FirstToAct()))
+        @debug "Checking to see if it's $(name(player))'s turn to act"
+        @debug "     not_playing(player) = $(not_playing(player))"
+        @debug "     all_in(player) = $(all_in(player))"
         not_playing(player) && continue # skip players not playing
         set_preflop_blind_raise!(table, player, state, i)
-        @debug "Checking to see if it's $(name(player))'s turn to act"
         if end_of_actions(table, player)
             break
         end
