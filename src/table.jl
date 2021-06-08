@@ -390,6 +390,9 @@ function Base.iterate(ct::CircleTable{P},
     return (player, state+1)
 end
 
+show_cards(table::Table, player::Player{Human}) = player.cards
+show_cards(table::Table, player::Player{LF}) where {LF <: AbstractAI} = "??"
+
 #####
 ##### Deal
 #####
@@ -408,19 +411,19 @@ function deal!(table::Table, blinds::Blinds)
 
         if is_small_blind(table, player) && bank_roll(player) ≤ blinds.small
             contribute!(table, player, bank_roll(player), call_blinds)
-            @info "$(name(player)) paid the small blind (all-in) and dealt cards: $(player.cards)"
+            @info "$(name(player)) paid the small blind (all-in) and dealt cards: $(show_cards(table, player))"
         elseif is_big_blind(table, player) && bank_roll(player) ≤ blinds.big
             contribute!(table, player, bank_roll(player), call_blinds)
-            @info "$(name(player)) paid the  big  blind (all-in) and dealt cards: $(player.cards)"
+            @info "$(name(player)) paid the  big  blind (all-in) and dealt cards: $(show_cards(table, player))"
         else
             if is_small_blind(table, player)
                 contribute!(table, player, blinds.small, call_blinds)
-                @info "$(name(player)) paid the small blind and dealt cards: $(player.cards)"
+                @info "$(name(player)) paid the small blind and dealt cards: $(show_cards(table, player))"
             elseif is_big_blind(table, player)
                 contribute!(table, player, blinds.big, call_blinds)
-                @info "$(name(player)) paid the  big  blind and dealt cards: $(player.cards)"
+                @info "$(name(player)) paid the  big  blind and dealt cards: $(show_cards(table, player))"
             else
-                @info "$(name(player)) dealt (free) cards:                   $(player.cards)"
+                @info "$(name(player)) dealt (free) cards:                   $(show_cards(table, player))"
             end
         end
     end
