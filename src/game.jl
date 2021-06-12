@@ -90,10 +90,7 @@ function end_of_actions(table::Table, player)
     @debug "     all_playing_checked(table) = $(all_playing_checked(table))"
     @debug "     all_all_in_or_checked(table) = $(all_all_in_or_checked(table))"
     @debug "     all_all_in_except_bank_roll_leader(table) = $(all_all_in_except_bank_roll_leader(table))"
-    # all_all_in_except_bank_roll_leader does not supersede
-    # all_playing_all_in, since it always returns false if
-    # there are multiple players (still playing) with the
-    # same (max) bank roll:
+    @debug "     all_oppononents_all_in(table, player) = $(all_oppononents_all_in(table, player))"
 
     case_1 = last_to_raise(player)
     case_2 = all_playing_checked(table)
@@ -101,9 +98,52 @@ function end_of_actions(table::Table, player)
     case_4 = all_all_in_except_bank_roll_leader(table)
     case_5 = all_all_in_or_checked(table)
     case_6 = !any(action_required.(players))
-    @debug "     cases = $((case_1, case_2, case_3, case_4, case_5, case_6))"
+    case_7 = all_oppononents_all_in(table, player) && paid_current_raise_amount(table, player)
+    @debug "     cases = $((case_1, case_2, case_3, case_4, case_5, case_6, case_7))"
 
-    return any((case_1, case_2, case_3, case_4, case_5, case_6))
+    return any((case_1, case_2, case_3, case_4, case_5, case_6, case_7))
+end
+
+function last_player_to_raise(table::Table)
+    for player in players_at_table(table)
+        last_to_raise(player) && return player
+    end
+    return nothing
+end
+
+function all_raises_were_called(table::Table)
+    lptr = last_player_to_raise(table)
+    lptr===nothing && return true
+
+    players = players_at_table(table)
+    ltr = last_to_raise.(players)
+    @assert count(ltr) == 1
+    players_who_called = []
+    @debug "Checking if all raises were called"
+    @debug "     table.winners.declared = $(table.winners.declared)"
+    arwc = false
+    conds = map(players) do player
+        cond1 = seat_number(player) == seat_number(lptr)
+        cond2 = not_playing(player)
+        cond3 = all_in(player)
+        cond4 = pot_investment(player) ≈ pot_investment(lptr)
+        (cond1, cond2, cond3, cond4)
+    end
+    @debug begin
+        conds_debug = map(players) do player
+            sn = seat_number(player)
+            cond1 = seat_number(player) == seat_number(lptr)
+            cond2 = not_playing(player)
+            cond3 = all_in(player)
+            cond4 = pot_investment(player) ≈ pot_investment(lptr)
+            (sn, cond1, cond2, cond3, cond4)
+        end
+        for cond in conds_debug
+            @debug "sn, cond = $(cond[1]), $(cond[2:end])"
+        end
+        @debug "snlptr = $(seat_number(lptr))"
+    end
+    return all(map(cond->any(cond), conds))
 end
 
 function act_generic!(game::Game, state::AbstractGameState)
@@ -114,6 +154,8 @@ function act_generic!(game::Game, state::AbstractGameState)
     reset_round_bank_rolls!(game, state)
 
     any_actions_required(game) || return
+    play_out_game(table) && return
+    set_play_out_game!(table)
     for (i, player) in enumerate(circle(table, FirstToAct()))
         @debug "Checking to see if it's $(name(player))'s turn to act"
         @debug "     not_playing(player) = $(not_playing(player))"
@@ -128,6 +170,7 @@ function act_generic!(game::Game, state::AbstractGameState)
         player_option!(game, player)
         table.winners.declared && break
     end
+    @assert all_raises_were_called(table)
 end
 
 function act!(game::Game, state::AbstractGameState)
@@ -146,6 +189,7 @@ function play!(game::Game)
     @info "------ Playing game!"
 
     table = game.table
+    set_active_status!(table)
     players = players_at_table(table)
 
     initial_brs = deepcopy(bank_roll.(players))
@@ -215,7 +259,6 @@ end
 function reset_game!(game::Game)
     table = game.table
     players = players_at_table(table)
-    set_active_status!(game.table)
 
     game.table = Table(;
         deck=ordered_deck(),
@@ -236,7 +279,8 @@ function reset_game!(game::Game)
         player.round_contribution = 0
         player.active = true
     end
-    set_active_status!(game.table)
+    set_active_status!(table)
+    table.play_out_game = false
 end
 
 """

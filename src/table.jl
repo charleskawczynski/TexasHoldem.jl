@@ -62,6 +62,7 @@ mutable struct Table
     current_raise_amt::Float64
     transactions::TransactionManager
     winners::Winners
+    play_out_game::Bool
 end
 
 buttons(table::Table) = table.buttons
@@ -77,6 +78,7 @@ function Table(;
     current_raise_amt = Float64(0),
     transactions = nothing,
     winners = Winners(),
+    play_out_game = false,
 )
     if transactions == nothing
         transactions = TransactionManager(players)
@@ -91,7 +93,8 @@ function Table(;
         buttons,
         current_raise_amt,
         transactions,
-        winners)
+        winners,
+        play_out_game)
 end
 
 function Buttons(dealer_id, players::Tuple)
@@ -152,6 +155,8 @@ current_raise_amt(table::Table) = table.current_raise_amt
 
 state(table::Table) = table.state
 
+play_out_game(table::Table) = table.play_out_game
+
 dealer_id(table::Table) = dealer_id(table.buttons)
 small_blind_id(table::Table) = small_blind_id(table.buttons)
 big_blind_id(table::Table) = big_blind_id(table.buttons)
@@ -200,6 +205,9 @@ function bank_roll_leader(table::Table)
     return br_leader, multiple_leaders
 end
 
+paid_current_raise_amount(table::Table, player::Player) =
+    round_contribution(player) ≈ current_raise_amt(table)
+
 # Can be true in exactly 2 cases:
 #  1) Everyone (still playing) is all-in.
 #  2) Everyone (still playing), except `player`, is all-in.
@@ -223,6 +231,7 @@ end
 # everyone else does not, so nobody can respond to their raise
 # (if they chose to do so). Therefore, we must "play out" the
 # entire game with no further actions.
+# Note that this method is intended to be used _during_ a round.
 function all_all_in_except_bank_roll_leader(table::Table)
     br_leader, multiple_leaders = bank_roll_leader(table)
     players = players_at_table(table)
@@ -231,7 +240,28 @@ function all_all_in_except_bank_roll_leader(table::Table)
     @assert !multiple_leaders # We have a single bank roll leader
 
     return all(map(players) do player
-        not_playing(player) || all_in(player) || seat_number(player) == seat_number(br_leader)
+        cond1 = not_playing(player)
+        cond2 = all_in(player)
+        cond3 = seat_number(player) == seat_number(br_leader) && !action_required(br_leader)
+        any((cond1, cond2, cond3))
+    end)
+end
+
+# Note that this method is only valid before or after a round has ended.
+function set_play_out_game!(table::Table)
+    br_leader, multiple_leaders = bank_roll_leader(table)
+    players = players_at_table(table)
+    if multiple_leaders
+        return all(map(player -> not_playing(player) || all_in(player), players))
+    end
+
+    @assert !multiple_leaders # We have a single bank roll leader
+
+    table.play_out_game = all(map(players) do player
+        cond1 = not_playing(player)
+        cond2 = all_in(player)
+        cond3 = seat_number(player) == seat_number(br_leader)
+        any((cond1, cond2, cond3))
     end)
 end
 

@@ -17,6 +17,7 @@ submodules = [
 local_run = isempty(get(ENV, "CI", ""))
 n_fuzz = local_run ? 10 : 100
 n_fuzz_10_players = local_run ? 1 : 10
+n_fuzz_3_players = local_run ? 10 : 20
 
 tests_to_debug = ["play", "fuzz_play"]
 # tests_to_debug = submodules
