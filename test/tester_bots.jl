@@ -96,3 +96,16 @@ TH.player_option!(game::Game, player::Player{BotRaiseOnCallFold}, ::AGS, ::CallF
 struct BotLimpAllIn <: AbstractAI end
 
 TH.player_option!(game::Game, player::Player{BotLimpAllIn}, ::AGS, ::PlayerOptions) = call!(game, player)
+
+##### BotNActions
+struct BotNActions <: AbstractAI end
+
+function TH.player_option!(game::Game, player::Player{BotNActions}, ::AGS, ::CheckRaiseFold)
+    check!(game, player)
+    n_check_actions[1]+=1
+end
+
+function TH.player_option!(game::Game, player::Player{BotNActions}, ::AGS, ::CallRaiseFold)
+    call!(game, player)
+    n_call_actions[1]+=1
+end
