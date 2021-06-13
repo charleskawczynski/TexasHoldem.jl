@@ -68,3 +68,48 @@ end
     play!(game)
 end
 
+n_check_actions = [0]
+n_call_actions = [0]
+@testset "N-actions (3 players)" begin
+    play!(Game(ntuple(i->Player(BotNActions(), i), 3)))
+    @test n_call_actions[1] == 2 # dealer + small blind
+    # 1 check pre-flop (big blind)
+    # 3 checks (flop)
+    # 3 checks (turn)
+    # 3 checks (river)
+    @test n_check_actions[1] == 10
+end
+
+n_check_actions = [0]
+n_call_actions = [0]
+@testset "N-actions (4 players)" begin
+    play!(Game(ntuple(i->Player(BotNActions(), i), 4)))
+    @test n_call_actions[1] == 3 # dealer + small blind + 1 other
+    # 1 check pre-flop (big blind)
+    # 4 checks (flop)
+    # 4 checks (turn)
+    # 4 checks (river)
+    @test n_check_actions[1] == 13
+end
+
+n_check_actions = [0]
+n_call_actions = [0]
+@testset "N-actions (custom)" begin
+    # Inspired by:
+    # [ Info: Initial bank roll summary: (260.0, 0.0, 37.0, 0.0, 203.0)
+    # [ Info: Buttons (dealer, small, big, 1ˢᵗToAct): (1, 3, 5, 1)
+    play!(Game((
+        Player(BotNActions(), 1),
+        Player(BotNActions(), 2; bank_roll = 0),
+        Player(BotNActions(), 3),
+        Player(BotNActions(), 4; bank_roll = 0),
+        Player(BotNActions(), 5),
+    );dealer_id = 1))
+
+    @test n_call_actions[1] == 2 # dealer + small blind
+    # 1 check pre-flop (big blind)
+    # 3 checks (flop)
+    # 3 checks (turn)
+    # 3 checks (river)
+    @test_broken n_check_actions[1] == 10 # TODO: Fix me!
+end
