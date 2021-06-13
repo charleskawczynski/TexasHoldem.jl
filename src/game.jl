@@ -146,6 +146,14 @@ function all_raises_were_called(table::Table)
     return all(map(cond->any(cond), conds))
 end
 
+end_preflop_actions(table, player, ::AbstractGameState) = false
+function end_preflop_actions(table::Table, player::Player, ::PreFlop)
+    cond1 = is_big_blind(table, player)
+    cond2 = checked(player)
+    cond3 = still_playing(player)
+    return all((cond1, cond2, cond3))
+end
+
 function act_generic!(game::Game, state::AbstractGameState)
     table = game.table
     table.winners.declared && return
@@ -169,6 +177,7 @@ function act_generic!(game::Game, state::AbstractGameState)
         @debug "$(name(player))'s turn to act"
         player_option!(game, player)
         table.winners.declared && break
+        end_preflop_actions(table, player, state) && break
     end
     @assert all_raises_were_called(table)
 end
