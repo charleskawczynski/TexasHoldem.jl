@@ -179,6 +179,7 @@ function act_generic!(game::Game, state::AbstractGameState)
         table.winners.declared && break
         end_preflop_actions(table, player, state) && break
     end
+    @info "Betting is finished"
     @assert all_raises_were_called(table)
 end
 
