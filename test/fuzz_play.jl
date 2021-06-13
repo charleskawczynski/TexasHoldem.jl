@@ -20,6 +20,12 @@ end
     end
 end
 
+@testset "Game: tournament! (3 Bot5050's)" begin
+    for n in 1:n_fuzz_3_players
+        tournament!(Game(ntuple(i->Player(Bot5050(), i; bank_roll = 6), 3)))
+    end
+end
+
 @testset "Game: tournament! (10 Bot5050's)" begin
     for n in 1:n_fuzz_10_players
         tournament!(Game(ntuple(i->Player(Bot5050(), i; bank_roll = 6), 10)))

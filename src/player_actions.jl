@@ -246,10 +246,12 @@ function raise_to_valid_raise_amount!(table::Table, player::Player, amt::Real)
     for opponent in players
         seat_number(opponent) == seat_number(player) && continue
         not_playing(opponent) && continue
-        all_in(opponent) && continue
-        opponent.action_required = true
-        opponent.checked = false # to avoid exiting on all_all_in_or_checked(table). TODO: there's got to be a cleaner way
+        if !all_in(opponent)
+            opponent.action_required = true
+        end
         opponent.last_to_raise = false
+        # TODO: there's got to be a cleaner way
+        opponent.checked = false # to avoid exiting on all_all_in_or_checked(table).
     end
     if bank_roll(player) ≈ 0
         if isempty(pbpai)
