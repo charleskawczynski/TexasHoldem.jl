@@ -104,12 +104,12 @@ n_call_actions = [0]
         Player(BotNActions(), 3),
         Player(BotNActions(), 4; bank_roll = 0),
         Player(BotNActions(), 5),
-    );dealer_id = 1))
+    ); dealer_id = 1))
 
     @test n_call_actions[1] == 2 # dealer + small blind
     # 1 check pre-flop (big blind)
     # 3 checks (flop)
     # 3 checks (turn)
     # 3 checks (river)
-    @test_broken n_check_actions[1] == 10 # TODO: Fix me!
+    @test n_check_actions[1] == 10
 end
