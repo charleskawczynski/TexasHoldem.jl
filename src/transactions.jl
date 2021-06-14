@@ -28,6 +28,7 @@ struct TransactionManager
   initial_brs::Vector{Float64}
   pot_id::Union{Nothing,Vector{Int}}
   side_pots::Vector{SidePot}
+  unsorted_to_sorted_map::Vector{Int}
 end
 
 function Base.show(io::IO, tm::TransactionManager, include_type = true)
@@ -47,11 +48,17 @@ function TransactionManager(players)
         end
     end
 
+    unsorted_to_sorted_map = collect(map(players) do player
+        findfirst(seat_number.(sorted_players) .== seat_number(player))
+    end)
+    side_pots = [SidePot(sn, 0, cap_i) for (cap_i, sn, amt) in zip(cap, seat_number.(sorted_players), bank_roll.(sorted_players))]
+
     TransactionManager(
         sorted_players,
         deepcopy(collect(bank_roll.(players))),
         Int[1],
-        [SidePot(sn, 0, cap_i) for (cap_i, sn, amt) in zip(cap, seat_number.(sorted_players), bank_roll.(sorted_players))],
+        side_pots,
+        unsorted_to_sorted_map,
     )
 end
 amount(tm::TransactionManager) = amount(tm.side_pots[tm.pot_id[1]])
@@ -240,14 +247,25 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards)
             tm.side_pots[j].amt = 0 # empty out distributed winnings
         end
     end
-    for (i, (player, initial_br, player_winnings)) in enumerate(zip(players, tm.initial_brs, side_pot_winnings))
+    for (player, initial_br, player_winnings) in zip(players, tm.initial_brs, side_pot_winnings)
         ∑spw = sum(player_winnings)
-        if !(∑spw ≈ 0)
-            winning_hand = nameof(typeof(winning_hands[i]))
+        ssn = tm.unsorted_to_sorted_map[seat_number(player)]
+        if ∑spw ≈ 0
+            if active(player)
+                hand = hand_evals_sorted[ssn].fhe
+                hand_name = nameof(typeof(hand_type(hand)))
+                bc = best_cards(hand)
+                f_str = folded(player) ? " (folded)" : ""
+                @info "$(name(player)) loses$f_str \$$(pot_investment(player)) with $bc ($hand_name)!"
+            end
+        else
+            hand = hand_evals_sorted[ssn].fhe
+            hand_name = nameof(typeof(hand_type(hand)))
+            bc = best_cards(hand)
             amt_contributed = initial_br - bank_roll(player)
             @debug "$(name(player))'s side-pot wins: \$$(player_winnings)!"
             prof = ∑spw-amt_contributed
-            @info "$(name(player)) wins \$$∑spw (\$$prof profit) with $(winning_hand)!"
+            @info "$(name(player)) wins \$$∑spw (\$$prof profit) with $bc ($hand_name)!"
             player.bank_roll += ∑spw
         end
     end
