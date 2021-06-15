@@ -452,7 +452,7 @@ function Base.iterate(ct::CircleTable{P},
 end
 
 show_cards(table::Table, player::Player{Human}) = player.cards
-show_cards(table::Table, player::Player{LF}) where {LF <: AbstractAI} = "??"
+show_cards(table::Table, player::Player{LF}) where {LF <: AbstractAI} = "(??,??)"
 
 #####
 ##### Deal
