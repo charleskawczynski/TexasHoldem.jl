@@ -63,9 +63,37 @@ mutable struct Table
     transactions::TransactionManager
     winners::Winners
     play_out_game::Bool
+    n_max_actions::Int
 end
 
 buttons(table::Table) = table.buttons
+n_max_actions(table::Table) = table.n_max_actions
+
+"""
+    compute_n_max_actions(players, bb)
+
+The total possible number of actions,
+which happens when
+ - pre-flop: all players check/call
+ - flop: all players check
+ - turn: all players check
+ - river: 1) all but one player checks (n_players-1 actions)
+          2) the last player raises (1 action)
+          3) everyone, except the last player, calls, (n_players-1 actions)
+          4) the last player re-raises (1 action)
+          ...
+          until all players are all-in.
+"""
+function compute_n_max_actions(players, bb)
+    maxbr = maximum(bank_roll.(players))
+    n_players = length(players)
+    n_check_call_rounds = n_players*3 # PreFlop, Flop, Turn
+    n_raise_rounds = findfirst(1:typemax(Int)) do i
+        maxbr < bb^n_raises(i, n_players)
+    end
+    return n_check_call_rounds + n_raise_rounds
+end
+n_raises(i, n_players) = Int(floor(i/n_players))
 
 function Table(;
     players::Tuple,
@@ -84,6 +112,8 @@ function Table(;
         transactions = TransactionManager(players)
     end
     buttons = Buttons(dealer_id, players)
+    n_max_actions = compute_n_max_actions(players, blinds.big)
+    @debug "n_max_actions = $n_max_actions"
     return Table(deck,
         players,
         cards,
@@ -94,7 +124,8 @@ function Table(;
         current_raise_amt,
         transactions,
         winners,
-        play_out_game)
+        play_out_game,
+        n_max_actions)
 end
 
 function Buttons(dealer_id, players::Tuple)

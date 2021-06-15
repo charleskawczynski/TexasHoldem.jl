@@ -85,3 +85,4 @@ inactive(player::Player) = !active(player)
 round_bank_roll(player::Player) = player.round_bank_roll
 pot_investment(player::Player) = player.pot_investment
 round_contribution(player::Player) = player.round_contribution
+life_form(player::Player) = player.life_form

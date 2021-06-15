@@ -178,6 +178,9 @@ function act_generic!(game::Game, state::AbstractGameState)
         player_option!(game, player)
         table.winners.declared && break
         end_preflop_actions(table, player, state) && break
+        if i > n_max_actions(table)
+            error("Too many actions have occured, please open an issue.")
+        end
     end
     @info "Betting is finished."
     @assert all_raises_were_called(table)
@@ -259,9 +262,11 @@ function set_active_status!(table::Table)
         if zero_bank_roll(player) # TODO: should we remove these players from the table?
             player.active = false
             player.folded = true
+            player.action_required = false
         else
             player.active = true
             player.folded = false
+            player.action_required = true
         end
     end
 end
@@ -281,7 +286,6 @@ function reset_game!(game::Game)
     for player in players
         player.cards = nothing
         player.pot_investment = 0
-        player.action_required = true
         player.all_in = false
         player.round_bank_roll = bank_roll(player)
         player.checked = false

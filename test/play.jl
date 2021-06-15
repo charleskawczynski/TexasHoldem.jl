@@ -94,7 +94,7 @@ end
 
 n_check_actions = [0]
 n_call_actions = [0]
-@testset "N-actions (custom)" begin
+@testset "N-actions (custom 1)" begin
     # Inspired by:
     # [ Info: Initial bank roll summary: (260.0, 0.0, 37.0, 0.0, 203.0)
     # [ Info: Buttons (dealer, small, big, 1ˢᵗToAct): (1, 3, 5, 1)
@@ -112,4 +112,26 @@ n_call_actions = [0]
     # 3 checks (turn)
     # 3 checks (river)
     @test n_check_actions[1] == 10
+end
+
+n_check_actions = [0]
+n_call_actions = [0]
+@testset "N-actions (custom 2)" begin
+    # Inspired by:
+    # [ Info: Initial bank roll summary: (195.0, 0.0, 256.0, 4.0, 45.0)
+    # [ Info: Buttons (dealer, small, big, 1ˢᵗToAct): (5, 1, 3, 4)
+    play!(Game((
+        Player(BotNActions(), 1; bank_roll = 195.0),
+        Player(BotCheckCall(), 2; bank_roll = 0),
+        Player(BotPreFlopRaise(7.0), 3; bank_roll = 256.0),
+        Player(BotCheckCall(), 4; bank_roll = 4.0),
+        Player(BotCheckFold(), 5; bank_roll = 45.0),
+    ); dealer_id = 1))
+
+    @test n_call_actions[1] == 2 # dealer + small blind
+    # 1 check pre-flop (big blind)
+    # 3 checks (flop)
+    # 3 checks (turn)
+    # 3 checks (river)
+    @test n_check_actions[1] == 3
 end
