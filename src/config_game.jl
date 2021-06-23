@@ -1,3 +1,4 @@
+# TODO: Add tests for came configurations
 
 using REPL.TerminalMenus
 export configure_game
@@ -20,7 +21,6 @@ function cofigure_n_players()
     return n_players
 end
 
-# TODO: check the rules of this config.
 function cofigure_bank_roll(blinds)
     bank_roll = nothing
     while true

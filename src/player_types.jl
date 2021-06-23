@@ -25,7 +25,7 @@ mutable struct Player{LF}
     all_in::Bool
     round_bank_roll::Float64 # bank roll at the beginning of the round
     folded::Bool
-    pot_investment::Float64 # accumulation of round_contribution, TODO: needs to be added to reset_game!
+    pot_investment::Float64 # accumulation of round_contribution
     checked::Bool
     last_to_raise::Bool
     active::Bool

@@ -219,7 +219,6 @@ raise_to!(table::Table, player::Player, amt::Real) =
     raise_to_valid_raise_amount!(table, player, valid_raise_amount(table, player, amt))
 
 function opponents_being_put_all_in(table::Table, player::Player, amt::Real)
-    # TODO: can we do this better?
     opponents = filter(players_at_table(table)) do opponent
         rbr = round_bank_roll(opponent)
         cond1 = !all_in(opponent)
