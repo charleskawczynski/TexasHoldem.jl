@@ -201,7 +201,7 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards)
     side_pot_winnings = map(players) do player
         zeros(length(tm.side_pots))
     end
-    winning_hands = Vector{AbstractHandType}(undef, length(players))
+    winning_hands = Vector{Symbol}(undef, length(players))
 
     for i in 1:length(tm.side_pots)
         sidepot_winnings(tm, length(players)) ≈ 0 && continue # no money left to distribute
@@ -221,7 +221,7 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards)
                 s *= "sn=$(seat_number(hes.player)), "
                 s *= "ssn=$(hes.ssn), "
                 s *= "hr=$(hand_rank(hes.fhe)), "
-                s *= "ht=$(nameof(typeof(hand_type(hes.fhe))))\n"
+                s *= "ht=$(hand_type(hes.fhe))\n"
             end
             s
         end
@@ -253,14 +253,14 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards)
         if ∑spw ≈ 0
             if active(player)
                 hand = hand_evals_sorted[ssn].fhe
-                hand_name = nameof(typeof(hand_type(hand)))
+                hand_name = hand_type(hand)
                 bc = best_cards(hand)
                 f_str = folded(player) ? " (folded)" : ""
                 @info "$(name(player)) loses$f_str \$$(pot_investment(player)) with $bc ($hand_name)!"
             end
         else
             hand = hand_evals_sorted[ssn].fhe
-            hand_name = nameof(typeof(hand_type(hand)))
+            hand_name = hand_type(hand)
             bc = best_cards(hand)
             amt_contributed = initial_br - bank_roll(player)
             @debug "$(name(player))'s side-pot wins: \$$(player_winnings)!"

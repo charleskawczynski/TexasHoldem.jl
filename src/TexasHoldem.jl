@@ -15,7 +15,6 @@ module TexasHoldem
 
 using PlayingCards
 using PokerHandEvaluator
-using PokerHandEvaluator.HandTypes
 using Printf
 
 export AbstractGameState, PreFlop, Flop, Turn, River
