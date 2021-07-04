@@ -1,7 +1,7 @@
-using PlayingCards
-using TexasHoldem
 import TexasHoldem
 const TH = TexasHoldem
+using TexasHoldem
+using BenchmarkTools
 
 struct BotCheckCall <: AbstractAI end
 
@@ -10,16 +10,5 @@ TH.player_option!(game::Game, player::Player{BotCheckCall}, ::AbstractGameState,
 TH.player_option!(game::Game, player::Player{BotCheckCall}, ::AbstractGameState, ::CallAllInFold) = call!(game, player)
 TH.player_option!(game::Game, player::Player{BotCheckCall}, ::AbstractGameState, ::CallFold) = call!(game, player)
 
-function main(n_games)
-    t_elapsed = @elapsed begin
-        for n in 1:n_games
-            players = ntuple(i->(Player(BotCheckCall(), i)), 10)
-            play(Game(players))
-        end
-    end
-    Δt_per_game = t_elapsed / n_games
-    @show Δt_per_game
-end
-
-main(1) # Compile first:
-main(10) # time
+players() = ntuple(i->(Player(BotCheckCall(), i)), 4)
+@benchmark play!(Game(players()))
