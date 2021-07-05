@@ -30,8 +30,7 @@ function Base.show(io::IO, blinds::Blinds, include_type = true)
     println(io, "Blinds           = (small=$(blinds.small),big=$(blinds.big))")
 end
 
-# TODO: this should probably not be mutable
-mutable struct Buttons
+struct Buttons
     dealer::Int
     small_blind::Int
     big_blind::Int
@@ -362,10 +361,12 @@ of players.
 """
 function move_buttons!(table::Table)
     players = players_at_table(table)
-    table.buttons.dealer       = this_or_next_valid_id(table.buttons.dealer      +1, players)
-    table.buttons.small_blind  = this_or_next_valid_id(table.buttons.dealer      +1, players)
-    table.buttons.big_blind    = this_or_next_valid_id(table.buttons.small_blind +1, players)
-    table.buttons.first_to_act = this_or_next_valid_id(table.buttons.big_blind   +1, players)
+    dealer = table.buttons.dealer
+    dealer       = this_or_next_valid_id(dealer      + 1, players)
+    small_blind  = this_or_next_valid_id(dealer      + 1, players)
+    big_blind    = this_or_next_valid_id(small_blind + 1, players)
+    first_to_act = this_or_next_valid_id(big_blind   + 1, players)
+    table.buttons = Buttons(dealer, small_blind, big_blind, first_to_act)
 end
 
 """

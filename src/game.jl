@@ -69,7 +69,6 @@ print_game_state(table, state::River) = @info "River: $(repeat(" ", 43)) $(table
 set_preflop_blind_raise!(table::Table, player, ::AbstractGameState, i::Int) = nothing
 function set_preflop_blind_raise!(table::Table, player::Player, ::PreFlop, i::Int)
     if 1 ≤ i ≤ length(players_at_table(table))
-        # TODO: what if only two players?
         if is_first_to_act(table, player)
             # everyone must call big blind to see flop:
             table.current_raise_amt = blinds(table).big
@@ -79,6 +78,7 @@ end
 reset_round_bank_rolls!(game::Game, state::PreFlop) = nothing # called separately prior to deal
 reset_round_bank_rolls!(game::Game, state::AbstractGameState) = reset_round_bank_rolls!(game.table)
 
+# TODO: compactify. Some of these cases/conditions may be redundant
 function end_of_actions(table::Table, player)
     players = players_at_table(table)
     @debug "     last_to_raise.(players) = $(last_to_raise.(players))"
@@ -96,7 +96,7 @@ function end_of_actions(table::Table, player)
     case_2 = all_playing_checked(table)
     case_3 = all_playing_all_in(table)
     case_4 = all_all_in_except_bank_roll_leader(table)
-    case_5 = all_all_in_or_checked(table)
+    case_5 = all_all_in_or_checked(table) # TODO: likely replaceable with case_6
     case_6 = !any(action_required.(players))
     case_7 = all_oppononents_all_in(table, player) && paid_current_raise_amount(table, player)
     @debug "     cases = $((case_1, case_2, case_3, case_4, case_5, case_6, case_7))"
@@ -259,7 +259,7 @@ end
 function set_active_status!(table::Table)
     players = players_at_table(table)
     for player in players
-        if zero_bank_roll(player) # TODO: should we remove these players from the table?
+        if zero_bank_roll(player)
             player.active = false
             player.folded = true
             player.action_required = false
