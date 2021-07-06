@@ -151,10 +151,3 @@ function configure_game()
         println("Menu canceled.")
     end
 end
-
-export configure_play_game
-function configure_play_game()
-    # game = configure_game()
-    game = configure_basic_heads_up_game()
-    play!(game)
-end

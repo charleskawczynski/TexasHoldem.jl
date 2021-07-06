@@ -24,20 +24,20 @@ end
     players = (Player(Human(), 1), Player(Bot5050(), 2))
     game = Game(players)
     simulate_keystrokes(:down, :down, :enter, 'd')
-    TH.player_option!(game, players[1], PreFlop(), CheckRaiseFold())
+    TH.player_option!(game, players[1], CheckRaiseFold())
     simulate_keystrokes(:down, :down, :enter, 'd')
-    TH.player_option!(game, players[1], PreFlop(), CallRaiseFold())
+    TH.player_option!(game, players[1], CallRaiseFold())
     simulate_keystrokes(:down, :down, :enter, 'd')
-    TH.player_option!(game, players[1], PreFlop(), CallAllInFold())
+    TH.player_option!(game, players[1], CallAllInFold())
     simulate_keystrokes(:down, :enter, 'd')
-    TH.player_option!(game, players[1], PreFlop(), CallFold())
+    TH.player_option!(game, players[1], CallFold())
 end
 
 @testset "Test check" begin
     players = (Player(Human(), 1), Player(Bot5050(), 2))
     game = Game(players)
     simulate_keystrokes(:enter, 'd')
-    TH.player_option!(game, players[1], PreFlop(), CheckRaiseFold())
+    TH.player_option!(game, players[1], CheckRaiseFold())
 end
 
 @testset "Test call" begin
@@ -46,21 +46,21 @@ end
     game = Game(players)
     game.table.current_raise_amt = 10.0
     simulate_keystrokes(:enter, 'd', 10.0)
-    TH.player_option!(game, players[1], PreFlop(), CallRaiseFold())
+    TH.player_option!(game, players[1], CallRaiseFold())
     @test last(TH.action_history(players[1])) == Call{Float64}(10.0)
 
     players = (Player(Human(), 1), Player(Bot5050(), 2))
     game = Game(players)
     game.table.current_raise_amt = 10.0
     simulate_keystrokes(:enter, 'd', 10.0)
-    TH.player_option!(game, players[1], PreFlop(), CallAllInFold())
+    TH.player_option!(game, players[1], CallAllInFold())
     @test last(TH.action_history(players[1])) == Call{Float64}(10.0)
 
     players = (Player(Human(), 1), Player(Bot5050(), 2))
     game = Game(players)
     game.table.current_raise_amt = 10.0
     simulate_keystrokes(:enter, 'd', 10.0)
-    TH.player_option!(game, players[1], PreFlop(), CallFold())
+    TH.player_option!(game, players[1], CallFold())
     @test last(TH.action_history(players[1])) == Call{Float64}(10.0)
 end
 
@@ -70,7 +70,7 @@ end
     game = Game(players)
     game.table.current_raise_amt = 10.0
     simulate_keystrokes(:down, :enter, 'd')
-    TH.player_option!(game, players[1], PreFlop(), CallAllInFold())
+    TH.player_option!(game, players[1], CallAllInFold())
     @test last(TH.action_history(players[1])) == Raise{Float64}(200.0)
 end
 
@@ -109,7 +109,7 @@ TH.use_input_io() = true
     simulate_keystrokes(:down, :enter) # select Raise
     TRT.automated_test(file, [10]) do emuterm
         @testset "Human player options: CheckRaiseFold" begin
-            TH.player_option!(game, players[1], PreFlop(), CheckRaiseFold(), emuterm)
+            TH.player_option!(game, players[1], CheckRaiseFold(), emuterm)
         end
     end
 
@@ -121,7 +121,7 @@ TH.use_input_io() = true
     simulate_keystrokes(:down, :enter) # select Raise
     TRT.automated_test(file, [20]) do emuterm
         @testset "Human player options: CallRaiseFold" begin
-            TH.player_option!(game, players[1], PreFlop(), CallRaiseFold(), emuterm)
+            TH.player_option!(game, players[1], CallRaiseFold(), emuterm)
         end
     end
 end
