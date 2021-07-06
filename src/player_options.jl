@@ -34,7 +34,6 @@ validate_action(::Raise, ::CallFold) = error("Cannot Raise. Available options: C
 function player_option!(game::Game, player::Player)
     table = game.table
     call_amt = call_amount(table, player)
-    game_state = state(table)
     if !(call_amt ≈ 0) # must call to stay in
         cond_1 = bank_roll(player) > call_amt
         cond_2 = an_opponent_can_call_a_raise(table, player)
@@ -56,7 +55,7 @@ function player_option!(game::Game, player::Player)
 
     n_actions = length(action_history(player))
 
-    player_option!(game, player, game_state, option)
+    player_option!(game, player, option)
 
     # exactly 1 action must be taken
     player_action = action_history(player)
@@ -64,11 +63,16 @@ function player_option!(game::Game, player::Player)
     validate_action(last(player_action), option)
 end
 
+# By default, forward to `player_option!` with
+# game state:
+player_option!(game::Game, player::Player, option) =
+    player_option!(game, player, state(game.table), option)
+
 #####
 ##### Human player options (ask via prompts)
 #####
 
-function player_option!(game::Game, player::Player{Human}, ::AbstractGameState, ::CheckRaiseFold, io::IO=stdin)
+function player_option!(game::Game, player::Player{Human}, ::CheckRaiseFold, io::IO=stdin)
     table = game.table
     vrb = valid_raise_bounds(table, player)
     options = ["Check", "Raise [\$$(minimum(vrb)), \$$(maximum(vrb))]", "Fold"]
@@ -79,7 +83,7 @@ function player_option!(game::Game, player::Player{Human}, ::AbstractGameState, 
     choice == 2 && raise_to!(game, player, input_raise_amt(table, player, io))
     choice == 3 && fold!(game, player)
 end
-function player_option!(game::Game, player::Player{Human}, ::AbstractGameState, ::CallRaiseFold, io::IO=stdin)
+function player_option!(game::Game, player::Player{Human}, ::CallRaiseFold, io::IO=stdin)
     table = game.table
     vrb = valid_raise_bounds(table, player)
     call_amt = call_amount(table, player)
@@ -92,7 +96,7 @@ function player_option!(game::Game, player::Player{Human}, ::AbstractGameState, 
     choice == 2 && raise_to!(game, player, input_raise_amt(game.table, player, io))
     choice == 3 && fold!(game, player)
 end
-function player_option!(game::Game, player::Player{Human}, ::AbstractGameState, ::CallAllInFold)
+function player_option!(game::Game, player::Player{Human}, ::CallAllInFold)
     table = game.table
     call_amt = call_amount(table, player)
     all_in_amt = round_bank_roll(player)
@@ -105,7 +109,7 @@ function player_option!(game::Game, player::Player{Human}, ::AbstractGameState, 
     choice == 2 && raise_all_in!(game, player)
     choice == 3 && fold!(game, player)
 end
-function player_option!(game::Game, player::Player{Human}, ::AbstractGameState, ::CallFold)
+function player_option!(game::Game, player::Player{Human}, ::CallFold)
     table = game.table
     call_amt = call_amount(table, player)
     blind_str = is_blind_call(table, player) ? " (blind)" : ""
@@ -147,7 +151,7 @@ end
 
 ##### Bot5050
 
-function player_option!(game::Game, player::Player{Bot5050}, ::AbstractGameState, ::CheckRaiseFold)
+function player_option!(game::Game, player::Player{Bot5050}, ::CheckRaiseFold)
     if rand() < 0.5
         check!(game, player)
     else
@@ -156,7 +160,7 @@ function player_option!(game::Game, player::Player{Bot5050}, ::AbstractGameState
         raise_to!(game, player, amt)
     end
 end
-function player_option!(game::Game, player::Player{Bot5050}, ::AbstractGameState, ::CallRaiseFold)
+function player_option!(game::Game, player::Player{Bot5050}, ::CallRaiseFold)
     if rand() < 0.5
         if rand() < 0.5 # Call
             call!(game, player)
@@ -169,7 +173,7 @@ function player_option!(game::Game, player::Player{Bot5050}, ::AbstractGameState
         fold!(game, player)
     end
 end
-function player_option!(game::Game, player::Player{Bot5050}, ::AbstractGameState, ::CallAllInFold)
+function player_option!(game::Game, player::Player{Bot5050}, ::CallAllInFold)
     if rand() < 0.5
         if rand() < 0.5 # Call
             call!(game, player)
@@ -180,7 +184,7 @@ function player_option!(game::Game, player::Player{Bot5050}, ::AbstractGameState
         fold!(game, player)
     end
 end
-function player_option!(game::Game, player::Player{Bot5050}, ::AbstractGameState, ::CallFold)
+function player_option!(game::Game, player::Player{Bot5050}, ::CallFold)
     if rand() < 0.5
         call!(game, player)
     else

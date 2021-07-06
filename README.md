@@ -31,11 +31,12 @@ An experimental package for simulating no-limit Texas Holdem Poker. We're not re
 
 # Playing
 
-Games can be played with:
+A single game can be played with `play!` and tournament-style game with `tournament!`:
 
 ```julia
 using TexasHoldem
-play!(configure_game())
+play!(configure_game()) # play 1 game
+tournament!(configure_game()) # play until 1 player remains
 ```
 
 # Creating your own bot
@@ -49,7 +50,7 @@ TH = TexasHoldem
 
 struct MyBot <: AbstractAI end
 
-function TH.player_option!(game::Game, player::Player{MyBot}, ::AbstractGameState, ::CheckRaiseFold)
+function TH.player_option!(game::Game, player::Player{MyBot}, ::CheckRaiseFold)
     # options are:
     #    check!(game, player)
     #    raise!(game, player, amt::Float64)
@@ -63,7 +64,7 @@ function TH.player_option!(game::Game, player::Player{MyBot}, ::AbstractGameStat
         raise_to!(game, player, amt)
     end
 end
-function TH.player_option!(game::Game, player::Player{MyBot}, ::AbstractGameState, ::CallRaiseFold)
+function TH.player_option!(game::Game, player::Player{MyBot}, ::CallRaiseFold)
     # options are:
     #    call!(game, player)
     #    raise!(game, player, amt::Float64)
@@ -81,7 +82,7 @@ function TH.player_option!(game::Game, player::Player{MyBot}, ::AbstractGameStat
         fold!(game, player)
     end
 end
-function TH.player_option!(game::Game, player::Player{MyBot}, ::AbstractGameState, ::CallAllInFold)
+function TH.player_option!(game::Game, player::Player{MyBot}, ::CallAllInFold)
     # options are:
     #    call!(game, player)
     #    raise_all_in!(game, player)
@@ -96,7 +97,7 @@ function TH.player_option!(game::Game, player::Player{MyBot}, ::AbstractGameStat
         fold!(game, player)
     end
 end
-function TH.player_option!(game::Game, player::Player{MyBot}, ::AbstractGameState, ::CallFold)
+function TH.player_option!(game::Game, player::Player{MyBot}, ::CallFold)
     # options are:
     #    call!(game, player)
     #    fold!(game, player)
@@ -108,5 +109,5 @@ function TH.player_option!(game::Game, player::Player{MyBot}, ::AbstractGameStat
 end
 
 # Heads-up against the MyBot!
-play!(Game((Player(Human(), 1), Player(MyBot(), 2))))
+tournament!(Game((Player(Human(), 1), Player(MyBot(), 2))))
 ```
