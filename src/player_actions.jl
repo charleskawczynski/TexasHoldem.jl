@@ -24,7 +24,7 @@ function fold!(game::Game, player::Player)
     push!(player.action_history, Fold())
     player.action_required = false
     player.folded = true
-    check_for_winner!(game.table)
+    check_for_and_declare_winners!(game.table)
     @info "$(name(player)) folded!"
 end
 

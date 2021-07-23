@@ -251,6 +251,7 @@ function play!(game::Game)
     @assert sum(amount.(table.transactions.side_pots)) ≈ 0
 
     @info "Final bank roll summary: $(bank_roll.(players))"
+    check_for_and_declare_winners!(game.table) # in case nobody folds
 
     @info "------ Finished game!"
     return winners
