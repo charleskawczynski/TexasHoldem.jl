@@ -202,6 +202,7 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards)
         zeros(length(tm.side_pots))
     end
     winning_hands = Vector{Symbol}(undef, length(players))
+    all_winning_players = Player[]
 
     for i in 1:length(tm.side_pots)
         sidepot_winnings(tm, length(players)) ≈ 0 && continue # no money left to distribute
@@ -239,6 +240,7 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards)
             win_seat = seat_number(tm.sorted_players[winner_id])
             winning_player = players[win_seat]
             not_playing(winning_player) && continue
+            push!(all_winning_players, winning_player)
             amt = sidepot_winnings(tm, i) / n_winners
             side_pot_winnings[win_seat][i] = amt
             winning_hands[win_seat] = hand_type(hand_evals_sorted[winner_id].fhe)
@@ -271,4 +273,5 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards)
     end
 
     @debug "Distributed winnings..."
+    return Tuple(all_winning_players)
 end

@@ -335,7 +335,9 @@ function set_state!(table::Table, state::AbstractGameState)
     table.state = state
 end
 
-function check_for_and_declare_winners!(table::Table)
+# Check for winner, in case when only a single player remains
+# playing
+function check_for_and_declare_winner!(table::Table)
     players = players_at_table(table)
     n_players = length(players)
     table.winners.declared = count(not_playing.(players)) == n_players-1
