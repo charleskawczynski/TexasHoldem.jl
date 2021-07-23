@@ -239,7 +239,8 @@ function play!(game::Game)
     winners.declared || act!(game, Turn())      # Deal turn , then bet/check/raise
     winners.declared || act!(game, River())     # Deal river, then bet/check/raise
 
-    distribute_winnings!(players, table.transactions, cards(table))
+    winners.players = distribute_winnings!(players, table.transactions, cards(table))
+    winners.declared = true
 
     @debug "amount.(table.transactions.side_pots) = $(amount.(table.transactions.side_pots))"
     @debug "initial_∑brs = $(initial_∑brs)"
@@ -251,7 +252,7 @@ function play!(game::Game)
     @assert sum(amount.(table.transactions.side_pots)) ≈ 0
 
     @info "Final bank roll summary: $(bank_roll.(players))"
-    check_for_and_declare_winners!(game.table) # in case nobody folds
+    @assert winners.declared
 
     @info "------ Finished game!"
     return winners
