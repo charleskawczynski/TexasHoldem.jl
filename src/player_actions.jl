@@ -136,13 +136,15 @@ for a more verbose but simpler implementation.
 """
 function valid_raise_bounds(table::Table, player::Player)
     cra = current_raise_amt(table)
+    irra = initial_round_raise_amt(table)
+    mra = minimum_raise_amt(table)
     rbr = round_bank_roll(player)
     max_orbr = max_opponent_round_bank_roll(table, player)
     @debug "determining valid_raise_bounds"
     @debug "   rbr = $rbr, max_orbr = $max_orbr"
     @debug "   cra ≈ 0 = $(cra ≈ 0)"
     @debug "   max_orbr > rbr = $(max_orbr > rbr)"
-    lim = cra ≈ 0 ? blinds(table).big : 2*cra
+    lim = cra ≈ 0 ? mra : (cra+irra)
     vrb = custom_clamp(min(max_orbr, rbr), lim)
     @assert vrb[2] ≥ vrb[1] "Min valid raise bound must be ≤ max valid raise bound."
     return vrb
@@ -238,10 +240,14 @@ function raise_to_valid_raise_amount!(table::Table, player::Player, amt::Real)
     table.current_raise_amt = amt
 
     push!(player.action_history, Raise(amt))
+
+    players = players_at_table(table)
+    if all(player -> !player.last_to_raise, players)
+        table.initial_round_raise_amt = amt
+    end
     player.action_required = false
     player.last_to_raise = true
     player.checked = false
-    players = players_at_table(table)
     for opponent in players
         seat_number(opponent) == seat_number(player) && continue
         not_playing(opponent) && continue

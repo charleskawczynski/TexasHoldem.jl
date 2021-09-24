@@ -72,6 +72,7 @@ function set_preflop_blind_raise!(table::Table, player::Player, ::PreFlop, i::In
         if is_first_to_act(table, player)
             # everyone must call big blind to see flop:
             table.current_raise_amt = blinds(table).big
+            table.initial_round_raise_amt = blinds(table).big
         end
     end
 end
