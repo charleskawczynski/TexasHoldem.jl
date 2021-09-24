@@ -59,6 +59,7 @@ mutable struct Table
     state::AbstractGameState
     buttons::Buttons
     current_raise_amt::Float64
+    initial_round_raise_amt::Float64
     transactions::TransactionManager
     winners::Winners
     play_out_game::Bool
@@ -103,6 +104,7 @@ function Table(;
     state = PreFlop(),
     dealer_id = default_dealer_id(),
     current_raise_amt = Float64(0),
+    initial_round_raise_amt = blinds.small,
     transactions = nothing,
     winners = Winners(),
     play_out_game = false,
@@ -121,6 +123,7 @@ function Table(;
         state,
         buttons,
         current_raise_amt,
+        initial_round_raise_amt,
         transactions,
         winners,
         play_out_game,
@@ -182,6 +185,8 @@ observed_cards(table::Table, ::Flop) = table.cards[1:3]
 observed_cards(table::Table, ::Turn) = table.cards[1:4]
 observed_cards(table::Table, ::River) = table.cards
 current_raise_amt(table::Table) = table.current_raise_amt
+initial_round_raise_amt(table::Table) = table.initial_round_raise_amt
+minimum_raise_amt(table::Table) = blinds(table).small
 
 state(table::Table) = table.state
 
@@ -328,6 +333,7 @@ function reset_round!(table::Table)
         player.last_to_raise = false
         player.round_contribution = 0
     end
+    table.initial_round_raise_amt = blinds(table).small
     table.current_raise_amt = 0
 end
 
