@@ -23,10 +23,10 @@
 [bors-img]: https://bors.tech/images/badge_small.svg
 [bors-url]: https://app.bors.tech/repositories/32732
 
-An experimental package for simulating no-limit Texas Holdem Poker. We're not registered yet, so install with
+A package for simulating no-limit Texas Holdem Poker. Install with
 
 ```julia-repl
-(@v1.x) pkg> add https://github.com/charleskawczynski/TexasHoldem.jl
+(@v1.x) pkg> add TexasHoldem
 ```
 
 # Playing
