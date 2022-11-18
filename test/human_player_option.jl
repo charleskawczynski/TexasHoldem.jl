@@ -2,20 +2,37 @@ using Test
 using REPL.TerminalMenus
 using PlayingCards
 using TexasHoldem
-import TexasHoldem
 TH = TexasHoldem
 
-function simulate_keystrokes(keys...)
-    keydict =  Dict(:up => "\e[A",
-                    :down => "\e[B",
-                    :enter => "\r")
-    for key in keys
-        if isa(key, Symbol)
-            write(stdin.buffer, keydict[key])
-        elseif isa(key, Char)
-            write(stdin.buffer, "$key")
-        else
-            write(stdin.buffer, key)
+if VERSION >= v"1.8.0"
+    function simulate_keystrokes(keys...)
+        keydict =  Dict(:up => "\e[A",
+                        :down => "\e[B",
+                        :enter => "\r")
+
+        new_stdin = Base.BufferStream()
+        for key in keys
+            if isa(key, Symbol)
+                write(new_stdin, keydict[key])
+            else
+                write(new_stdin, "$key")
+            end
+        end
+        TerminalMenus.terminal.in_stream = new_stdin
+    end
+else
+    function simulate_keystrokes(keys...)
+        keydict =  Dict(:up => "\e[A",
+                        :down => "\e[B",
+                        :enter => "\r")
+        for key in keys
+            if isa(key, Symbol)
+                write(stdin.buffer, keydict[key])
+            elseif isa(key, Char)
+                write(stdin.buffer, "$key")
+            else
+                write(stdin.buffer, key)
+            end
         end
     end
 end
