@@ -39,4 +39,4 @@ end
 
 results = Profile.fetch()
 Profile.clear()
-ProfileCanvas.html_file(joinpath("flame.html"), results)
+ProfileCanvas.html_file(joinpath("perf", "flame.html"), results)
