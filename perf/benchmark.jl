@@ -1,3 +1,6 @@
+#=
+using Revise; include(joinpath("perf", "flame.jl"))
+=#
 import TexasHoldem
 const TH = TexasHoldem
 using TexasHoldem
