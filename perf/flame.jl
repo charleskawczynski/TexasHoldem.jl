@@ -13,17 +13,27 @@ TH.player_option!(game::Game, player::Player{BotCheckCall}, ::CallFold) = call!(
 
 players() = ntuple(i->(Player(BotCheckCall(), i)), 4)
 
-with_logger(NullLogger()) do
-    play!(Game(players()))
-end
-
-using Profile
-@profile begin
-    for k in 1:100
-        with_logger(NullLogger()) do
+function do_work!(games)
+    with_logger(NullLogger()) do
+        for game in games
             play!(Game(players()))
         end
     end
+    return nothing
 end
 
-Profile.print(format=:flat, sortedby=:count)
+import Profile
+import ProfileCanvas
+
+games = map(x->Game(players()), 1:10000);
+do_work!(games) # compile first
+
+games = map(x->Game(players()), 1:10000);
+Profile.clear()
+prof = Profile.@profile begin
+    do_work!(games)
+end
+
+results = Profile.fetch()
+Profile.clear()
+ProfileCanvas.html_file(joinpath("flame.html"), results)
