@@ -1,3 +1,6 @@
+#=
+using Revise; include(joinpath("perf", "flame.jl"))
+=#
 import TexasHoldem
 const TH = TexasHoldem
 using TexasHoldem
@@ -13,6 +16,27 @@ TH.player_option!(game::Game, player::Player{BotCheckCall}, ::CallFold) = call!(
 
 players() = ntuple(i->(Player(BotCheckCall(), i)), 4)
 
-@benchmark with_logger(NullLogger()) do
-    play!(Game(players()))
+function do_work!(games)
+    with_logger(NullLogger()) do
+        for game in games
+            play!(Game(players()))
+        end
+    end
+    return nothing
 end
+
+import Profile
+import ProfileCanvas
+
+games = map(x->Game(players()), 1:10000);
+do_work!(games) # compile first
+
+games = map(x->Game(players()), 1:10000);
+Profile.clear()
+prof = Profile.@profile begin
+    do_work!(games)
+end
+
+results = Profile.fetch()
+Profile.clear()
+ProfileCanvas.html_file(joinpath("perf", "flame.html"), results)
