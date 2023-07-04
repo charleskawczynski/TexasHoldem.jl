@@ -4,8 +4,8 @@
 
 export Game, play!, tournament!
 
-mutable struct Game
-    table::Table
+mutable struct Game{T}
+    table::T
 end
 
 function Base.show(io::IO, game::Game)
@@ -23,6 +23,7 @@ function Game(
         table = nothing,
         dealer_id::Int = default_dealer_id(),
         blinds::Blinds = Blinds(1,2),
+        logger = StandardLogger(),
     )
 
     n_player_cards = sum(map(x->cards(x)==nothing ? 0 : length(cards(x)), players))
@@ -44,7 +45,8 @@ function Game(
             deck=deck,
             players=players,
             dealer_id=dealer_id,
-            blinds=blinds
+            blinds=blinds,
+            logger=logger,
         )
 
         @assert length(deck) == 52
@@ -52,7 +54,7 @@ function Game(
         @assert cards(table) == nothing
     end
 
-    return Game(table)
+    return Game{typeof(table)}(table)
 end
 
 players_at_table(game::Game) = players_at_table(game.table)
@@ -61,10 +63,10 @@ any_actions_required(game::Game) = any_actions_required(game.table)
 state(game::Game) = state(game.table)
 move_buttons!(game) = move_buttons!(game.table)
 
-print_game_state(table, state::PreFlop) = @info "Pre-flop!"
-print_game_state(table, state::Flop) =  @info "Flop: $(repeat(" ", 44)) $(table.cards[1:3])"
-print_game_state(table, state::Turn) =  @info "Turn: $(repeat(" ", 44)) $(table.cards[4])"
-print_game_state(table, state::River) = @info "River: $(repeat(" ", 43)) $(table.cards[5])"
+print_game_state(table, state::PreFlop) = @cinfo table.logger "Pre-flop!"
+print_game_state(table, state::Flop) =  @cinfo table.logger "Flop: $(repeat(" ", 44)) $(table.cards[1:3])"
+print_game_state(table, state::Turn) =  @cinfo table.logger "Turn: $(repeat(" ", 44)) $(table.cards[4])"
+print_game_state(table, state::River) = @cinfo table.logger "River: $(repeat(" ", 43)) $(table.cards[5])"
 
 set_preflop_blind_raise!(table::Table, player, ::AbstractGameState, i::Int) = nothing
 function set_preflop_blind_raise!(table::Table, player::Player, ::PreFlop, i::Int)
@@ -82,16 +84,17 @@ reset_round_bank_rolls!(game::Game, state::AbstractGameState) = reset_round_bank
 # TODO: compactify. Some of these cases/conditions may be redundant
 function end_of_actions(table::Table, player)
     players = players_at_table(table)
-    @debug "     last_to_raise.(players) = $(last_to_raise.(players))"
-    @debug "     checked.(players) = $(checked.(players))"
-    @debug "     folded.(players) = $(folded.(players))"
-    @debug "     action_required.(players) = $(action_required.(players))"
-    @debug "     !any(action_required.(players)) = $(!any(action_required.(players)))"
-    @debug "     all_playing_all_in(table) = $(all_playing_all_in(table))"
-    @debug "     all_playing_checked(table) = $(all_playing_checked(table))"
-    @debug "     all_all_in_or_checked(table) = $(all_all_in_or_checked(table))"
-    @debug "     all_all_in_except_bank_roll_leader(table) = $(all_all_in_except_bank_roll_leader(table))"
-    @debug "     all_oppononents_all_in(table, player) = $(all_oppononents_all_in(table, player))"
+    logger = table.logger
+    @cdebug logger "     last_to_raise.(players) = $(last_to_raise.(players))"
+    @cdebug logger "     checked.(players) = $(checked.(players))"
+    @cdebug logger "     folded.(players) = $(folded.(players))"
+    @cdebug logger "     action_required.(players) = $(action_required.(players))"
+    @cdebug logger "     !any(action_required.(players)) = $(!any(action_required.(players)))"
+    @cdebug logger "     all_playing_all_in(table) = $(all_playing_all_in(table))"
+    @cdebug logger "     all_playing_checked(table) = $(all_playing_checked(table))"
+    @cdebug logger "     all_all_in_or_checked(table) = $(all_all_in_or_checked(table))"
+    @cdebug logger "     all_all_in_except_bank_roll_leader(table) = $(all_all_in_except_bank_roll_leader(table))"
+    @cdebug logger "     all_oppononents_all_in(table, player) = $(all_oppononents_all_in(table, player))"
 
     case_1 = last_to_raise(player)
     case_2 = all_playing_checked(table)
@@ -100,7 +103,7 @@ function end_of_actions(table::Table, player)
     case_5 = all_all_in_or_checked(table) # TODO: likely replaceable with case_6
     case_6 = !any(action_required.(players))
     case_7 = all_oppononents_all_in(table, player) && paid_current_raise_amount(table, player)
-    @debug "     cases = $((case_1, case_2, case_3, case_4, case_5, case_6, case_7))"
+    @cdebug logger "     cases = $((case_1, case_2, case_3, case_4, case_5, case_6, case_7))"
 
     return any((case_1, case_2, case_3, case_4, case_5, case_6, case_7))
 end
@@ -115,13 +118,14 @@ end
 function all_raises_were_called(table::Table)
     lptr = last_player_to_raise(table)
     lptr===nothing && return true
+    logger = table.logger
 
     players = players_at_table(table)
     ltr = last_to_raise.(players)
     @assert count(ltr) == 1
     players_who_called = []
-    @debug "Checking if all raises were called"
-    @debug "     table.winners.declared = $(table.winners.declared)"
+    @cdebug logger "Checking if all raises were called"
+    @cdebug logger "     table.winners.declared = $(table.winners.declared)"
     arwc = false
     conds = map(players) do player
         cond1 = seat_number(player) == seat_number(lptr)
@@ -130,7 +134,7 @@ function all_raises_were_called(table::Table)
         cond4 = pot_investment(player) ≈ pot_investment(lptr)
         (cond1, cond2, cond3, cond4)
     end
-    @debug begin
+    @cdebug logger begin
         conds_debug = map(players) do player
             sn = seat_number(player)
             cond1 = seat_number(player) == seat_number(lptr)
@@ -140,9 +144,9 @@ function all_raises_were_called(table::Table)
             (sn, cond1, cond2, cond3, cond4)
         end
         for cond in conds_debug
-            @debug "sn, cond = $(cond[1]), $(cond[2:end])"
+            @cdebug logger "sn, cond = $(cond[1]), $(cond[2:end])"
         end
-        @debug "snlptr = $(seat_number(lptr))"
+        @cdebug logger "snlptr = $(seat_number(lptr))"
     end
     return all(map(cond->any(cond), conds))
 end
@@ -157,6 +161,7 @@ end
 
 function act_generic!(game::Game, state::AbstractGameState)
     table = game.table
+    logger = table.logger
     table.winners.declared && return
     set_state!(table, state)
     print_game_state(table, state)
@@ -166,16 +171,16 @@ function act_generic!(game::Game, state::AbstractGameState)
     play_out_game(table) && return
     set_play_out_game!(table)
     for (i, player) in enumerate(circle(table, FirstToAct()))
-        @debug "Checking to see if it's $(name(player))'s turn to act"
-        @debug "     not_playing(player) = $(not_playing(player))"
-        @debug "     all_in(player) = $(all_in(player))"
+        @cdebug logger "Checking to see if it's $(name(player))'s turn to act"
+        @cdebug logger "     not_playing(player) = $(not_playing(player))"
+        @cdebug logger "     all_in(player) = $(all_in(player))"
         not_playing(player) && continue # skip players not playing
         set_preflop_blind_raise!(table, player, state, i)
         if end_of_actions(table, player)
             break
         end
         all_in(player) && continue
-        @debug "$(name(player))'s turn to act"
+        @cdebug logger "$(name(player))'s turn to act"
         player_option!(game, player)
         table.winners.declared && break
         end_preflop_actions(table, player, state) && break
@@ -183,7 +188,7 @@ function act_generic!(game::Game, state::AbstractGameState)
             error("Too many actions have occured, please open an issue.")
         end
     end
-    @info "Betting is finished."
+    @cinfo logger "Betting is finished."
     @assert all_raises_were_called(table)
 end
 
@@ -200,7 +205,8 @@ expects no cards (players and table)
 to be dealt.
 """
 function play!(game::Game)
-    @info "------ Playing game!"
+    logger = game.table.logger
+    @cinfo logger "------ Playing game!"
 
     table = game.table
     set_active_status!(table)
@@ -209,12 +215,12 @@ function play!(game::Game)
     initial_brs = deepcopy(bank_roll.(players))
     initial_∑brs = sum(initial_brs)
 
-    @info "Initial bank roll summary: $(bank_roll.(players))"
+    @cinfo logger "Initial bank roll summary: $(bank_roll.(players))"
     did = dealer_id(table)
     sb = seat_number(small_blind(table))
     bb = seat_number(big_blind(table))
     f2a = seat_number(first_to_act(table))
-    @info "Buttons (dealer, small, big, 1ˢᵗToAct): ($did, $sb, $bb, $f2a)"
+    @cinfo logger "Buttons (dealer, small, big, 1ˢᵗToAct): ($did, $sb, $bb, $f2a)"
 
     @assert still_playing(dealer(table)) "The button must be placed on a non-folded player"
     @assert still_playing(small_blind(table)) "The small blind button must be placed on a non-folded player"
@@ -240,22 +246,22 @@ function play!(game::Game)
     winners.declared || act!(game, Turn())      # Deal turn , then bet/check/raise
     winners.declared || act!(game, River())     # Deal river, then bet/check/raise
 
-    winners.players = distribute_winnings!(players, table.transactions, cards(table))
+    winners.players = distribute_winnings!(players, table.transactions, cards(table), logger)
     winners.declared = true
 
-    @debug "amount.(table.transactions.side_pots) = $(amount.(table.transactions.side_pots))"
-    @debug "initial_∑brs = $(initial_∑brs)"
-    @debug "sum(bank_roll.(players_at_table(table))) = $(sum(bank_roll.(players_at_table(table))))"
-    @debug "initial_brs = $(initial_brs)"
-    @debug "bank_roll.(players_at_table(table)) = $(bank_roll.(players_at_table(table)))"
+    @cdebug logger "amount.(table.transactions.side_pots) = $(amount.(table.transactions.side_pots))"
+    @cdebug logger "initial_∑brs = $(initial_∑brs)"
+    @cdebug logger "sum(bank_roll.(players_at_table(table))) = $(sum(bank_roll.(players_at_table(table))))"
+    @cdebug logger "initial_brs = $(initial_brs)"
+    @cdebug logger "bank_roll.(players_at_table(table)) = $(bank_roll.(players_at_table(table)))"
 
     @assert initial_∑brs ≈ sum(bank_roll.(players_at_table(table))) # eventual assertion
     @assert sum(amount.(table.transactions.side_pots)) ≈ 0
 
-    @info "Final bank roll summary: $(bank_roll.(players))"
+    @cinfo logger "Final bank roll summary: $(bank_roll.(players))"
     @assert winners.declared
 
-    @info "------ Finished game!"
+    @cinfo logger "------ Finished game!"
     return winners
 end
 
@@ -276,13 +282,15 @@ end
 
 function reset_game!(game::Game)
     table = game.table
+    logger = table.logger
     players = players_at_table(table)
 
     game.table = Table(;
         deck=ordered_deck(),
         players=players,
         dealer_id=dealer_id(table),
-        blinds=table.blinds
+        blinds=table.blinds,
+        logger=logger,
     )
     table = game.table
     players = players_at_table(table)
@@ -306,9 +314,10 @@ end
 Play until a single player remains!
 """
 function tournament!(game::Game)
-    @info "********************************"
-    @info "******************************** Playing tournament!"
-    @info "********************************"
+    logger = game.table.logger
+    @cinfo logger "********************************"
+    @cinfo logger "******************************** Playing tournament!"
+    @cinfo logger "********************************"
     table = game.table
     players = players_at_table(table)
     while length(players) > 1
@@ -321,9 +330,9 @@ function tournament!(game::Game)
         reset_game!(game)
         move_buttons!(game)
     end
-    @info "********************************"
-    @info "******************************** Finished tournament!"
-    @info "********************************"
+    @cinfo logger "********************************"
+    @cinfo logger "******************************** Finished tournament!"
+    @cinfo logger "********************************"
     return game.table.winners
 end
 

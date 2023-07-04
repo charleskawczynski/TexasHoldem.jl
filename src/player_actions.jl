@@ -25,7 +25,8 @@ function fold!(game::Game, player::Player)
     player.action_required = false
     player.folded = true
     check_for_and_declare_winner!(game.table)
-    @info "$(name(player)) folded!"
+    logger = game.table.logger
+    @cinfo logger "$(name(player)) folded!"
 end
 
 #####
@@ -36,7 +37,8 @@ function check!(game::Game, player::Player)
     push!(player.action_history, Check())
     player.action_required = false
     player.checked = true
-    @info "$(name(player)) checked!"
+    logger = game.table.logger
+    @cinfo logger "$(name(player)) checked!"
 end
 
 #####
@@ -47,7 +49,8 @@ function call_amount(table::Table, player::Player)
     cra = current_raise_amt(table)
     prc = round_contribution(player)
     call_amt = cra - prc
-    @debug "cra = $cra, prc = $prc, call_amt = $call_amt"
+    logger = table.logger
+    @cdebug logger "cra = $cra, prc = $prc, call_amt = $call_amt"
     if cra ≈ 0
         @assert prc ≈ 0 "Round contribution must be zero if current raise is zero."
     end
@@ -67,16 +70,17 @@ function call!(table::Table, player::Player)
 end
 
 function call_valid_amount!(table::Table, player::Player, amt::Real)
-    @debug "$(name(player)) calling $(amt)."
+    logger = table.logger
+    @cdebug logger "$(name(player)) calling $(amt)."
     push!(player.action_history, Call(amt))
     player.action_required = false
     player.checked = false
     blind_str = is_blind_call(table, player, amt) ? " (blind)" : ""
     contribute!(table, player, amt, true)
     if all_in(player)
-        @info "$(name(player)) called $(amt)$blind_str (now all-in)."
+        @cinfo logger "$(name(player)) called $(amt)$blind_str (now all-in)."
     else
-        @info "$(name(player)) called $(amt)$blind_str."
+        @cinfo logger "$(name(player)) called $(amt)$blind_str."
     end
 end
 
@@ -140,10 +144,11 @@ function valid_raise_bounds(table::Table, player::Player)
     mra = minimum_raise_amt(table)
     rbr = round_bank_roll(player)
     max_orbr = max_opponent_round_bank_roll(table, player)
-    @debug "determining valid_raise_bounds"
-    @debug "   rbr = $rbr, max_orbr = $max_orbr"
-    @debug "   cra ≈ 0 = $(cra ≈ 0)"
-    @debug "   max_orbr > rbr = $(max_orbr > rbr)"
+    logger = table.logger
+    @cdebug logger "determining valid_raise_bounds"
+    @cdebug logger "   rbr = $rbr, max_orbr = $max_orbr"
+    @cdebug logger "   cra ≈ 0 = $(cra ≈ 0)"
+    @cdebug logger "   max_orbr > rbr = $(max_orbr > rbr)"
     lim = cra ≈ 0 ? mra : (cra+irra)
     vrb = custom_clamp(min(max_orbr, rbr), lim)
     @assert vrb[2] ≥ vrb[1] "Min valid raise bound must be ≤ max valid raise bound."
@@ -159,10 +164,11 @@ A `Tuple` of two elements:
  - A `String`, `msg`, of the error message (`msg` = "" if `is_valid = true`).
 """
 function is_valid_raise_amount(table::Table, player::Player, amt::Real)
+    logger = table.logger
     prc = round_contribution(player)
     rbr = round_bank_roll(player)
     vrb = valid_raise_bounds(table, player)
-    @debug "vrb = $vrb, amt = $amt, prc = $prc"
+    @cdebug logger "vrb = $vrb, amt = $amt, prc = $prc"
     @assert !(vrb[1] == vrb[2] ≈ 0) "Cannot raise 0."
     if amt ≈ 0
         return false, "Cannot raise $amt. Raise must be between [\$$(vrb[1]), \$$(vrb[2])]"
@@ -233,8 +239,9 @@ function opponents_being_put_all_in(table::Table, player::Player, amt::Real)
 end
 
 function raise_to_valid_raise_amount!(table::Table, player::Player, amt::Real)
+    logger = table.logger
     pbpai = opponents_being_put_all_in(table, player, amt)
-    @debug "$(name(player)) raising to $(amt)."
+    @cdebug logger "$(name(player)) raising to $(amt)."
     prc = round_contribution(player)
     contribute!(table, player, amt - prc, false)
     table.current_raise_amt = amt
@@ -260,15 +267,15 @@ function raise_to_valid_raise_amount!(table::Table, player::Player, amt::Real)
     end
     if bank_roll(player) ≈ 0
         if isempty(pbpai)
-            @info "$(name(player)) raised to $(amt) (all-in)."
+            @cinfo logger "$(name(player)) raised to $(amt) (all-in)."
         else
-            @info "$(name(player)) raised to $(amt). Puts player(s) $(join(pbpai, ", ")) all-in."
+            @cinfo logger "$(name(player)) raised to $(amt). Puts player(s) $(join(pbpai, ", ")) all-in."
         end
     else
         if isempty(pbpai)
-            @info "$(name(player)) raised to $(amt)."
+            @cinfo logger "$(name(player)) raised to $(amt)."
         else
-            @info "$(name(player)) raised to $(amt). Puts player(s) $(join(pbpai, ", ")) all-in."
+            @cinfo logger "$(name(player)) raised to $(amt). Puts player(s) $(join(pbpai, ", ")) all-in."
         end
     end
 end

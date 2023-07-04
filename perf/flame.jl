@@ -5,7 +5,7 @@ import TexasHoldem
 const TH = TexasHoldem
 using TexasHoldem
 using BenchmarkTools
-using Logging
+import Logging
 
 struct BotCheckCall <: AbstractAI end
 
@@ -17,7 +17,7 @@ TH.player_option!(game::Game, player::Player{BotCheckCall}, ::CallFold) = call!(
 players() = ntuple(i->(Player(BotCheckCall(), i)), 4)
 
 function do_work!(games)
-    with_logger(NullLogger()) do
+    Logging.with_logger(Logging.NullLogger()) do
         for game in games
             play!(game)
         end
