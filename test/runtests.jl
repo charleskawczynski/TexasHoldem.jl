@@ -1,4 +1,4 @@
-using Logging
+import Logging
 
 metafmt(level, _module, group, id, file, line) =
     Logging.default_metafmt(level, nothing, group, id, nothing, nothing)
@@ -27,12 +27,12 @@ for submodule in submodules
     t = 0
     local logger
     if any(submodule in tests_to_debug)
-        logger = ConsoleLogger(stderr,Logging.Info)
+        logger = Logging.ConsoleLogger(stderr,Logging.Info)
         # logger = ConsoleLogger(stderr,Logging.Debug;meta_formatter=metafmt)
     else
-        logger = NullLogger()
+        logger = Logging.NullLogger()
     end
-    with_logger(logger) do
+    Logging.with_logger(logger) do
         t = @elapsed include(submodule*".jl")
     end
     println("Completed tests for $submodule, $(round(Int, t)) seconds elapsed")

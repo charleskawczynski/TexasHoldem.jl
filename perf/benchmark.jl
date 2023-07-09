@@ -5,7 +5,7 @@ import TexasHoldem
 const TH = TexasHoldem
 using TexasHoldem
 using BenchmarkTools
-using Logging
+import Logging
 
 struct BotCheckCall <: AbstractAI end
 

@@ -1,6 +1,6 @@
 using Test
 using PlayingCards
-using Logging
+import Logging
 using TexasHoldem
 using TexasHoldem: seat_number
 TH = TexasHoldem

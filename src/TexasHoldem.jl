@@ -19,6 +19,8 @@ using Printf
 
 export AbstractGameState, PreFlop, Flop, Turn, River
 
+include("custom_logger.jl")
+
 abstract type AbstractGameState end
 struct PreFlop <: AbstractGameState end
 struct Flop <: AbstractGameState end

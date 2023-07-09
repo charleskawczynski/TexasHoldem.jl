@@ -50,7 +50,7 @@ buttons(b::Buttons) = (
     b.first_to_act,
 )
 
-mutable struct Table{P}
+mutable struct Table{P,L}
     deck::PlayingCards.Deck
     players::P
     cards::Union{Nothing,Tuple{<:Card,<:Card,<:Card,<:Card,<:Card}}
@@ -64,6 +64,7 @@ mutable struct Table{P}
     winners::Winners
     play_out_game::Bool
     n_max_actions::Int
+    logger::L
 end
 
 buttons(table::Table) = table.buttons
@@ -108,6 +109,7 @@ function Table(;
     transactions = nothing,
     winners = Winners(),
     play_out_game = false,
+    logger = StandardLogger(),
 )
     P = typeof(players)
     if transactions == nothing
@@ -115,8 +117,9 @@ function Table(;
     end
     buttons = Buttons(dealer_id, players)
     n_max_actions = compute_n_max_actions(players, blinds.big)
-    @debug "n_max_actions = $n_max_actions"
-    return Table{P}(deck,
+    @cdebug logger "n_max_actions = $n_max_actions"
+    L = typeof(logger)
+    return Table{P,L}(deck,
         players,
         cards,
         blinds,
@@ -128,7 +131,8 @@ function Table(;
         transactions,
         winners,
         play_out_game,
-        n_max_actions)
+        n_max_actions,
+        logger)
 end
 
 function Buttons(dealer_id, players::Tuple)
@@ -305,7 +309,8 @@ blinds(table::Table) = table.blinds
 
 function is_blind_call(table::Table, player::Player, amt = call_amount(table, player))
     pot_inv = pot_investment(player)
-    @debug "amt = $amt, pot_investment(player) = $pot_inv"
+    logger = table.logger
+    @cdebug logger "amt = $amt, pot_investment(player) = $pot_inv"
     bb = blinds(table).big
     sb = blinds(table).small
     if is_small_blind(table, player)
@@ -472,6 +477,7 @@ function deal!(table::Table, blinds::Blinds)
     players = players_at_table(table)
     shuffle!(table.deck)
     call_blinds = true
+    logger = table.logger
     for (i, player) in enumerate(circle(table, SmallBlind()))
 
         i>length(players) && break # deal cards to each player once
@@ -482,24 +488,24 @@ function deal!(table::Table, blinds::Blinds)
 
         if is_small_blind(table, player) && bank_roll(player) ≤ blinds.small
             contribute!(table, player, bank_roll(player), call_blinds)
-            @info "$(name(player)) paid the small blind (all-in) and dealt cards: $(show_cards(table, player))"
+            @cinfo logger "$(name(player)) paid the small blind (all-in) and dealt cards: $(show_cards(table, player))"
         elseif is_big_blind(table, player) && bank_roll(player) ≤ blinds.big
             contribute!(table, player, bank_roll(player), call_blinds)
-            @info "$(name(player)) paid the  big  blind (all-in) and dealt cards: $(show_cards(table, player))"
+            @cinfo logger "$(name(player)) paid the  big  blind (all-in) and dealt cards: $(show_cards(table, player))"
         else
             if is_small_blind(table, player)
                 contribute!(table, player, blinds.small, call_blinds)
-                @info "$(name(player)) paid the small blind and dealt cards: $(show_cards(table, player))"
+                @cinfo logger "$(name(player)) paid the small blind and dealt cards: $(show_cards(table, player))"
             elseif is_big_blind(table, player)
                 contribute!(table, player, blinds.big, call_blinds)
-                @info "$(name(player)) paid the  big  blind and dealt cards: $(show_cards(table, player))"
+                @cinfo logger "$(name(player)) paid the  big  blind and dealt cards: $(show_cards(table, player))"
             else
-                @info "$(name(player)) dealt (free) cards:                   $(show_cards(table, player))"
+                @cinfo logger "$(name(player)) dealt (free) cards:                   $(show_cards(table, player))"
             end
         end
     end
 
     table.cards = get_table_cards!(table.deck)
-    @info "Table cards dealt (face-down)."
+    @cinfo logger "Table cards dealt (face-down)."
 end
 

@@ -66,10 +66,11 @@ cap(tm::TransactionManager) = cap(tm.side_pots[tm.pot_id[1]])
 
 function last_action_of_round(table, player, call)
     laor = all_oppononents_all_in(table, player) || (count(action_required.(players_at_table(table))) == 0 && call)
-    @debug "last_action_of_round = $laor"
-    # @debug "    action_required.(players_at_table(table)) = $(action_required.(players_at_table(table)))"
-    # @debug "    all_oppononents_all_in(table, player) = $(all_oppononents_all_in(table, player))"
-    # @debug "    call = $call"
+    logger = table.logger
+    @cdebug logger "last_action_of_round = $laor"
+    # @cdebug logger "    action_required.(players_at_table(table)) = $(action_required.(players_at_table(table)))"
+    # @cdebug logger "    all_oppononents_all_in(table, player) = $(all_oppononents_all_in(table, player))"
+    # @cdebug logger "    call = $call"
     return laor
 end
 
@@ -107,7 +108,8 @@ of the (sorted) players at the start of the game.
 """
 function contribute!(table, player, amt, call=false)
     tm = table.transactions
-    @debug "$(name(player))'s bank roll (pre-contribute) = \$$(bank_roll(player))"
+    logger = table.logger
+    @cdebug logger "$(name(player))'s bank roll (pre-contribute) = \$$(bank_roll(player))"
     if !(0 ≤ amt ≤ bank_roll(player))
         msg1 = "$(name(player)) has insufficient bank"
         msg2 = "roll (\$$(bank_roll(player))) to add \$$amt to pot."
@@ -119,9 +121,9 @@ function contribute!(table, player, amt, call=false)
     player.round_contribution += amt
     player.pot_investment += amt
     amt_remaining = amt
-    @debug "$(name(player)) contributing $amt to side-pots"
-    @debug "caps = $(cap.(tm.side_pots))"
-    @debug "$(name(player))'s pot_investment = $(player.pot_investment)"
+    @cdebug logger "$(name(player)) contributing $amt to side-pots"
+    @cdebug logger "caps = $(cap.(tm.side_pots))"
+    @cdebug logger "$(name(player))'s pot_investment = $(player.pot_investment)"
 
     for i in 1:length(tm.side_pots)
         @assert 0 ≤ amt_remaining
@@ -131,8 +133,8 @@ function contribute!(table, player, amt, call=false)
         amt_contrib = cond ? amt_remaining : cap_i
         contributing = !side_pot_full(tm, i) && !(cap_i ≈ 0)
         # This is a bit noisy:
-        # @debug "$(name(player)) potentially contributing $amt_contrib to side-pot $(i) ($cond). cap_i=$cap_i, amt_remaining=$amt_remaining"
-        @debug "contributing = $contributing"
+        # @cdebug logger "$(name(player)) potentially contributing $amt_contrib to side-pot $(i) ($cond). cap_i=$cap_i, amt_remaining=$amt_remaining"
+        @cdebug logger "contributing = $contributing"
         contributing || continue
         @assert !(amt_contrib ≈ 0)
         tm.side_pots[i].amt += amt_contrib
@@ -151,8 +153,8 @@ function contribute!(table, player, amt, call=false)
     if is_side_pot_full(tm, table, player, call)
         set_side_pot_full!(tm)
     end
-    @debug "$(name(player))'s bank roll (post-contribute) = \$$(bank_roll(player))"
-    @debug "all_in($(name(player))) = $(all_in(player))"
+    @cdebug logger "$(name(player))'s bank roll (post-contribute) = \$$(bank_roll(player))"
+    @cdebug logger "all_in($(name(player))) = $(all_in(player))"
 end
 
 function is_side_pot_full(tm::TransactionManager, table, player, call)
@@ -168,7 +170,7 @@ side_pot_full(tm::TransactionManager, i) = i < tm.pot_id[1]
 
 sidepot_winnings(tm::TransactionManager, id::Int) = sum(map(x->x.amt, tm.side_pots[1:id]))
 
-function distribute_winnings_1_player_left!(players, tm::TransactionManager, table_cards)
+function distribute_winnings_1_player_left!(players, tm::TransactionManager, table_cards, logger)
     @assert count(still_playing.(players)) == 1
     n = length(tm.side_pots)
     for (player, initial_br) in zip(players, tm.initial_brs)
@@ -176,7 +178,7 @@ function distribute_winnings_1_player_left!(players, tm::TransactionManager, tab
         amt_contributed = initial_br - bank_roll(player)
         ∑spw = sidepot_winnings(tm, n)
         prof = ∑spw-amt_contributed
-        @info "$(name(player)) wins \$$(∑spw) (\$$(prof) profit) (all opponents folded)"
+        @cinfo logger "$(name(player)) wins \$$(∑spw) (\$$(prof) profit) (all opponents folded)"
         player.bank_roll += ∑spw
         for j in 1:n
             tm.side_pots[j].amt = 0 # empty out distributed winnings
@@ -186,11 +188,11 @@ function distribute_winnings_1_player_left!(players, tm::TransactionManager, tab
     return nothing
 end
 
-function distribute_winnings!(players, tm::TransactionManager, table_cards)
-    @debug "Distributing winnings..."
-    @debug "Pot amounts = $(amount.(tm.side_pots))"
+function distribute_winnings!(players, tm::TransactionManager, table_cards, logger=StandardLogger())
+    @cdebug logger "Distributing winnings..."
+    @cdebug logger "Pot amounts = $(amount.(tm.side_pots))"
     if count(still_playing.(players)) == 1
-        return distribute_winnings_1_player_left!(players, tm, table_cards)
+        return distribute_winnings_1_player_left!(players, tm, table_cards, logger)
     end
     hand_evals_sorted = map(enumerate(tm.sorted_players)) do (ssn, player)
         fhe = inactive(player) ? nothing : FullHandEval((player.cards..., table_cards...))
@@ -214,7 +216,7 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards)
                 (; eligible=false, player=player, fhe=fhe, ssn=ssn)
             end
         end
-        @debug begin
+        @cdebug logger begin
             s = "Sorted hand evals: \n"
             for hes in hand_evals_sorted
                 inactive(hes.player) && continue # (don't have cards to eval)
@@ -232,10 +234,10 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards)
             x.eligible ? hand_rank(x.fhe)==all_valid_min_hrs : false
         end
         n_winners = length(winner_ids)
-        @debug "winner_ids = $(winner_ids)"
-        @debug "length(players) = $(length(players))"
-        @debug "length(hand_evals_sorted) = $(length(hand_evals_sorted))"
-        @debug "length(tm.sorted_players) = $(length(tm.sorted_players))"
+        @cdebug logger "winner_ids = $(winner_ids)"
+        @cdebug logger "length(players) = $(length(players))"
+        @cdebug logger "length(hand_evals_sorted) = $(length(hand_evals_sorted))"
+        @cdebug logger "length(tm.sorted_players) = $(length(tm.sorted_players))"
         for winner_id in winner_ids
             win_seat = seat_number(tm.sorted_players[winner_id])
             winning_player = players[win_seat]
@@ -258,20 +260,20 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards)
                 hand_name = hand_type(hand)
                 bc = best_cards(hand)
                 f_str = folded(player) ? " (folded)" : ""
-                @info "$(name(player)) loses$f_str \$$(pot_investment(player)) with $bc ($hand_name)!"
+                @cinfo logger "$(name(player)) loses$f_str \$$(pot_investment(player)) with $bc ($hand_name)!"
             end
         else
             hand = hand_evals_sorted[ssn].fhe
             hand_name = hand_type(hand)
             bc = best_cards(hand)
             amt_contributed = initial_br - bank_roll(player)
-            @debug "$(name(player))'s side-pot wins: \$$(player_winnings)!"
+            @cdebug logger "$(name(player))'s side-pot wins: \$$(player_winnings)!"
             prof = ∑spw-amt_contributed
-            @info "$(name(player)) wins \$$∑spw (\$$prof profit) with $bc ($hand_name)!"
+            @cinfo logger "$(name(player)) wins \$$∑spw (\$$prof profit) with $bc ($hand_name)!"
             player.bank_roll += ∑spw
         end
     end
 
-    @debug "Distributed winnings..."
+    @cdebug logger "Distributed winnings..."
     return Tuple(all_winning_players)
 end

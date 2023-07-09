@@ -32,6 +32,7 @@ validate_action(::Raise, ::CallAllInFold) = nothing
 validate_action(::Raise, ::CallFold) = error("Cannot Raise. Available options: CallFold")
 
 function player_option!(game::Game, player::Player)
+    logger = game.table.logger
     table = game.table
     call_amt = call_amount(table, player)
     if !(call_amt ≈ 0) # must call to stay in
@@ -51,7 +52,7 @@ function player_option!(game::Game, player::Player)
     else
         option = CheckRaiseFold()
     end
-    @debug "option = $option"
+    @cdebug logger "option = $option"
 
     n_actions = length(action_history(player))
 
