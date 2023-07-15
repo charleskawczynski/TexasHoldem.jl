@@ -231,7 +231,7 @@ function play!(game::Game)
     @assert small_blind_id(table) ≠ big_blind_id(table) "The small and big blinds cannot coincide"
     @assert big_blind_id(table) ≠ first_to_act_id(table) "The big blind and first to act cannot coincide"
 
-    table.transactions = TransactionManager(players)
+    reset!(table.transactions, players)
 
     @assert all(cards.(players) .== nothing)
     @assert cards(table) == nothing

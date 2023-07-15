@@ -23,10 +23,10 @@ cap(sp::SidePot) = sp.cap
 Handle pots and side pots
 among multiple players.
 """
-struct TransactionManager
-  sorted_players::Vector{Player}
+struct TransactionManager{T}
+  sorted_players::T
   initial_brs::Vector{Float64}
-  pot_id::Union{Nothing,Vector{Int}}
+  pot_id::Vector{Int}
   side_pots::Vector{SidePot}
   unsorted_to_sorted_map::Vector{Int}
 end
@@ -38,29 +38,39 @@ end
 
 function TransactionManager(players)
     sorted_players = sort(collect(players); by = x->bank_roll(x))
-
-    cap = zeros(length(players))
-    for i in 1:length(players)
-        if i == 1
-            cap[i] = bank_roll(sorted_players[i])
-        else
-            cap[i] = bank_roll(sorted_players[i]) - sum(cap[1:i-1])
-        end
-    end
-
+    sps = sorted_players
     unsorted_to_sorted_map = collect(map(players) do player
-        findfirst(seat_number.(sorted_players) .== seat_number(player))
+        findfirst(sp->seat_number(sp) == seat_number(player), sps)::Int
     end)
-    side_pots = [SidePot(sn, 0, cap_i) for (cap_i, sn, amt) in zip(cap, seat_number.(sorted_players), bank_roll.(sorted_players))]
-
-    TransactionManager(
+    side_pots = map(enumerate(sps)) do (j, sp)
+        c = j == 1 ? bank_roll(sp) : bank_roll(sp) - sum(x->bank_roll(x), sps[1:j-1])
+        SidePot(seat_number(sp), 0, c)
+    end
+    initial_brs = collect(map(p->bank_roll(p), players))
+    T = typeof(sorted_players)
+    TransactionManager{T}(
         sorted_players,
-        deepcopy(collect(bank_roll.(players))),
+        initial_brs,
         Int[1],
         side_pots,
         unsorted_to_sorted_map,
     )
 end
+function reset!(tm::TransactionManager, players)
+    sps = tm.sorted_players
+    sort!(sps; by = x->bank_roll(x))
+    tm.unsorted_to_sorted_map .= map(players) do player
+        findfirst(sp->seat_number(sp) == seat_number(player), sps)::Int
+    end
+    tm.side_pots .= map(enumerate(sps)) do (j, sp)
+        c = j == 1 ? bank_roll(sp) : bank_roll(sp) - sum(x->bank_roll(x), sps[1:j-1])
+        SidePot(seat_number(sp), 0, c)
+    end
+    tm.pot_id[1] = 1
+    tm.initial_brs .= collect(map(p->bank_roll(p), players))
+    return nothing
+end
+
 amount(tm::TransactionManager) = amount(tm.side_pots[tm.pot_id[1]])
 cap(tm::TransactionManager) = cap(tm.side_pots[tm.pot_id[1]])
 

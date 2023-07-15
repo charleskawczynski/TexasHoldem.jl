@@ -20,7 +20,7 @@ players() = ntuple(i->(Player(BotCheckCall(), i)), 4)
 # the creation of players and games:
 const cntr = Int[1]
 function do_work!(games)
-    with_logger(NullLogger()) do
+    Logging.with_logger(Logging.NullLogger()) do
         play!(games[cntr[1]])
         cntr[]+=1
     end
@@ -34,7 +34,7 @@ show(stdout, MIME("text/plain"), trial)
 # Also benchmark including the
 # creation of players and games:
 function do_work!()
-    with_logger(NullLogger()) do
+    Logging.with_logger(Logging.NullLogger()) do
         play!(Game(players()))
     end
     return nothing
