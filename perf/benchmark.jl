@@ -16,25 +16,12 @@ TH.player_option!(game::Game, player::Player{BotCheckCall}, ::CallFold) = call!(
 
 players() = ntuple(i->(Player(BotCheckCall(), i)), 4)
 
-# use a counter to avoid benchmarking
-# the creation of players and games:
-const cntr = Int[1]
-function do_work!(games)
-    with_logger(NullLogger()) do
-        play!(games[cntr[1]])
-        cntr[]+=1
-    end
-    return nothing
-end
-
-games = map(x->Game(players()), 1:100_000);
-trial = @benchmark do_work!($games)
-show(stdout, MIME("text/plain"), trial)
-
-# Also benchmark including the
-# creation of players and games:
+# It's not easy to benchmark games without
+# also benchmarking the creation/allocation
+# of games. We previously did, and they're
+# very close in benchmark times.
 function do_work!()
-    with_logger(NullLogger()) do
+    Logging.with_logger(Logging.NullLogger()) do
         play!(Game(players()))
     end
     return nothing

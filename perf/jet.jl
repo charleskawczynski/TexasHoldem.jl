@@ -22,7 +22,6 @@ end
 
 # Make sure it runs without errors
 game = Game(players();logger=TH.ByPassLogger())
-println("------------ about to do work")
 do_work!(game)
 
 import JET
