@@ -23,10 +23,10 @@ cap(sp::SidePot) = sp.cap
 Handle pots and side pots
 among multiple players.
 """
-struct TransactionManager
-  sorted_players::Vector{Player}
+struct TransactionManager{SP}
+  sorted_players::SP
   initial_brs::Vector{Float64}
-  pot_id::Union{Nothing,Vector{Int}}
+  pot_id::Vector{Int}
   side_pots::Vector{SidePot}
   unsorted_to_sorted_map::Vector{Int}
 end
@@ -51,9 +51,10 @@ function TransactionManager(players)
     unsorted_to_sorted_map = collect(map(players) do player
         findfirst(seat_number.(sorted_players) .== seat_number(player))
     end)
-    side_pots = [SidePot(sn, 0, cap_i) for (cap_i, sn, amt) in zip(cap, seat_number.(sorted_players), bank_roll.(sorted_players))]
+    side_pots = [SidePot(seat_number(sp), 0, cap_i) for (cap_i, sp) in zip(cap, sorted_players)]
 
-    TransactionManager(
+    SP = typeof(sorted_players)
+    TransactionManager{SP}(
         sorted_players,
         deepcopy(collect(bank_roll.(players))),
         Int[1],

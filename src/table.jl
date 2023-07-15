@@ -50,7 +50,7 @@ buttons(b::Buttons) = (
     b.first_to_act,
 )
 
-mutable struct Table{P,L}
+mutable struct Table{P, L, TM}
     deck::PlayingCards.Deck
     players::P
     cards::Union{Nothing,Tuple{<:Card,<:Card,<:Card,<:Card,<:Card}}
@@ -60,7 +60,7 @@ mutable struct Table{P,L}
     buttons::Buttons
     current_raise_amt::Float64
     initial_round_raise_amt::Float64
-    transactions::TransactionManager
+    transactions::TM
     winners::Winners
     play_out_game::Bool
     n_max_actions::Int
@@ -106,20 +106,18 @@ function Table(;
     dealer_id = default_dealer_id(),
     current_raise_amt = Float64(0),
     initial_round_raise_amt = blinds.small,
-    transactions = nothing,
+    transactions = TransactionManager(players),
     winners = Winners(),
     play_out_game = false,
     logger = StandardLogger(),
 )
     P = typeof(players)
-    if transactions == nothing
-        transactions = TransactionManager(players)
-    end
     buttons = Buttons(dealer_id, players)
     n_max_actions = compute_n_max_actions(players, blinds.big)
     @cdebug logger "n_max_actions = $n_max_actions"
     L = typeof(logger)
-    return Table{P,L}(deck,
+    TM = typeof(transactions)
+    return Table{P, L, TM}(deck,
         players,
         cards,
         blinds,
