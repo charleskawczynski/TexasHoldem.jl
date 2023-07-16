@@ -211,9 +211,9 @@ is_big_blind(table::Table, player::Player) = seat_number(player) == seat_number(
 is_first_to_act(table::Table, player::Player) = seat_number(player) == seat_number(first_to_act(table))
 
 players_at_table(table::Table) = table.players
-all_playing_checked(table::Table) = all(map(x -> not_playing(x) || checked(x), players_at_table(table)))
-all_playing_all_in(table::Table) = all(map(x -> not_playing(x) || all_in(x), players_at_table(table)))
-all_all_in_or_checked(table::Table) = all(map(x -> checked(x) || all_in(x), players_at_table(table)))
+all_playing_checked(table::Table) = all(x -> not_playing(x) || checked(x), players_at_table(table))
+all_playing_all_in(table::Table) = all(x -> not_playing(x) || all_in(x), players_at_table(table))
+all_all_in_or_checked(table::Table) = all(x -> checked(x) || all_in(x), players_at_table(table))
 
 """
     bank_roll_leader(table::Table)
@@ -226,7 +226,7 @@ are multiple players with the largest
 bank roll.
 """
 function bank_roll_leader(table::Table)
-    max_rbr = 0
+    max_rbr::Float64 = 0
     players = players_at_table(table)
     br_leader = first(players)
     for player in players
