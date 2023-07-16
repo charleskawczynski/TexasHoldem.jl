@@ -85,7 +85,7 @@ which happens when
           ...
           until all players are all-in.
 """
-function compute_n_max_actions(players, bb)
+function compute_n_max_actions(players::Players, bb)
     maxbr = maximum(bank_roll.(players))
     n_players = length(players)
     n_check_call_rounds = n_players*3 # PreFlop, Flop, Turn
@@ -397,14 +397,12 @@ struct SmallBlind <: TablePosition end
 struct BigBlind <: TablePosition end
 struct FirstToAct <: TablePosition end # (after BigBlind)
 
-struct CircleTable{CircType,P, NITER}
-    players::Players
+struct CircleTable{CircType, NITER,PS}
+    players::PS
     buttons::Buttons
-    n_players::Int
-    player::P
 end
 
-n_iterations(::CircleTable{CircType,P,NITER}) where {CircType,P,NITER} = NITER
+n_iterations(::CircleTable{CircType,NITER}) where {CircType,NITER} = NITER
 
 function Base.length(ct::CircleTable)
     n_iter = n_iterations(ct)
@@ -415,53 +413,55 @@ function Base.length(ct::CircleTable)
     end
 end
 
+"""
+    circle(table::Table, tp::TablePosition)
+
+Orbits the table and returns the index for
+each player, starting with the table position `tp`.
+"""
 circle(table::Table, tp::TablePosition, n_iter = Inf) =
-    CircleTable{typeof(tp),Nothing, n_iter}(table.players, buttons(table), length(table.players), nothing)
-
-circle(table::Table, player::Player, n_iter = Inf) =
-    CircleTable{typeof(player),typeof(player), n_iter}(table.players, buttons(table), length(table.players), player)
-
+    CircleTable{typeof(tp), n_iter, typeof(table.players)}(table.players, buttons(table))
 
 function Base.iterate(ct::CircleTable{Dealer}, state = dealer_id(ct.buttons))
     state > n_iterations(ct)+dealer_id(ct.buttons)-1 && return nothing
-    i_circ = circle_index(ct.n_players, state)
+    i_circ = circle_index(n_players(ct.players), state)
     player = ct.players[i_circ]
     state == dealer_id(ct.buttons) && @assert active(player)
-    return (player, state+1)
+    return (i_circ, state+1)
 end
 
 function Base.iterate(ct::CircleTable{SmallBlind}, state = small_blind_id(ct.buttons))
     state > n_iterations(ct)+small_blind_id(ct.buttons)-1 && return nothing
-    i_circ = circle_index(ct.n_players, state)
+    i_circ = circle_index(n_players(ct.players), state)
     player = ct.players[i_circ]
     state == small_blind_id(ct.buttons) && @assert active(player)
-    return (player, state+1)
+    return (i_circ, state+1)
 end
 
 function Base.iterate(ct::CircleTable{BigBlind}, state = big_blind_id(ct.buttons))
     state > n_iterations(ct)+big_blind_id(ct.buttons)-1 && return nothing
-    i_circ = circle_index(ct.n_players, state)
+    i_circ = circle_index(n_players(ct.players), state)
     player = ct.players[i_circ]
     state == big_blind_id(ct.buttons) && @assert active(player)
-    return (player, state+1)
+    return (i_circ, state+1)
 end
 
 function Base.iterate(ct::CircleTable{FirstToAct}, state = first_to_act_id(ct.buttons))
     state > n_iterations(ct)+first_to_act_id(ct.buttons)-1 && return nothing
-    i_circ = circle_index(ct.n_players, state)
+    i_circ = circle_index(n_players(ct.players), state)
     player = ct.players[i_circ]
     state == first_to_act_id(ct.buttons) && @assert active(player)
-    return (player, state+1)
+    return (i_circ, state+1)
 end
 
 function Base.iterate(ct::CircleTable{P},
-        state = circle_index(ct.n_players, seat_number(ct.player))
+        state = circle_index(n_players(ct.players), seat_number(ct.player))
     ) where {P <: Player}
-    state > n_iterations(ct)+circle_index(ct.n_players, seat_number(ct.player))-1 && return nothing
-    i_circ = circle_index(ct.n_players, state)
+    state > n_iterations(ct)+circle_index(n_players(ct.players), seat_number(ct.player))-1 && return nothing
+    i_circ = circle_index(n_players(ct.players), state)
     player = ct.players[i_circ]
-    state == circle_index(ct.n_players, seat_number(ct.player)) && @assert active(player)
-    return (player, state+1)
+    state == circle_index(n_players(ct.players), seat_number(ct.player)) && @assert active(player)
+    return (i_circ, state+1)
 end
 
 show_cards(table::Table, player::Player{Human}) = player.cards
@@ -476,7 +476,8 @@ function deal!(table::Table, blinds::Blinds)
     shuffle!(table.deck)
     call_blinds = true
     logger = table.logger
-    for (i, player) in enumerate(circle(table, SmallBlind()))
+    for (i, sn) in enumerate(circle(table, SmallBlind()))
+        player = players[sn]
 
         i>length(players) && break # deal cards to each player once
 

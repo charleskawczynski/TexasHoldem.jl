@@ -28,6 +28,7 @@ struct Turn <: AbstractGameState end
 struct River <: AbstractGameState end
 
 include("player_types.jl")
+include("players.jl")
 include("transactions.jl")
 include("table.jl")
 include("game.jl")

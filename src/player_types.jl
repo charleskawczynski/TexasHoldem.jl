@@ -87,28 +87,3 @@ pot_investment(player::Player) = player.pot_investment
 round_contribution(player::Player) = player.round_contribution
 life_form(player::Player) = player.life_form
 
-
-struct Players{PS<:Union{Tuple,AbstractArray}}
-    players::PS
-end
-
-Base.length(p::Players) = length(p.players)
-Base.iterate(players::Players, state = 1) =
-    Base.iterate(players.players, state)
-Base.@propagate_inbounds Base.getindex(players::Players, i::Int) =
-    Base.getindex(players.players, i)
-Base.filter(fn, players::Players) = Base.filter(fn, players.players)
-
-sorted(players::Players) =
-    Players(sort(collect(players.players); by = x->bank_roll(x)))
-
-#=
-import TupleTools as TT
-# sorted(players::Players) =
-#     Players(map(p->players.players[p], sortperm(players)))
-
-Base.sortperm(players::Players) =
-    TT.sortperm(map(x->bank_roll(x), players.players))
-=#
-
-
