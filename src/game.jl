@@ -161,6 +161,7 @@ end
 
 function act_generic!(game::Game, state::AbstractGameState)
     table = game.table
+    players = table.players
     logger = table.logger
     table.winners.declared && return
     set_state!(table, state)
@@ -170,7 +171,8 @@ function act_generic!(game::Game, state::AbstractGameState)
     any_actions_required(game) || return
     play_out_game(table) && return
     set_play_out_game!(table)
-    for (i, player) in enumerate(circle(table, FirstToAct()))
+    for (i, sn) in enumerate(circle(table, FirstToAct()))
+        player = players[sn]
         @cdebug logger "Checking to see if it's $(name(player))'s turn to act"
         @cdebug logger "     not_playing(player) = $(not_playing(player))"
         @cdebug logger "     all_in(player) = $(all_in(player))"
