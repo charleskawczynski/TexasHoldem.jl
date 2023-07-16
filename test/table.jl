@@ -11,7 +11,7 @@ TH = TexasHoldem
     shuffle!(deck)
     blinds = TH.Blinds(1,2)
     cards = TH.get_table_cards!(deck)
-    table = TH.Table(;deck=deck, cards=cards, players=players)
+    table = TH.Table(players;deck=deck, cards=cards)
     TH.deal!(table, blinds)
 
     table.state = PreFlop()
@@ -27,7 +27,7 @@ end
 @testset "Table: Move button" begin
     # All players playing
     players = ntuple(i-> Player(Bot5050(), i), 3)
-    table = Table(;players = players)
+    table = Table(players)
     @test TH.buttons(table.buttons) == (1, 2, 3, 1)
     move_buttons!(table)
     @test TH.buttons(table.buttons) == (2, 3, 1, 2)
@@ -42,7 +42,7 @@ end
         Player(Bot5050(), 2; bank_roll=0),
         Player(Bot5050(), 3),
     )
-    table = Table(;players = players)
+    table = Table(players)
     @test TH.buttons(table.buttons) == (1, 3, 1, 3)
     move_buttons!(table)
     @test TH.buttons(table.buttons) == (3, 1, 3, 1)
@@ -57,7 +57,7 @@ end
         Player(Bot5050(), 2; bank_roll=0),
         Player(Bot5050(), 3),
     )
-    table = Table(;players = players, dealer_id=2)
+    table = Table(players; dealer_id=2)
     @test TH.buttons(table.buttons) == (3, 1, 3, 1)
     move_buttons!(table)
     @test TH.buttons(table.buttons) == (1, 3, 1, 3)
@@ -84,7 +84,7 @@ end
 
     # dealer_id = 1
     players = ntuple(i-> Player(Bot5050(), i), 5)
-    table = Table(;players = players)
+    table = Table(players)
     TH.deal!(table, TH.blinds(table))
     iter_players = collect(TH.circle(table, Dealer(), length(players)))
     sn = seat_number.(iter_players)
@@ -92,7 +92,7 @@ end
 
     dealer_id = 2
     players = ntuple(i-> Player(Bot5050(), i), 5)
-    table = Table(;players = players, dealer_id = 2)
+    table = Table(players; dealer_id = 2)
     TH.deal!(table, TH.blinds(table))
     iter_players = collect(TH.circle(table, Dealer(), length(players)))
     sn = seat_number.(iter_players)
@@ -102,7 +102,7 @@ end
 @testset "Table: SmallBlind iterator" begin
     # dealer_id = 1
     players = ntuple(i-> Player(Bot5050(), i), 5)
-    table = Table(;players = players)
+    table = Table(players)
     TH.deal!(table, TH.blinds(table))
     iter_players = collect(TH.circle(table, SmallBlind(), length(players)))
     sn = seat_number.(iter_players)
@@ -110,7 +110,7 @@ end
 
     # dealer_id = 2
     players = ntuple(i-> Player(Bot5050(), i), 5)
-    table = Table(;players = players, dealer_id = 2)
+    table = Table(players; dealer_id = 2)
     TH.deal!(table, TH.blinds(table))
     iter_players = collect(TH.circle(table, SmallBlind(), length(players)))
     sn = seat_number.(iter_players)
@@ -120,7 +120,7 @@ end
 @testset "Table: BigBlind iterator" begin
     # dealer_id = 1
     players = ntuple(i-> Player(Bot5050(), i), 5)
-    table = Table(;players = players)
+    table = Table(players)
     TH.deal!(table, TH.blinds(table))
     iter_players = collect(TH.circle(table, BigBlind(), length(players)))
     sn = seat_number.(iter_players)
@@ -128,7 +128,7 @@ end
 
     # dealer_id = 2
     players = ntuple(i-> Player(Bot5050(), i), 5)
-    table = Table(;players = players, dealer_id = 2)
+    table = Table(players; dealer_id = 2)
     TH.deal!(table, TH.blinds(table))
     iter_players = collect(TH.circle(table, BigBlind(), length(players)))
     sn = seat_number.(iter_players)
@@ -138,7 +138,7 @@ end
 @testset "Table: FirstToAct iterator" begin
     # dealer_id = 1
     players = ntuple(i-> Player(Bot5050(), i), 5)
-    table = Table(;players = players)
+    table = Table(players)
     TH.deal!(table, TH.blinds(table))
     iter_players = collect(TH.circle(table, FirstToAct(), length(players)))
     sn = seat_number.(iter_players)
@@ -146,7 +146,7 @@ end
 
     # dealer_id = 2
     players = ntuple(i-> Player(Bot5050(), i), 5)
-    table = Table(;players = players, dealer_id = 2)
+    table = Table(players; dealer_id = 2)
     TH.deal!(table, TH.blinds(table))
     iter_players = collect(TH.circle(table, FirstToAct(), length(players)))
     sn = seat_number.(iter_players)
@@ -157,7 +157,7 @@ end
     # dealer_id = 1
     @test TH.default_dealer_id() == 1
     players = ntuple(i-> Player(Bot5050(), i), 5)
-    table = Table(;players = players)
+    table = Table(players)
     TH.deal!(table, TH.blinds(table))
     iter_players = collect(TH.circle(table, players[1], length(players)))
     sn = seat_number.(iter_players)
@@ -165,7 +165,7 @@ end
 
     # dealer_id = 2
     players = ntuple(i-> Player(Bot5050(), i), 5)
-    table = Table(;players = players, dealer_id = 2)
+    table = Table(players; dealer_id = 2)
     TH.deal!(table, TH.blinds(table))
     iter_players = collect(TH.circle(table, players[1], length(players)))
     sn = seat_number.(iter_players)
@@ -173,7 +173,7 @@ end
 
     # dealer_id = 1
     players = ntuple(i-> Player(Bot5050(), i), 5)
-    table = Table(;players = players)
+    table = Table(players)
     TH.deal!(table, TH.blinds(table))
     iter_players = collect(TH.circle(table, players[2], length(players)))
     sn = seat_number.(iter_players)
@@ -181,7 +181,7 @@ end
 
     # dealer_id = 2
     players = ntuple(i-> Player(Bot5050(), i), 5)
-    table = Table(;players = players, dealer_id = 2)
+    table = Table(players; dealer_id = 2)
     TH.deal!(table, TH.blinds(table))
     iter_players = collect(TH.circle(table, players[2], length(players)))
     sn = seat_number.(iter_players)

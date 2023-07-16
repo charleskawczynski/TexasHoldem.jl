@@ -11,7 +11,7 @@ TH = TexasHoldem
         Player(Bot5050(), 3, (Q♠, Q♣); bank_roll = 3*100),
     )
     tm = TH.TransactionManager(players)
-    table = Table(;players=players,cards=table_cards,transactions=tm)
+    table = Table(players;cards=table_cards,transactions=tm)
     @test TH.seat_number.(tm.side_pots) == [1,2,3]
 
     TH.raise_to!(table, players[1], 100) # raise all-in
@@ -35,7 +35,7 @@ end
         Player(Bot5050(), 3, (Q♠, Q♣); bank_roll = 1*100),
     )
     tm = TH.TransactionManager(players)
-    table = Table(;players=players,cards=table_cards,transactions=tm)
+    table = Table(players;cards=table_cards,transactions=tm)
 
     TH.raise_to!(table, players[1], 100) # Raise
     TH.call!(table, players[2]) # call
@@ -58,7 +58,7 @@ end
         Player(Bot5050(), 3, (Q♠, Q♣); bank_roll = 3*100),
     )
     tm = TH.TransactionManager(players)
-    table = Table(;players=players,cards=table_cards,transactions=tm)
+    table = Table(players;cards=table_cards,transactions=tm)
 
     TH.raise_to!(table, players[1], 100) # Raise all-in
     TH.call!(table, players[2]) # call
@@ -90,7 +90,7 @@ end
         Player(Bot5050(), 3, (Q♠, Q♣); bank_roll = 1*100),
     )
     tm = TH.TransactionManager(players)
-    table = Table(;players=players,cards=table_cards,transactions=tm)
+    table = Table(players;cards=table_cards,transactions=tm)
 
     TH.raise_to!(table, players[1], 100) # Raise
     TH.call!(table, players[2]) # call
@@ -125,7 +125,7 @@ end
         Player(Bot5050(), 6, (2♠, 3♣); bank_roll = 6*100), # lose, but not bust
     )
     tm = TH.TransactionManager(players)
-    table = Table(;players=players,cards=table_cards,transactions=tm)
+    table = Table(players;cards=table_cards,transactions=tm)
 
     TH.raise_to!(table, players[1], 100) # raise all-in
     TH.call!(table, players[2]) # call
@@ -188,7 +188,7 @@ end
         Player(Bot5050(), 6, (2♠, 3♣); bank_roll = 6*100), # lose, but not bust
     )
     tm = TH.TransactionManager(players)
-    table = Table(;players=players,cards=table_cards,transactions=tm)
+    table = Table(players;cards=table_cards,transactions=tm)
     @test TH.amount.(tm.side_pots) == [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
     TH.raise_to!(table, players[1], 100) # raise all-in
@@ -232,7 +232,7 @@ end
         Player(Bot5050(), 6, (4♠, 5♣); bank_roll = 1*100), # bust
     )
     tm = TH.TransactionManager(players)
-    table = Table(;players=players,cards=table_cards,transactions=tm)
+    table = Table(players;cards=table_cards,transactions=tm)
     @test TH.amount.(tm.side_pots) == [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
     TH.raise_to!(table, players[1], 500) # raise to 500

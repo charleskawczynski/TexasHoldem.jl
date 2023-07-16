@@ -36,8 +36,10 @@ function Base.show(io::IO, tm::TransactionManager, include_type = true)
     println(io, "Pot(s)           = $(tm.side_pots)")
 end
 
-function TransactionManager(players)
-    sorted_players = sort(collect(players); by = x->bank_roll(x))
+TransactionManager(players) = TransactionManager(Players(players))
+function TransactionManager(players::Players)
+#    sorted_players = sort(collect(players); by = x->bank_roll(x))
+    sorted_players = sorted(players)
 
     cap = zeros(length(players))
     for i in 1:length(players)

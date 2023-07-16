@@ -4,7 +4,7 @@
 
 export Game, play!, tournament!
 
-mutable struct Game{T}
+mutable struct Game{T<:Table}
     table::T
 end
 
@@ -17,8 +17,9 @@ function Base.show(io::IO, game::Game)
     println(io, "-----------------------")
 end
 
+Game(players; kwargs...) = Game(Players(players); kwargs...)
 function Game(
-        players::Tuple;
+        players::Players;
         deck = ordered_deck(),
         table = nothing,
         dealer_id::Int = default_dealer_id(),
@@ -41,9 +42,8 @@ function Game(
         @assert length(cards(table)) == 5
         @assert length(deck) + n_player_cards + length(cards(table)) == 52
     else # nobody has been dealt yet
-        table = Table(;
+        table = Table(players;
             deck=deck,
-            players=players,
             dealer_id=dealer_id,
             blinds=blinds,
             logger=logger,
@@ -285,9 +285,8 @@ function reset_game!(game::Game)
     logger = table.logger
     players = players_at_table(table)
 
-    game.table = Table(;
+    game.table = Table(players;
         deck=ordered_deck(),
-        players=players,
         dealer_id=dealer_id(table),
         blinds=table.blinds,
         logger=logger,

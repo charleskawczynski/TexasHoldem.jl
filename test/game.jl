@@ -20,7 +20,7 @@ end
     players = ntuple(3) do i
         Player(Bot5050(), i, pop!(deck, 2))
     end
-    table = Table(;players=players,deck=deck,cards=pop!(deck, 5))
+    table = Table(players;deck=deck,cards=pop!(deck, 5))
     game = Game(players;deck=deck,table=table)
 end
 
