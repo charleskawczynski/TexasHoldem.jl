@@ -50,7 +50,7 @@ buttons(b::Buttons) = (
     b.first_to_act,
 )
 
-mutable struct Table{P, L, TM}
+mutable struct Table{P<:Players, L, TM}
     deck::PlayingCards.Deck
     players::P
     cards::Union{Nothing,Tuple{<:Card,<:Card,<:Card,<:Card,<:Card}}
@@ -96,8 +96,8 @@ function compute_n_max_actions(players, bb)
 end
 n_raises(i, n_players) = Int(floor(i/n_players))
 
-function Table(;
-    players::Tuple,
+Table(players; kwargs...) = Table(Players(players); kwargs...)
+function Table(players::Players;
     deck = ordered_deck(),
     cards = nothing,
     blinds = Blinds(),
@@ -133,7 +133,7 @@ function Table(;
         logger)
 end
 
-function Buttons(dealer_id, players::Tuple)
+function Buttons(dealer_id, players::Players)
     dealer_id       = this_or_next_valid_id(dealer_id       , players)
     small_blind_id  = this_or_next_valid_id(dealer_id     +1, players)
     big_blind_id    = this_or_next_valid_id(small_blind_id+1, players)
@@ -144,12 +144,12 @@ end
 valid_button(player::Player) = !zero_bank_roll(player) && still_playing(player)
 
 """
-    this_or_next_valid_id(id, players::Tuple)
+    this_or_next_valid_id(id, players::Players)
 
 Given an index `id`, return this index, if valid,
 otherwise find the next valid index.
 """
-function this_or_next_valid_id(id, players::Tuple)
+function this_or_next_valid_id(id, players::Players)
     n_players = length(players)
     id = circle_index(n_players, id) # so that we can pass in id+1
     if valid_button(players[id])
@@ -398,7 +398,7 @@ struct BigBlind <: TablePosition end
 struct FirstToAct <: TablePosition end # (after BigBlind)
 
 struct CircleTable{CircType,P, NITER}
-    players::Tuple
+    players::Players
     buttons::Buttons
     n_players::Int
     player::P
