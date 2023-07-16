@@ -68,7 +68,8 @@ amount(tm::TransactionManager) = amount(tm.side_pots[tm.pot_id[1]])
 cap(tm::TransactionManager) = cap(tm.side_pots[tm.pot_id[1]])
 
 function last_action_of_round(table, player, call)
-    laor = all_oppononents_all_in(table, player) || (count(action_required.(players_at_table(table))) == 0 && call)
+    laor = all_oppononents_all_in(table, player) ||
+        (count(x->action_required(x), players_at_table(table)) == 0 && call)
     logger = table.logger
     @cdebug logger "last_action_of_round = $laor"
     # @cdebug logger "    action_required.(players_at_table(table)) = $(action_required.(players_at_table(table)))"
@@ -171,7 +172,7 @@ end
 set_side_pot_full!(tm::TransactionManager) = (tm.pot_id[1]+=1)
 side_pot_full(tm::TransactionManager, i) = i < tm.pot_id[1]
 
-sidepot_winnings(tm::TransactionManager, id::Int) = sum(map(x->x.amt, tm.side_pots[1:id]))
+sidepot_winnings(tm::TransactionManager, id::Int) = sum(x->x.amt, tm.side_pots[1:id])
 
 function distribute_winnings_1_player_left!(players, tm::TransactionManager, table_cards, logger)
     @assert count(still_playing.(players)) == 1
