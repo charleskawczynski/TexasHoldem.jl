@@ -15,12 +15,12 @@ TH = TexasHoldem
 end
 
 @testset "Game: pre-dealt deck" begin
-    deck = ordered_deck()
+    deck = PlayingCards.MaskedDeck()
     shuffle!(deck)
     players = ntuple(3) do i
-        Player(Bot5050(), i, pop!(deck, 2))
+        Player(Bot5050(), i, pop!(deck, Val(2)))
     end
-    table = Table(players;deck=deck,cards=pop!(deck, 5))
+    table = Table(players;deck=deck,cards=pop!(deck, Val(5)))
     game = Game(players;deck=deck,table=table)
 end
 
