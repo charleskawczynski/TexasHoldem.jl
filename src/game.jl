@@ -27,7 +27,7 @@ function Game(
         logger = StandardLogger(),
     )
 
-    n_player_cards = sum(map(x->cards(x)==nothing ? 0 : length(cards(x)), players))
+    n_player_cards = sum(x->cards(x)==nothing ? 0 : length(cards(x)), players)
 
     @assert 2 ≤ length(players) ≤ 10 "Invalid number of players"
 
@@ -127,13 +127,6 @@ function all_raises_were_called(table::Table)
     @cdebug logger "Checking if all raises were called"
     @cdebug logger "     table.winners.declared = $(table.winners.declared)"
     arwc = false
-    conds = map(players) do player
-        cond1 = seat_number(player) == seat_number(lptr)
-        cond2 = not_playing(player)
-        cond3 = all_in(player)
-        cond4 = pot_investment(player) ≈ pot_investment(lptr)
-        (cond1, cond2, cond3, cond4)
-    end
     @cdebug logger begin
         conds_debug = map(players) do player
             sn = seat_number(player)
@@ -148,7 +141,13 @@ function all_raises_were_called(table::Table)
         end
         @cdebug logger "snlptr = $(seat_number(lptr))"
     end
-    return all(map(cond->any(cond), conds))
+    return all(player-> begin
+        cond1 = seat_number(player) == seat_number(lptr)
+        cond2 = not_playing(player)
+        cond3 = all_in(player)
+        cond4 = pot_investment(player) ≈ pot_investment(lptr)
+        any((cond1, cond2, cond3, cond4))
+    end, players)
 end
 
 end_preflop_actions(table, player, ::AbstractGameState) = false
@@ -323,7 +322,7 @@ function tournament!(game::Game)
     players = players_at_table(table)
     while length(players) > 1
         play!(game)
-        n_players_remaining = count(map(x->!(bank_roll(x) ≈ 0), players))
+        n_players_remaining = count(x->!(bank_roll(x) ≈ 0), players)
         if n_players_remaining ≤ 1
             println("Victor emerges!")
             break

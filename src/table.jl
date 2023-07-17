@@ -237,9 +237,9 @@ function bank_roll_leader(table::Table)
             max_rbr = pbr
         end
     end
-    multiple_leaders = count(map(players) do player
+    multiple_leaders = count(player->begin
         round_bank_roll(player) ≈ max_rbr && still_playing(player)
-    end) > 1
+    end, players) > 1
     return br_leader, multiple_leaders
 end
 
@@ -277,12 +277,12 @@ function all_all_in_except_bank_roll_leader(table::Table)
 
     @assert !multiple_leaders # We have a single bank roll leader
 
-    return all(map(players) do player
+    return all(player -> begin
         cond1 = not_playing(player)
         cond2 = all_in(player)
         cond3 = seat_number(player) == seat_number(br_leader) && !action_required(br_leader)
         any((cond1, cond2, cond3))
-    end)
+    end, players)
 end
 
 # Note that this method is only valid before or after a round has ended.
@@ -290,17 +290,17 @@ function set_play_out_game!(table::Table)
     br_leader, multiple_leaders = bank_roll_leader(table)
     players = players_at_table(table)
     if multiple_leaders
-        return all(map(player -> not_playing(player) || all_in(player), players))
+        return all(player -> not_playing(player) || all_in(player), players)
     end
 
     @assert !multiple_leaders # We have a single bank roll leader
 
-    table.play_out_game = all(map(players) do player
+    table.play_out_game = all(player -> begin
         cond1 = not_playing(player)
         cond2 = all_in(player)
         cond3 = seat_number(player) == seat_number(br_leader)
         any((cond1, cond2, cond3))
-    end)
+    end, players)
 end
 
 blinds(table::Table) = table.blinds
