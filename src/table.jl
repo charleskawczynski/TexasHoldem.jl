@@ -50,8 +50,8 @@ buttons(b::Buttons) = (
     b.first_to_act,
 )
 
-mutable struct Table{P<:Players, L, TM, B <: Blinds}
-    deck::PlayingCards.Deck
+mutable struct Table{P<:Players, L, TM, B <: Blinds, D <: PlayingCards.MaskedDeck}
+    deck::D
     players::P
     cards::Union{Nothing,Tuple{<:Card,<:Card,<:Card,<:Card,<:Card}}
     blinds::B
@@ -98,7 +98,7 @@ n_raises(i, n_players) = Int(floor(i/n_players))
 
 Table(players; kwargs...) = Table(Players(players); kwargs...)
 function Table(players::Players;
-    deck = ordered_deck(),
+    deck = PlayingCards.MaskedDeck(),
     cards = nothing,
     blinds = Blinds(),
     pot = Float64(0),
@@ -118,7 +118,7 @@ function Table(players::Players;
     L = typeof(logger)
     TM = typeof(transactions)
     B = typeof(blinds)
-    return Table{P, L, TM, B}(deck,
+    return Table{P, L, TM, B, typeof(deck)}(deck,
         players,
         cards,
         blinds,
@@ -179,8 +179,7 @@ function Base.show(io::IO, table::Table, include_type = true)
     println(io, "Observed cards   = $(observed_cards(table))")
 end
 
-get_table_cards!(deck::PlayingCards.Deck) =
-    Iterators.flatten(ntuple(i->pop!(deck, 1), 5)) |> collect |> Tuple
+get_table_cards!(deck::PlayingCards.MaskedDeck) = pop!(deck, Val(5))
 cards(table::Table) = table.cards
 
 observed_cards(table::Table) = observed_cards(table, table.state)
@@ -484,7 +483,7 @@ function deal!(table::Table, blinds::Blinds)
 
         not_playing(player) && continue
 
-        player.cards = pop!(table.deck, 2)
+        player.cards = pop!(table.deck, Val(2))
 
         if is_small_blind(table, player) && bank_roll(player) ≤ blinds.small
             contribute!(table, player, bank_roll(player), call_blinds)

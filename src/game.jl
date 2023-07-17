@@ -20,7 +20,7 @@ end
 Game(players; kwargs...) = Game(Players(players); kwargs...)
 function Game(
         players::Players;
-        deck = ordered_deck(),
+        deck = PlayingCards.MaskedDeck(),
         table = nothing,
         dealer_id::Int = default_dealer_id(),
         blinds::Blinds = Blinds(1,2),
@@ -289,11 +289,11 @@ function reset_game!(game::Game)
     players = players_at_table(table)
 
     game.table = Table(players;
-        deck=ordered_deck(),
         dealer_id=dealer_id(table),
         blinds=table.blinds,
         logger=logger,
     )
+    PlayingCards.reset!(game.table.deck)
     table = game.table
     players = players_at_table(table)
     for player in players

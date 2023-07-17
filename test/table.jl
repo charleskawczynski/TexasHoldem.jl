@@ -7,7 +7,7 @@ TH = TexasHoldem
 
 @testset "Table: constructors / observed cards" begin
     players = ntuple(i-> Player(Bot5050(), i), 2)
-    deck = ordered_deck()
+    deck = PlayingCards.MaskedDeck()
     shuffle!(deck)
     blinds = TH.Blinds(1,2)
     cards = TH.get_table_cards!(deck)
