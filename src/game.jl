@@ -101,7 +101,7 @@ function end_of_actions(table::Table, player)
     case_3 = all_playing_all_in(table)
     case_4 = all_all_in_except_bank_roll_leader(table)
     case_5 = all_all_in_or_checked(table) # TODO: likely replaceable with case_6
-    case_6 = !any(action_required.(players))
+    case_6 = !any(x->action_required(x), players)
     case_7 = all_oppononents_all_in(table, player) && paid_current_raise_amount(table, player)
     @cdebug logger "     cases = $((case_1, case_2, case_3, case_4, case_5, case_6, case_7))"
 

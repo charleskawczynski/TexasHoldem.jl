@@ -50,11 +50,11 @@ buttons(b::Buttons) = (
     b.first_to_act,
 )
 
-mutable struct Table{P<:Players, L, TM}
+mutable struct Table{P<:Players, L, TM, B <: Blinds}
     deck::PlayingCards.Deck
     players::P
     cards::Union{Nothing,Tuple{<:Card,<:Card,<:Card,<:Card,<:Card}}
-    blinds::Blinds
+    blinds::B
     pot::Float64
     state::AbstractGameState
     buttons::Buttons
@@ -117,7 +117,8 @@ function Table(players::Players;
     @cdebug logger "n_max_actions = $n_max_actions"
     L = typeof(logger)
     TM = typeof(transactions)
-    return Table{P, L, TM}(deck,
+    B = typeof(blinds)
+    return Table{P, L, TM, B}(deck,
         players,
         cards,
         blinds,
