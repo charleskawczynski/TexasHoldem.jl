@@ -22,7 +22,7 @@ players() = ntuple(i->(Player(BotCheckCall(), i)), 4)
 # very close in benchmark times.
 function do_work!()
     Logging.with_logger(Logging.NullLogger()) do
-        play!(Game(players()))
+        play!(Game(players();logger=TH.ByPassLogger()))
     end
     return nothing
 end

@@ -195,7 +195,7 @@ end
 function distribute_winnings!(players, tm::TransactionManager, table_cards, logger=StandardLogger())
     @cdebug logger "Distributing winnings..."
     @cdebug logger "Pot amounts = $(amount.(tm.side_pots))"
-    if count(still_playing.(players)) == 1
+    if count(x->still_playing(x), players) == 1
         return distribute_winnings_1_player_left!(players, tm, table_cards, logger)
     end
     hand_evals_sorted = map(enumerate(tm.sorted_players)) do (ssn, player)

@@ -28,10 +28,10 @@ end
 import Profile
 import ProfileCanvas
 
-games = map(x->Game(players()), 1:10000);
+games = map(x->Game(players();logger=TH.ByPassLogger()), 1:10000);
 do_work!(games) # compile first
 
-games = map(x->Game(players()), 1:10000);
+games = map(x->Game(players();logger=TH.ByPassLogger()), 1:10000);
 Profile.clear()
 prof = Profile.@profile begin
     do_work!(games)
