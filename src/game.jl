@@ -213,8 +213,10 @@ function play!(game::Game)
     set_active_status!(table)
     players = players_at_table(table)
 
-    initial_brs = deepcopy(bank_roll.(players))
-    initial_∑brs = sum(initial_brs)
+    @cdebug logger begin
+        initial_brs = deepcopy(bank_roll.(players))
+    end
+    initial_∑brs = sum(x->bank_roll(x), players)
 
     @cinfo logger "Initial bank roll summary: $(bank_roll.(players))"
     did = dealer_id(table)
@@ -234,7 +236,7 @@ function play!(game::Game)
 
     table.transactions = TransactionManager(players)
 
-    @assert all(cards.(players) .== nothing)
+    @assert all(p->cards(p) == nothing, players)
     @assert cards(table) == nothing
     reset_round_bank_rolls!(table) # round bank-rolls must account for blinds
     deal!(table, blinds(table))
@@ -256,8 +258,8 @@ function play!(game::Game)
     @cdebug logger "initial_brs = $(initial_brs)"
     @cdebug logger "bank_roll.(players_at_table(table)) = $(bank_roll.(players_at_table(table)))"
 
-    @assert initial_∑brs ≈ sum(bank_roll.(players_at_table(table))) # eventual assertion
-    @assert sum(amount.(table.transactions.side_pots)) ≈ 0
+    @assert initial_∑brs ≈ sum(x->bank_roll(x), players_at_table(table)) # eventual assertion
+    @assert sum(sp->amount(sp), table.transactions.side_pots) ≈ 0
 
     @cinfo logger "Final bank roll summary: $(bank_roll.(players))"
     @assert winners.declared

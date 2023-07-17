@@ -389,7 +389,7 @@ A circular index for indexing into `players`.
 """
 circle_index(n_players, i) = mod(i-1, n_players)+1
 
-any_actions_required(table::Table) = any(action_required.(players_at_table(table)))
+any_actions_required(table::Table) = any(x->action_required(x), players_at_table(table))
 
 abstract type TablePosition end
 struct Dealer <: TablePosition end
