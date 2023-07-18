@@ -188,16 +188,18 @@ function is_side_pot_full(tm::TransactionManager, table, player, call)
     # To switch from pot_id = 1 to pot_id = 2, then exactly 1 player  should be all-in:
     # To switch from pot_id = 2 to pot_id = 3, then exactly 2 players should be all-in:
     # ...
-    return last_action_of_round(table, player, call) && count(all_in.(players)) == tm.pot_id[1]
+    return count(x->all_in(x), players) == tm.pot_id[1] && last_action_of_round(table, player, call)
 end
 
 set_side_pot_full!(tm::TransactionManager) = (tm.pot_id[1]+=1)
 side_pot_full(tm::TransactionManager, i) = i < tm.pot_id[1]
 
-sidepot_winnings(tm::TransactionManager, id::Int) = sum(x->x.amt, tm.side_pots[1:id])
+Base.@propagate_inbounds function sidepot_winnings(tm::TransactionManager, id::Int)
+    sum(i->tm.side_pots[i].amt, 1:id)
+end
 
 function distribute_winnings_1_player_left!(players, tm::TransactionManager, table_cards, logger)
-    @assert count(still_playing.(players)) == 1
+    @assert count(x->still_playing(x), players) == 1
     n = length(tm.side_pots)
     for (player, initial_br) in zip(players, tm.initial_brs)
         not_playing(player) && continue
@@ -232,7 +234,7 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards, logg
     winning_hands = Vector{Symbol}(undef, length(players))
     all_winning_players = Player[]
 
-    for i in 1:length(tm.side_pots)
+    @inbounds for i in 1:length(tm.side_pots)
         sidepot_winnings(tm, length(players)) ≈ 0 && continue # no money left to distribute
 
         hand_evals_sorted = map(hand_evals_sorted) do (eligible, player, fhe, ssn)
