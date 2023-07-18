@@ -38,8 +38,7 @@ end
 
 TransactionManager(players) = TransactionManager(Players(players))
 function TransactionManager(players::Players)
-#    sorted_players = sort(collect(players); by = x->bank_roll(x))
-    sorted_players = sorted(players)
+    sorted_players = sorted_collect(players)
 
     cap = zeros(length(players))
     for i in 1:length(players)
@@ -55,15 +54,38 @@ function TransactionManager(players::Players)
     end)
     side_pots = [SidePot(seat_number(sp), 0, cap_i) for (cap_i, sp) in zip(cap, sorted_players)]
 
+    initial_brs = deepcopy(collect(bank_roll.(players)))
+    pot_id = Int[1]
     SP = typeof(sorted_players)
     TransactionManager{SP}(
         sorted_players,
-        deepcopy(collect(bank_roll.(players))),
-        Int[1],
+        initial_brs,
+        pot_id,
         side_pots,
         unsorted_to_sorted_map,
     )
 end
+
+function reset!(tm::TransactionManager, players::Players)
+    splayers = tm.sorted_players
+    sort!(splayers)
+    @inbounds for i in 1:length(splayers)
+        sp = splayers[i]
+        player = players[i]
+        br = bank_roll(sp)
+        cap_i = i == 1 ? br : br - bank_roll(splayers[i-1])
+        ssn = seat_number(sp)::Int
+        tm.side_pots[i].seat_number = ssn
+        tm.side_pots[i].amt = Float64(0)
+        tm.side_pots[i].cap = cap_i
+        j = findfirst(sp->seat_number(sp) == seat_number(player), splayers)::Int
+        tm.unsorted_to_sorted_map[i] = j
+        tm.initial_brs[i] = bank_roll(player)
+    end
+    @inbounds tm.pot_id[1] = 1
+    return nothing
+end
+
 amount(tm::TransactionManager) = amount(tm.side_pots[tm.pot_id[1]])
 cap(tm::TransactionManager) = cap(tm.side_pots[tm.pot_id[1]])
 

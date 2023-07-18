@@ -8,8 +8,14 @@ Base.iterate(players::Players, state = 1) =
 Base.@propagate_inbounds Base.getindex(players::Players, i::Int) =
     Base.getindex(players.players, i)
 Base.filter(fn, players::Players) = Base.filter(fn, players.players)
+Base.findfirst(fn::Function, players::Players) =
+    Base.findfirst(fn, players.players)
 
-sorted(players::Players) =
+function Base.sort!(players::Players{<:AbstractArray})
+    Base.sort!(players.players; by=x->bank_roll(x))
+    return nothing
+end
+sorted_collect(players::Players) =
     Players(sort(collect(players.players); by = x->bank_roll(x)))
 n_players(players::Players) = length(players)
 
