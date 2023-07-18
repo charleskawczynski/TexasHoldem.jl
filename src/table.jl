@@ -228,9 +228,11 @@ function bank_roll_leader(table::Table)
             max_rbr = pbr
         end
     end
-    multiple_leaders = count(player->begin
-        round_bank_roll(player) ≈ max_rbr && still_playing(player)
-    end, players) > 1
+    multiple_leaders = let max_rbr=max_rbr # avoid variable capture
+        count(player->begin
+            round_bank_roll(player) ≈ max_rbr && still_playing(player)
+        end, players) > 1
+    end
     return br_leader, multiple_leaders
 end
 
