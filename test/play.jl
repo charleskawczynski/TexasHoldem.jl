@@ -31,7 +31,7 @@ end
 
 struct NoActionBot <: AbstractAI end
 
-TH.player_option!(game::Game, player::Player{NoActionBot}, ::AbstractGameState, ::PlayerOptions) = nothing
+TH.player_option!(game::Game, player::Player{NoActionBot}, ::AbstractGameStage, ::PlayerOptions) = nothing
 
 @testset "Game: Play (NoActionBot)" begin
     game = Game((Player(BotCheckCall(), 1), Player(NoActionBot(), 2),))
@@ -104,7 +104,7 @@ n_call_actions = [0]
         Player(BotNActions(), 3),
         Player(BotNActions(), 4; bank_roll = 0),
         Player(BotNActions(), 5),
-    ); dealer_id = 1))
+    ); dealer_pidx = 1))
 
     @test n_call_actions[1] == 2 # dealer + small blind
     # 1 check pre-flop (big blind)
@@ -126,7 +126,7 @@ n_call_actions = [0]
         Player(BotPreFlopRaise(7.0), 3; bank_roll = 256.0),
         Player(BotCheckCall(), 4; bank_roll = 4.0),
         Player(BotCheckFold(), 5; bank_roll = 45.0),
-    ); dealer_id = 1))
+    ); dealer_pidx = 1))
 
     @test n_call_actions[1] == 2 # dealer + small blind
     # 1 check pre-flop (big blind)

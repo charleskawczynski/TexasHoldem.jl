@@ -23,7 +23,7 @@ struct Blinds{S,B}
 end
 
 Blinds() = Blinds(1,2) # default
-default_dealer_id() = 1 # default
+default_dealer_pidx() = 1 # default
 
 function Base.show(io::IO, blinds::Blinds, include_type = true)
     include_type && println(io, typeof(blinds))
@@ -37,10 +37,10 @@ struct Buttons
     first_to_act::Int
 end
 
-dealer_id(b::Buttons) = b.dealer
-small_blind_id(b::Buttons) = b.small_blind
-big_blind_id(b::Buttons) = b.big_blind
-first_to_act_id(b::Buttons) = b.first_to_act
+dealer_pidx(b::Buttons) = b.dealer
+small_blind_pidx(b::Buttons) = b.small_blind
+big_blind_pidx(b::Buttons) = b.big_blind
+first_to_act_pidx(b::Buttons) = b.first_to_act
 
 
 buttons(b::Buttons) = (
@@ -56,7 +56,7 @@ mutable struct Table{P<:Players, L, TM, B <: Blinds, D <: PlayingCards.MaskedDec
     cards::Union{Nothing,Tuple{<:Card,<:Card,<:Card,<:Card,<:Card}}
     blinds::B
     pot::Float64
-    state::AbstractGameState
+    stage::AbstractGameStage
     buttons::Buttons
     current_raise_amt::Float64
     initial_round_raise_amt::Float64
@@ -102,8 +102,8 @@ function Table(players::Players;
     cards = nothing,
     blinds = Blinds(),
     pot = Float64(0),
-    state = PreFlop(),
-    dealer_id = default_dealer_id(),
+    stage = PreFlop(),
+    dealer_pidx = default_dealer_pidx(),
     current_raise_amt = Float64(0),
     initial_round_raise_amt = blinds.small,
     transactions = TransactionManager(players),
@@ -112,7 +112,7 @@ function Table(players::Players;
     logger = StandardLogger(),
 )
     P = typeof(players)
-    buttons = Buttons(dealer_id, players)
+    buttons = Buttons(players, dealer_pidx)
     n_max_actions = compute_n_max_actions(players, blinds.big)
     @cdebug logger "n_max_actions = $n_max_actions"
     L = typeof(logger)
@@ -123,7 +123,7 @@ function Table(players::Players;
         cards,
         blinds,
         pot,
-        state,
+        stage,
         buttons,
         current_raise_amt,
         initial_round_raise_amt,
@@ -134,46 +134,37 @@ function Table(players::Players;
         logger)
 end
 
-function Buttons(dealer_id, players::Players)
-    dealer_id       = this_or_next_valid_id(dealer_id       , players)
-    small_blind_id  = this_or_next_valid_id(dealer_id     +1, players)
-    big_blind_id    = this_or_next_valid_id(small_blind_id+1, players)
-    first_to_act_id = this_or_next_valid_id(big_blind_id  +1, players)
-    return Buttons(dealer_id, small_blind_id, big_blind_id, first_to_act_id)
+function Buttons(players::Players, dealer_pidx)
+    dealer_pidx       = this_or_next_valid_pidx(players, dealer_pidx       )
+    small_blind_pidx  = this_or_next_valid_pidx(players, dealer_pidx     +1)
+    big_blind_pidx    = this_or_next_valid_pidx(players, small_blind_pidx+1)
+    first_to_act_pidx = this_or_next_valid_pidx(players, big_blind_pidx  +1)
+    return Buttons(dealer_pidx, small_blind_pidx, big_blind_pidx, first_to_act_pidx)
 end
 
 valid_button(player::Player) = !zero_bank_roll(player) && still_playing(player)
 
 """
-    this_or_next_valid_id(id, players::Players)
+    this_or_next_valid_pidx(players::Players, ncpidx)
 
-Given an index `id`, return this index, if valid,
-otherwise find the next valid index.
+Given a non-cyclic player index `ncpidx`, return
+ - this cyclic player index (if valid), or
+ - the next valid cyclic index
 """
-function this_or_next_valid_id(id, players::Players)
-    n_players = length(players)
-    id = circle_index(n_players, id) # so that we can pass in id+1
-    if valid_button(players[id])
-        return id
-    else
-        state = id
-        id_need_defined = true
-        while id_need_defined
-            state > 2*n_players && error("Broken logic in this_or_next_valid_id")
-            id = circle_index(n_players, state)
-            if valid_button(players[id])
-                return id
-            end
-            state+=1
-        end
-    end
+function this_or_next_valid_pidx(players::Players, ncpidx)
+    R = ncpidx:(ncpidx+length(players))
+    i = findfirst(R) do _ncpidx
+        pidx = cyclic_player_index(players, _ncpidx)
+        valid_button(players[pidx])
+    end::Int
+    return cyclic_player_index(players, R[i])
 end
 
 function Base.show(io::IO, table::Table, include_type = true)
     include_type && println(io, typeof(table))
     show(io, blinds(table), false)
     show(io, table.winners, false)
-    println(io, "Dealer           = $(dealer_id(table))")
+    println(io, "Dealer           = $(dealer_pidx(table))")
     println(io, "Pot              = $(table.transactions)")
     println(io, "All cards        = $(table.cards)")
     println(io, "Observed cards   = $(observed_cards(table))")
@@ -182,7 +173,7 @@ end
 get_table_cards!(deck::PlayingCards.MaskedDeck) = pop!(deck, Val(5))
 cards(table::Table) = table.cards
 
-observed_cards(table::Table) = observed_cards(table, table.state)
+observed_cards(table::Table) = observed_cards(table, table.stage)
 observed_cards(table::Table, ::PreFlop) = ()
 observed_cards(table::Table, ::Flop) = table.cards[1:3]
 observed_cards(table::Table, ::Turn) = table.cards[1:4]
@@ -191,19 +182,19 @@ current_raise_amt(table::Table) = table.current_raise_amt
 initial_round_raise_amt(table::Table) = table.initial_round_raise_amt
 minimum_raise_amt(table::Table) = blinds(table).small
 
-state(table::Table) = table.state
+stage(table::Table) = table.stage
 
 play_out_game(table::Table) = table.play_out_game
 
-dealer_id(table::Table) = dealer_id(table.buttons)
-small_blind_id(table::Table) = small_blind_id(table.buttons)
-big_blind_id(table::Table) = big_blind_id(table.buttons)
-first_to_act_id(table::Table) = first_to_act_id(table.buttons)
+dealer_pidx(table::Table) = dealer_pidx(table.buttons)
+small_blind_pidx(table::Table) = small_blind_pidx(table.buttons)
+big_blind_pidx(table::Table) = big_blind_pidx(table.buttons)
+first_to_act_pidx(table::Table) = first_to_act_pidx(table.buttons)
 
-dealer(table::Table) = players_at_table(table)[dealer_id(table)]
-small_blind(table::Table) = players_at_table(table)[small_blind_id(table)]
-big_blind(table::Table) = players_at_table(table)[big_blind_id(table)]
-first_to_act(table::Table) = players_at_table(table)[first_to_act_id(table)]
+dealer(table::Table) = players_at_table(table)[dealer_pidx(table)]
+small_blind(table::Table) = players_at_table(table)[small_blind_pidx(table)]
+big_blind(table::Table) = players_at_table(table)[big_blind_pidx(table)]
+first_to_act(table::Table) = players_at_table(table)[first_to_act_pidx(table)]
 
 is_dealer(table::Table, player::Player) = seat_number(player) == seat_number(dealer(table))
 is_small_blind(table::Table, player::Player) = seat_number(player) == seat_number(small_blind(table))
@@ -341,8 +332,8 @@ function reset_round!(table::Table)
     table.current_raise_amt = 0
 end
 
-function set_state!(table::Table, state::AbstractGameState)
-    table.state = state
+function set_stage!(table::Table, stage::AbstractGameStage)
+    table.stage = stage
 end
 
 # Check for winner, in case when only a single player remains
@@ -374,20 +365,12 @@ of players.
 function move_buttons!(table::Table)
     players = players_at_table(table)
     dealer = table.buttons.dealer
-    dealer       = this_or_next_valid_id(dealer      + 1, players)
-    small_blind  = this_or_next_valid_id(dealer      + 1, players)
-    big_blind    = this_or_next_valid_id(small_blind + 1, players)
-    first_to_act = this_or_next_valid_id(big_blind   + 1, players)
+    dealer       = this_or_next_valid_pidx(players, dealer      + 1)
+    small_blind  = this_or_next_valid_pidx(players, dealer      + 1)
+    big_blind    = this_or_next_valid_pidx(players, small_blind + 1)
+    first_to_act = this_or_next_valid_pidx(players, big_blind   + 1)
     table.buttons = Buttons(dealer, small_blind, big_blind, first_to_act)
 end
-
-"""
-    circle_index(n_players, state)
-
-A circular index for indexing into `players`.
-`state = 1` corresponds to `player[1]`.
-"""
-circle_index(n_players, i) = mod(i-1, n_players)+1
 
 any_actions_required(table::Table) = any(x->action_required(x), players_at_table(table))
 
@@ -416,52 +399,49 @@ end
 """
     circle(table::Table, tp::TablePosition)
 
-Orbits the table and returns the index for
+Orbits the table and returns the player index for
 each player, starting with the table position `tp`.
+
+See [`Players`](@ref) for more info.
 """
 circle(table::Table, tp::TablePosition, n_iter = Inf) =
     CircleTable{typeof(tp), n_iter, typeof(table.players)}(table.players, buttons(table))
+#=
+`ncpidx` is used here to denote "non-cyclic" player index.
+We can call `cyclic_player_index` to get the `pidx`:
 
-function Base.iterate(ct::CircleTable{Dealer}, state = dealer_id(ct.buttons))
-    state > n_iterations(ct)+dealer_id(ct.buttons)-1 && return nothing
-    i_circ = circle_index(n_players(ct.players), state)
-    player = ct.players[i_circ]
-    state == dealer_id(ct.buttons) && @assert active(player)
-    return (i_circ, state+1)
+    pidx = cyclic_player_index(::Players, ncpidx)
+=#
+function Base.iterate(ct::CircleTable{Dealer}, ncpidx = dealer_pidx(ct.buttons))
+    ncpidx > n_iterations(ct)+dealer_pidx(ct.buttons)-1 && return nothing
+    pidx = cyclic_player_index(ct.players, ncpidx)
+    player = ct.players[pidx]
+    ncpidx == dealer_pidx(ct.buttons) && @assert active(player)
+    return (pidx, ncpidx+1)
 end
 
-function Base.iterate(ct::CircleTable{SmallBlind}, state = small_blind_id(ct.buttons))
-    state > n_iterations(ct)+small_blind_id(ct.buttons)-1 && return nothing
-    i_circ = circle_index(n_players(ct.players), state)
-    player = ct.players[i_circ]
-    state == small_blind_id(ct.buttons) && @assert active(player)
-    return (i_circ, state+1)
+function Base.iterate(ct::CircleTable{SmallBlind}, ncpidx = small_blind_pidx(ct.buttons))
+    ncpidx > n_iterations(ct)+small_blind_pidx(ct.buttons)-1 && return nothing
+    pidx = cyclic_player_index(ct.players, ncpidx)
+    player = ct.players[pidx]
+    ncpidx == small_blind_pidx(ct.buttons) && @assert active(player)
+    return (pidx, ncpidx+1)
 end
 
-function Base.iterate(ct::CircleTable{BigBlind}, state = big_blind_id(ct.buttons))
-    state > n_iterations(ct)+big_blind_id(ct.buttons)-1 && return nothing
-    i_circ = circle_index(n_players(ct.players), state)
-    player = ct.players[i_circ]
-    state == big_blind_id(ct.buttons) && @assert active(player)
-    return (i_circ, state+1)
+function Base.iterate(ct::CircleTable{BigBlind}, ncpidx = big_blind_pidx(ct.buttons))
+    ncpidx > n_iterations(ct)+big_blind_pidx(ct.buttons)-1 && return nothing
+    pidx = cyclic_player_index(ct.players, ncpidx)
+    player = ct.players[pidx]
+    ncpidx == big_blind_pidx(ct.buttons) && @assert active(player)
+    return (pidx, ncpidx+1)
 end
 
-function Base.iterate(ct::CircleTable{FirstToAct}, state = first_to_act_id(ct.buttons))
-    state > n_iterations(ct)+first_to_act_id(ct.buttons)-1 && return nothing
-    i_circ = circle_index(n_players(ct.players), state)
-    player = ct.players[i_circ]
-    state == first_to_act_id(ct.buttons) && @assert active(player)
-    return (i_circ, state+1)
-end
-
-function Base.iterate(ct::CircleTable{P},
-        state = circle_index(n_players(ct.players), seat_number(ct.player))
-    ) where {P <: Player}
-    state > n_iterations(ct)+circle_index(n_players(ct.players), seat_number(ct.player))-1 && return nothing
-    i_circ = circle_index(n_players(ct.players), state)
-    player = ct.players[i_circ]
-    state == circle_index(n_players(ct.players), seat_number(ct.player)) && @assert active(player)
-    return (i_circ, state+1)
+function Base.iterate(ct::CircleTable{FirstToAct}, ncpidx = first_to_act_pidx(ct.buttons))
+    ncpidx > n_iterations(ct)+first_to_act_pidx(ct.buttons)-1 && return nothing
+    pidx = cyclic_player_index(ct.players, ncpidx)
+    player = ct.players[pidx]
+    ncpidx == first_to_act_pidx(ct.buttons) && @assert active(player)
+    return (pidx, ncpidx+1)
 end
 
 show_cards(table::Table, player::Player{Human}) = player.cards

@@ -5,7 +5,7 @@
 using TexasHoldem
 import TexasHoldem
 TH = TexasHoldem
-const AGS = AbstractGameState
+const AGS = AbstractGameStage
 
 ##### BotCheckFold
 struct BotCheckFold <: AbstractAI end
