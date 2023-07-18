@@ -65,9 +65,9 @@ function player_option!(game::Game, player::Player)
 end
 
 # By default, forward to `player_option!` with
-# game state:
+# game stage:
 player_option!(game::Game, player::Player, option) =
-    player_option!(game, player, state(game.table), option)
+    player_option!(game, player, stage(game.table), option)
 
 #####
 ##### Human player options (ask via prompts)

@@ -10,7 +10,7 @@ TH = TexasHoldem
     game = Game(players)
     sprint(show, game)
 
-    game.table.state = PreFlop()
+    game.table.stage = PreFlop()
     sprint(show, game)
 end
 

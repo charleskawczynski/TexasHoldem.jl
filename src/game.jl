@@ -22,7 +22,7 @@ function Game(
         players::Players;
         deck = PlayingCards.MaskedDeck(),
         table = nothing,
-        dealer_id::Int = default_dealer_id(),
+        dealer_pidx::Int = default_dealer_pidx(),
         blinds::Blinds = Blinds(1,2),
         logger = StandardLogger(),
     )
@@ -44,7 +44,7 @@ function Game(
     else # nobody has been dealt yet
         table = Table(players;
             deck=deck,
-            dealer_id=dealer_id,
+            dealer_pidx=dealer_pidx,
             blinds=blinds,
             logger=logger,
         )
@@ -60,15 +60,15 @@ end
 players_at_table(game::Game) = players_at_table(game.table)
 blinds(game::Game) = blinds(game.table)
 any_actions_required(game::Game) = any_actions_required(game.table)
-state(game::Game) = state(game.table)
+stage(game::Game) = stage(game.table)
 move_buttons!(game) = move_buttons!(game.table)
 
-print_game_state(table, state::PreFlop) = @cinfo table.logger "Pre-flop!"
-print_game_state(table, state::Flop) =  @cinfo table.logger "Flop: $(repeat(" ", 44)) $(table.cards[1:3])"
-print_game_state(table, state::Turn) =  @cinfo table.logger "Turn: $(repeat(" ", 44)) $(table.cards[4])"
-print_game_state(table, state::River) = @cinfo table.logger "River: $(repeat(" ", 43)) $(table.cards[5])"
+print_game_stage(table, stage::PreFlop) = @cinfo table.logger "Pre-flop!"
+print_game_stage(table, stage::Flop) =  @cinfo table.logger "Flop: $(repeat(" ", 44)) $(table.cards[1:3])"
+print_game_stage(table, stage::Turn) =  @cinfo table.logger "Turn: $(repeat(" ", 44)) $(table.cards[4])"
+print_game_stage(table, stage::River) = @cinfo table.logger "River: $(repeat(" ", 43)) $(table.cards[5])"
 
-set_preflop_blind_raise!(table::Table, player, ::AbstractGameState, i::Int) = nothing
+set_preflop_blind_raise!(table::Table, player, ::AbstractGameStage, i::Int) = nothing
 function set_preflop_blind_raise!(table::Table, player::Player, ::PreFlop, i::Int)
     if 1 ≤ i ≤ length(players_at_table(table))
         if is_first_to_act(table, player)
@@ -78,8 +78,8 @@ function set_preflop_blind_raise!(table::Table, player::Player, ::PreFlop, i::In
         end
     end
 end
-reset_round_bank_rolls!(game::Game, state::PreFlop) = nothing # called separately prior to deal
-reset_round_bank_rolls!(game::Game, state::AbstractGameState) = reset_round_bank_rolls!(game.table)
+reset_round_bank_rolls!(game::Game, stage::PreFlop) = nothing # called separately prior to deal
+reset_round_bank_rolls!(game::Game, stage::AbstractGameStage) = reset_round_bank_rolls!(game.table)
 
 # TODO: compactify. Some of these cases/conditions may be redundant
 function end_of_actions(table::Table, player)
@@ -150,7 +150,7 @@ function all_raises_were_called(table::Table)
     end, players)
 end
 
-end_preflop_actions(table, player, ::AbstractGameState) = false
+end_preflop_actions(table, player, ::AbstractGameStage) = false
 function end_preflop_actions(table::Table, player::Player, ::PreFlop)
     cond1 = is_big_blind(table, player)
     cond2 = checked(player)
@@ -158,14 +158,14 @@ function end_preflop_actions(table::Table, player::Player, ::PreFlop)
     return all((cond1, cond2, cond3))
 end
 
-function act_generic!(game::Game, state::AbstractGameState)
+function act_generic!(game::Game, stage::AbstractGameStage)
     table = game.table
     players = table.players
     logger = table.logger
     table.winners.declared && return
-    set_state!(table, state)
-    print_game_state(table, state)
-    reset_round_bank_rolls!(game, state)
+    set_stage!(table, stage)
+    print_game_stage(table, stage)
+    reset_round_bank_rolls!(game, stage)
 
     any_actions_required(game) || return
     play_out_game(table) && return
@@ -176,7 +176,7 @@ function act_generic!(game::Game, state::AbstractGameState)
         @cdebug logger "     not_playing(player) = $(not_playing(player))"
         @cdebug logger "     all_in(player) = $(all_in(player))"
         not_playing(player) && continue # skip players not playing
-        set_preflop_blind_raise!(table, player, state, i)
+        set_preflop_blind_raise!(table, player, stage, i)
         if end_of_actions(table, player)
             break
         end
@@ -184,7 +184,7 @@ function act_generic!(game::Game, state::AbstractGameState)
         @cdebug logger "$(name(player))'s turn to act"
         player_option!(game, player)
         table.winners.declared && break
-        end_preflop_actions(table, player, state) && break
+        end_preflop_actions(table, player, stage) && break
         if i > n_max_actions(table)
             error("Too many actions have occured, please open an issue.")
         end
@@ -193,8 +193,8 @@ function act_generic!(game::Game, state::AbstractGameState)
     @assert all_raises_were_called(table)
 end
 
-function act!(game::Game, state::AbstractGameState)
-    act_generic!(game, state)
+function act!(game::Game, stage::AbstractGameStage)
+    act_generic!(game, stage)
     reset_round!(game.table)
 end
 
@@ -219,7 +219,7 @@ function play!(game::Game)
     initial_∑brs = sum(x->bank_roll(x), players)
 
     @cinfo logger "Initial bank roll summary: $(bank_roll.(players))"
-    did = dealer_id(table)
+    did = dealer_pidx(table)
     sb = seat_number(small_blind(table))
     bb = seat_number(big_blind(table))
     f2a = seat_number(first_to_act(table))
@@ -230,9 +230,9 @@ function play!(game::Game)
     @assert still_playing(big_blind(table)) "The big blind button must be placed on a non-folded player"
     @assert still_playing(first_to_act(table)) "The first-to-act button must be placed on a non-folded player"
 
-    @assert dealer_id(table) ≠ small_blind_id(table) "The button and small blind cannot coincide"
-    @assert small_blind_id(table) ≠ big_blind_id(table) "The small and big blinds cannot coincide"
-    @assert big_blind_id(table) ≠ first_to_act_id(table) "The big blind and first to act cannot coincide"
+    @assert dealer_pidx(table) ≠ small_blind_pidx(table) "The button and small blind cannot coincide"
+    @assert small_blind_pidx(table) ≠ big_blind_pidx(table) "The small and big blinds cannot coincide"
+    @assert big_blind_pidx(table) ≠ first_to_act_pidx(table) "The big blind and first to act cannot coincide"
 
     table.transactions = TransactionManager(players)
 
@@ -289,7 +289,7 @@ function reset_game!(game::Game)
     players = players_at_table(table)
 
     game.table = Table(players;
-        dealer_id=dealer_id(table),
+        dealer_pidx=dealer_pidx(table),
         blinds=table.blinds,
         logger=logger,
     )
