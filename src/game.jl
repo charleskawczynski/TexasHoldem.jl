@@ -234,7 +234,7 @@ function play!(game::Game)
     @assert small_blind_pidx(table) ≠ big_blind_pidx(table) "The small and big blinds cannot coincide"
     @assert big_blind_pidx(table) ≠ first_to_act_pidx(table) "The big blind and first to act cannot coincide"
 
-    table.transactions = TransactionManager(players)
+    reset!(table.transactions, players)
 
     @assert all(p->cards(p) == nothing, players)
     @assert cards(table) == nothing
