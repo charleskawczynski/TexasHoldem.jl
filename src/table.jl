@@ -8,13 +8,11 @@ export move_buttons!
 
 Base.@kwdef mutable struct Winners
     declared::Bool = false
-    players::Union{Nothing,Tuple,Player} = nothing
 end
 
 function Base.show(io::IO, winners::Winners, include_type = true)
     include_type && println(io, typeof(winners))
     println(io, "Winners declared = $(winners.declared)")
-    println(io, "Winners          = $(winners.players)")
 end
 
 struct Blinds{S,B}
@@ -344,12 +342,7 @@ function check_for_and_declare_winner!(table::Table)
     players = players_at_table(table)
     n_players = length(players)
     table.winners.declared = count(not_playing.(players)) == n_players-1
-    if table.winners.declared
-        for player in players
-            not_playing(player) && continue
-            table.winners.players = player
-        end
-    end
+    return nothing
 end
 
 
