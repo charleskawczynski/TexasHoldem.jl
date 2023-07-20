@@ -56,13 +56,17 @@ sorted_collect(players::Players) =
     Players(sort(collect(players.players); by = x->bank_roll(x)))
 n_players(players::Players) = length(players)
 
+import TupleTools
+Base.sortperm(players::Players{<:AbstractArray}) =
+    Base.sortperm(map(x->bank_roll(x), players.players))
+
+Base.sortperm(players::Players{<:Tuple}) =
+    TupleTools.sortperm(map(x->bank_roll(x), players.players))
+
 #=
-import TupleTools as TT
 # sorted(players::Players) =
 #     Players(map(p->players.players[p], sortperm(players)))
 
-Base.sortperm(players::Players) =
-    TT.sortperm(map(x->bank_roll(x), players.players))
 =#
 
 

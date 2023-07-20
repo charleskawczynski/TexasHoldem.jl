@@ -23,8 +23,8 @@ cap(sp::SidePot) = sp.cap
 Handle pots and side pots
 among multiple players.
 """
-struct TransactionManager{SP}
-  sorted_players::SP
+struct TransactionManager
+  perm::Vector{Int}
   initial_brs::Vector{Float64}
   pot_id::Vector{Int}
   side_pots::Vector{SidePot}
@@ -38,27 +38,26 @@ end
 
 TransactionManager(players) = TransactionManager(Players(players))
 function TransactionManager(players::Players)
-    sorted_players = sorted_collect(players)
+    perm = collect(sortperm(players))
 
     cap = zeros(length(players))
     for i in 1:length(players)
         if i == 1
-            cap[i] = bank_roll(sorted_players[i])
+            cap[i] = bank_roll(players[perm[i]])
         else
-            cap[i] = bank_roll(sorted_players[i]) - sum(cap[1:i-1])
+            cap[i] = bank_roll(players[perm[i]]) - sum(cap[1:i-1])
         end
     end
 
     unsorted_to_sorted_map = collect(map(players) do player
-        findfirst(seat_number.(sorted_players) .== seat_number(player))
+        findfirst(p -> seat_number(players[p]) == seat_number(player), perm)
     end)
-    side_pots = [SidePot(seat_number(sp), 0, cap_i) for (cap_i, sp) in zip(cap, sorted_players)]
+    side_pots = [SidePot(seat_number(players[p]), 0, cap_i) for (cap_i, p) in zip(cap, perm)]
 
     initial_brs = deepcopy(collect(bank_roll.(players)))
     pot_id = Int[1]
-    SP = typeof(sorted_players)
-    TransactionManager{SP}(
-        sorted_players,
+    TransactionManager(
+        perm,
         initial_brs,
         pot_id,
         side_pots,
@@ -67,18 +66,18 @@ function TransactionManager(players::Players)
 end
 
 function reset!(tm::TransactionManager, players::Players)
-    splayers = tm.sorted_players
-    sort!(splayers)
-    @inbounds for i in 1:length(splayers)
-        sp = splayers[i]
+    perm = tm.perm
+    perm .= sortperm(players)
+    @inbounds for i in 1:length(players)
+        sp = players[perm[i]]
         player = players[i]
         br = bank_roll(sp)
-        cap_i = i == 1 ? br : br - bank_roll(splayers[i-1])
+        cap_i = i == 1 ? br : br - bank_roll(players[perm[i-1]])
         ssn = seat_number(sp)::Int
         tm.side_pots[i].seat_number = ssn
         tm.side_pots[i].amt = Float64(0)
         tm.side_pots[i].cap = cap_i
-        j = findfirst(sp->seat_number(sp) == seat_number(player), splayers)::Int
+        j = findfirst(p->seat_number(players[p]) == seat_number(player), perm)::Int
         tm.unsorted_to_sorted_map[i] = j
         tm.initial_brs[i] = bank_roll(player)
     end
@@ -222,7 +221,8 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards, logg
     if count(x->still_playing(x), players) == 1
         return distribute_winnings_1_player_left!(players, tm, table_cards, logger)
     end
-    hand_evals_sorted = map(enumerate(tm.sorted_players)) do (ssn, player)
+    hand_evals_sorted = map(enumerate(tm.perm)) do (ssn, p)
+        player = players[p]
         fhe = inactive(player) ? nothing : FullHandEval((player.cards..., table_cards...))
         eligible = still_playing(player)
         (; eligible=eligible, player=player, fhe=fhe, ssn=ssn)
@@ -264,9 +264,8 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards, logg
         @cdebug logger "winner_ids = $(winner_ids)"
         @cdebug logger "length(players) = $(length(players))"
         @cdebug logger "length(hand_evals_sorted) = $(length(hand_evals_sorted))"
-        @cdebug logger "length(tm.sorted_players) = $(length(tm.sorted_players))"
         for winner_id in winner_ids
-            win_seat = seat_number(tm.sorted_players[winner_id])
+            win_seat = seat_number(players[tm.perm[winner_id]])
             winning_player = players[win_seat]
             not_playing(winning_player) && continue
             amt = sidepot_winnings(tm, i) / n_winners
