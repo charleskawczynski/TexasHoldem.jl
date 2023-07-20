@@ -249,7 +249,7 @@ function play!(game::Game)
     winners.declared || act!(game, Turn())      # Deal turn , then bet/check/raise
     winners.declared || act!(game, River())     # Deal river, then bet/check/raise
 
-    winners.players = distribute_winnings!(players, table.transactions, cards(table), logger)
+    distribute_winnings!(players, table.transactions, cards(table), logger)
     winners.declared = true
 
     @cdebug logger "amount.(table.transactions.side_pots) = $(amount.(table.transactions.side_pots))"
