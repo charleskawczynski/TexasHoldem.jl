@@ -128,6 +128,46 @@ end
 
 custom_clamp(br, lim) = lim > br ? (br, br) : (lim, br)
 
+#=
+    predict_vrb_max(player, logger)
+
+This function is used inside `valid_raise_bounds`
+to ensure a robust "prediction" of a valid raise bounds.
+
+Due to precision errors, we cannot guarantee that
+`0 ≤ amt ≤ bank_roll(player)` will be satisfied
+(without higher precision) in `contribute!`.
+
+Therefore, we iteratively predict if this condition
+will pass, while correcting the maximum allowable
+raise bounds until the condition passes.
+
+This ensures that these raise bounds won't
+result in a player attempting to contribute more
+to the pot than what they have in their bank roll.
+=#
+function predict_vrb_max(player, logger)
+    rbr = round_bank_roll(player)
+    vrb_max_predicted = bank_roll(player)+round_contribution(player)
+    @cdebug logger "   vrb_max_predicted₀ = $(vrb_max_predicted)"
+    warn = false
+    success = false
+    for i in 1:100
+        if !(rbr-round_contribution(player) ≤ bank_roll(player))
+            # TODO: is `10eps()` best here?
+            vrb_max_predicted -= 10eps()
+            warn = true
+        else
+            success = true
+            break
+        end
+    end
+    warn && @cwarn logger "Detected precision errors"
+    success && @cinfo logger "success vrb_max_predicted"
+    @cdebug logger "   vrb_max_predicted = $(vrb_max_predicted)"
+    return vrb_max_predicted
+end
+
 """
     valid_raise_bounds(table::Table, player::Player)
 
@@ -143,14 +183,30 @@ function valid_raise_bounds(table::Table, player::Player)
     irra = initial_round_raise_amt(table)
     mra = minimum_raise_amt(table)
     rbr = round_bank_roll(player)
+    Δbr = rbr - bank_roll(player)
+    amt_computed = rbr - round_contribution(player)
+    check = amt_computed ≤ bank_roll(player)
     max_orbr = max_opponent_round_bank_roll(table, player)
     logger = table.logger
     @cdebug logger "determining valid_raise_bounds"
     @cdebug logger "   rbr = $rbr, max_orbr = $max_orbr"
     @cdebug logger "   cra ≈ 0 = $(cra ≈ 0)"
+    @cdebug logger "   amt_computed = $amt_computed"
+    @cdebug logger "   check = $check"
     @cdebug logger "   max_orbr > rbr = $(max_orbr > rbr)"
+    @cdebug logger "   irra = $irra"
+    @cdebug logger "   cra = $cra"
+    @cdebug logger "   Δbr = $Δbr"
+    @cdebug logger "   (cra+irra) = $(cra+irra)"
+    @cdebug logger "   br = $(bank_roll(player))"
+    @cdebug logger "   br = $(BigFloat(bank_roll(player)))"
+    @cdebug logger "   rc = $(round_contribution(player))"
     lim = cra ≈ 0 ? mra : (cra+irra)
-    vrb = custom_clamp(min(max_orbr, rbr), lim)
+    vrb_max_predicted = predict_vrb_max(player, logger)
+    @cdebug logger "   lim = $lim"
+    # vrb = custom_clamp(min(max_orbr, rbr), lim)
+    vrb = custom_clamp(min(max_orbr, rbr, vrb_max_predicted), lim)
+    @cdebug logger "   vrb = $vrb"
     @assert vrb[2] ≥ vrb[1] "Min valid raise bound must be ≤ max valid raise bound."
     return vrb
 end
@@ -168,7 +224,7 @@ function is_valid_raise_amount(table::Table, player::Player, amt::Real)
     prc = round_contribution(player)
     rbr = round_bank_roll(player)
     vrb = valid_raise_bounds(table, player)
-    @cdebug logger "vrb = $vrb, amt = $amt, prc = $prc"
+    @cdebug logger "vrb = $vrb, amt = $amt, prc = $prc, rbr=$rbr, br=$(bank_roll(player))"
     @assert !(vrb[1] == vrb[2] ≈ 0) "Cannot raise 0."
     if amt ≈ 0
         return false, "Cannot raise $amt. Raise must be between [\$$(vrb[1]), \$$(vrb[2])]"
@@ -243,6 +299,9 @@ function raise_to_valid_raise_amount!(table::Table, player::Player, amt::Real)
     pbpai = opponents_being_put_all_in(table, player, amt)
     @cdebug logger "$(name(player)) raising to $(amt)."
     prc = round_contribution(player)
+    @cdebug logger "round_contribution = $prc"
+    @cdebug logger "contributing = $(amt - prc)"
+    @cdebug logger "bank_roll = $(bank_roll(player))"
     contribute!(table, player, amt - prc, false)
     table.current_raise_amt = amt
 

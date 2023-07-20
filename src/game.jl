@@ -213,6 +213,7 @@ function play!(game::Game)
     set_active_status!(table)
     players = players_at_table(table)
 
+    local initial_brs
     @cdebug logger begin
         initial_brs = deepcopy(bank_roll.(players))
     end
@@ -326,7 +327,7 @@ function tournament!(game::Game)
         play!(game)
         n_players_remaining = count(x->!(bank_roll(x) ≈ 0), players)
         if n_players_remaining ≤ 1
-            println("Victor emerges!")
+            @cinfo logger "Victor emerges!"
             break
         end
         reset_game!(game)
