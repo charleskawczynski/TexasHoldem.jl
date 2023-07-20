@@ -13,7 +13,7 @@ const TH = TexasHoldem
     )
     tm = TH.TransactionManager(players)
     table = Table(players;cards=table_cards,transactions=tm, logger=TH.ByPassLogger())
-    @test TH.seat_number.(tm.side_pots) == [1,2,3]
+    @test TH.pidx.(tm.side_pots) == [1,2,3]
 
     TH.raise_to!(table, players[1], 100) # raise all-in
     TH.call!(table, players[2]) # call

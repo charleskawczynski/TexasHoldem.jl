@@ -5,17 +5,27 @@
 """
     SidePot
 
-A side-pot for player `seat_number`,
+A side-pot for player `pidx`,
 who has gone all-in with amount `amt`.
 """
 mutable struct SidePot
-  seat_number::Int
+  pidx::Int
   amt::Float64
   cap::Float64 # total amount any individual player can contribute to this side-pot
 end
-seat_number(sp::SidePot) = sp.seat_number
+pidx(sp::SidePot) = sp.pidx
 amount(sp::SidePot) = sp.amt
 cap(sp::SidePot) = sp.cap
+
+# TODO: add Joker (or placeholder) cards to PlayingCards for a placeholder
+const placeholder_card = PlayingCards.A♡
+const placeholder_cards = ntuple(i->placeholder_card, 5)
+
+mutable struct HandEval
+    hand_rank::Int
+    hand_type::Symbol
+    best_cards::NTuple{5,PlayingCards.Card}
+end
 
 """
     TransactionManager
@@ -27,8 +37,10 @@ struct TransactionManager
   perm::Vector{Int}
   initial_brs::Vector{Float64}
   pot_id::Vector{Int}
+  hand_evals::Vector{HandEval}
+  winners::Vector{Bool}
   side_pots::Vector{SidePot}
-  unsorted_to_sorted_map::Vector{Int}
+  side_pot_winnings::Vector{Vector{Float64}}
 end
 
 function Base.show(io::IO, tm::TransactionManager, include_type = true)
@@ -49,19 +61,21 @@ function TransactionManager(players::Players)
         end
     end
 
-    unsorted_to_sorted_map = collect(map(players) do player
-        findfirst(p -> seat_number(players[p]) == seat_number(player), perm)
-    end)
-    side_pots = [SidePot(seat_number(players[p]), 0, cap_i) for (cap_i, p) in zip(cap, perm)]
+    side_pots = [SidePot(i, 0, cap_i) for (cap_i, i) in zip(cap, 1:length(players))]
 
     initial_brs = deepcopy(collect(bank_roll.(players)))
     pot_id = Int[1]
+    hand_evals = map(x-> HandEval(-1,:empty, placeholder_cards), collect(1:length(players)))
+    winners = map(x-> false, collect(1:length(players)))
+    side_pot_winnings = map(p->zeros(length(side_pots)), collect(1:length(players)))
     TransactionManager(
         perm,
         initial_brs,
         pot_id,
+        hand_evals,
+        winners,
         side_pots,
-        unsorted_to_sorted_map,
+        side_pot_winnings,
     )
 end
 
@@ -73,13 +87,14 @@ function reset!(tm::TransactionManager, players::Players)
         player = players[i]
         br = bank_roll(sp)
         cap_i = i == 1 ? br : br - bank_roll(players[perm[i-1]])
-        ssn = seat_number(sp)::Int
-        tm.side_pots[i].seat_number = ssn
+        tm.side_pots[i].pidx = i
         tm.side_pots[i].amt = Float64(0)
         tm.side_pots[i].cap = cap_i
-        j = findfirst(p->seat_number(players[p]) == seat_number(player), perm)::Int
-        tm.unsorted_to_sorted_map[i] = j
         tm.initial_brs[i] = bank_roll(player)
+        tm.hand_evals[i].hand_rank = -1
+        tm.hand_evals[i].hand_type = :empty
+        tm.hand_evals[i].best_cards = placeholder_cards
+        tm.winners[i] = false
     end
     @inbounds tm.pot_id[1] = 1
     return nothing
@@ -194,6 +209,12 @@ Base.@propagate_inbounds function sidepot_winnings(tm::TransactionManager, id::I
     sum(i->tm.side_pots[i].amt, 1:id)
 end
 
+# only (sorted) players i:end can win the ith side-pot
+# (sorted) players are only eligible to win side-pots: `1:perm[pidx]` i:end can win the ith side-pot
+function eligible(perm, pidx, i)
+    return perm[pidx] ≥ i
+end
+
 function distribute_winnings_1_player_left!(players, tm::TransactionManager, table_cards, logger)
     @assert count(x->still_playing(x), players) == 1
     n = length(tm.side_pots)
@@ -212,13 +233,14 @@ function distribute_winnings_1_player_left!(players, tm::TransactionManager, tab
     return nothing
 end
 
-function minimum_valid_hand_rank(hand_evals_sorted, i)::Int
+function minimum_ith_sidepot_hand_rank(hand_evals, perm, i)::Int
     min_hrs = typemax(Int)
-    for hes in hand_evals_sorted
-        still_playing(hes.player) && hes.ssn ≥ i || continue
-        min_hrs = min(min_hrs, hand_rank(hes.fhe))
+    for j in 1:length(hand_evals)
+        hr = hand_evals[j].hand_rank
+        hr == -1 && continue
+        eligible(perm, j, i) || continue
+        min_hrs = min(min_hrs, hr)
     end
-    @assert min_hrs ≠ typemax(Int)
     return min_hrs
 end
 
@@ -228,68 +250,77 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards, logg
     if count(x->still_playing(x), players) == 1
         return distribute_winnings_1_player_left!(players, tm, table_cards, logger)
     end
-    hand_evals_sorted = map(enumerate(tm.perm)) do (ssn, p)
-        player = players[p]
-        fhe = inactive(player) ? nothing : FullHandEval((player.cards..., table_cards...))
-        (; player=player, fhe=fhe, ssn=ssn)
+
+    for i in 1:length(players)
+        player = players[i]
+        if isnothing(player.cards)
+            tm.hand_evals[i].hand_rank = -1
+            tm.hand_evals[i].hand_type = :empty
+            tm.hand_evals[i].best_cards = placeholder_cards
+        else
+            pc = player.cards::Tuple{PlayingCards.Card,PlayingCards.Card}
+            tc = table_cards::Tuple{PlayingCards.Card,PlayingCards.Card,PlayingCards.Card,PlayingCards.Card,PlayingCards.Card}
+            he = PokerHandEvaluator.FullHandEval((pc..., tc...))
+            # he = PokerHandEvaluator.CompactHandEval((player.cards..., table_cards...))
+            tm.hand_evals[i].hand_rank = still_playing(player) && !inactive(player) ? hand_rank(he) : -1
+            tm.hand_evals[i].hand_type = still_playing(player) && !inactive(player) ? hand_type(he) : :empty
+            tm.hand_evals[i].best_cards = still_playing(player) && !inactive(player) ? best_cards(he) : placeholder_cards
+        end
     end
 
-    side_pot_winnings = map(players) do player
-        zeros(length(tm.side_pots))
+    @inbounds for i in 1:length(tm.side_pots)
+        for j in 1:length(players)
+            tm.side_pot_winnings[i][j] = 0
+        end
     end
-    winning_hands = Vector{Symbol}(undef, length(players))
 
     @inbounds for i in 1:length(tm.side_pots)
         sidepot_winnings(tm, length(players)) ≈ 0 && continue # no money left to distribute
 
         @cdebug logger begin
-            s = "Sorted hand evals: \n"
-            for hes in hand_evals_sorted
-                inactive(hes.player) && continue # (don't have cards to eval)
-                s *= "eligible=$(hes.ssn ≥ i && still_playing(hes.player)), "
-                s *= "sn=$(seat_number(hes.player)), "
-                s *= "ssn=$(hes.ssn), "
-                s *= "hr=$(hand_rank(hes.fhe)), "
-                s *= "ht=$(hand_type(hes.fhe))\n"
+            s = "Hand evals: \n"
+            for i in 1:length(players)
+                he = tm.hand_evals[i]
+                player = players[i]
+                inactive(player) && continue # (don't have cards to eval)
+                s *= "sn=$(seat_number(player)), "
+                s *= "hr=$(he.hand_rank), "
+                s *= "ht=$(he.hand_type)\n"
             end
             s
         end
-        mvhr = minimum_valid_hand_rank(hand_evals_sorted, i)
+        misphr = minimum_ith_sidepot_hand_rank(tm.hand_evals, tm.perm, i)
+        misphr == typemax(Int) && continue
+        misphr == -1 && continue
 
-        winner_ids = findall(hand_evals_sorted) do x
-            still_playing(x.player) && x.ssn ≥ i ? hand_rank(x.fhe)==mvhr : false
+        for j in 1:length(players)
+            tm.winners[j] = eligible(tm.perm, j, i) && tm.hand_evals[j].hand_rank == misphr
         end
-        n_winners = length(winner_ids)
-        @cdebug logger "winner_ids = $(winner_ids)"
+        n_winners = count(tm.winners)
+        @cdebug logger "winners = $(tm.winners)"
         @cdebug logger "length(players) = $(length(players))"
-        @cdebug logger "length(hand_evals_sorted) = $(length(hand_evals_sorted))"
-        for winner_id in winner_ids
-            win_seat = seat_number(players[tm.perm[winner_id]])
-            winning_player = players[win_seat]
-            not_playing(winning_player) && continue
+        for (j, winner) in enumerate(tm.winners)
+            winner || continue
             amt = sidepot_winnings(tm, i) / n_winners
-            side_pot_winnings[win_seat][i] = amt
-            winning_hands[win_seat] = hand_type(hand_evals_sorted[winner_id].fhe)
+            tm.side_pot_winnings[j][i] = amt
         end
         for j in 1:i
             tm.side_pots[j].amt = 0 # empty out distributed winnings
         end
     end
-    for (player, initial_br, player_winnings) in zip(players, tm.initial_brs, side_pot_winnings)
+    for i in 1:length(players)
+        player = players[i]
+        active(player) || continue
+        player_winnings = tm.side_pot_winnings[i]
+        initial_br = tm.initial_brs[i]
         ∑spw = sum(player_winnings)
-        ssn = tm.unsorted_to_sorted_map[seat_number(player)]
+        he = tm.hand_evals[i]
+        hand_name = he.hand_type
+        bc = he.best_cards
         if ∑spw ≈ 0
-            if active(player)
-                hand = hand_evals_sorted[ssn].fhe
-                hand_name = hand_type(hand)
-                bc = best_cards(hand)
-                f_str = folded(player) ? " (folded)" : ""
-                @cinfo logger "$(name(player)) loses$f_str \$$(pot_investment(player)) with $bc ($hand_name)!"
-            end
+            f_str = folded(player) ? " (folded)" : ""
+            @cinfo logger "$(name(player)) loses$f_str \$$(pot_investment(player)) with $bc ($hand_name)!"
         else
-            hand = hand_evals_sorted[ssn].fhe
-            hand_name = hand_type(hand)
-            bc = best_cards(hand)
             amt_contributed = initial_br - bank_roll(player)
             @cdebug logger "$(name(player))'s side-pot wins: \$$(player_winnings)!"
             prof = ∑spw-amt_contributed
