@@ -63,6 +63,13 @@ Base.sortperm(players::Players{<:AbstractArray}) =
 Base.sortperm(players::Players{<:Tuple}) =
     TupleTools.sortperm(map(x->bank_roll(x), players.players))
 
+# Ideally, we would do this:
+# Base.sortperm!(perm, players::Players) =
+#     Base.sortperm!(perm, players.players; by=x->bank_roll(x))
+
+Base.sortperm!(perm, players::Players) =
+    Base.sortperm!(perm, collect(map(x->bank_roll(x), players.players)))
+
 #=
 # sorted(players::Players) =
 #     Players(map(p->players.players[p], sortperm(players)))

@@ -67,7 +67,7 @@ end
 
 function reset!(tm::TransactionManager, players::Players)
     perm = tm.perm
-    perm .= sortperm(players)
+    sortperm!(perm, players)
     @inbounds for i in 1:length(players)
         sp = players[perm[i]]
         player = players[i]
@@ -215,6 +215,16 @@ function distribute_winnings_1_player_left!(players, tm::TransactionManager, tab
     return nothing
 end
 
+function minimum_valid_hand_rank(hand_evals_sorted)::Int
+    min_hrs = typemax(Int)
+    for hes in hand_evals_sorted
+        hes.eligible || continue
+        min_hrs = min(min_hrs, hand_rank(hes.fhe))
+    end
+    @assert min_hrs ≠ typemax(Int)
+    return min_hrs
+end
+
 function distribute_winnings!(players, tm::TransactionManager, table_cards, logger=StandardLogger())
     @cdebug logger "Distributing winnings..."
     @cdebug logger "Pot amounts = $(amount.(tm.side_pots))"
@@ -255,10 +265,10 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards, logg
             end
             s
         end
-        all_valid_min_hrs = min(map(x->hand_rank(x.fhe), filter(x->x.eligible, hand_evals_sorted))...)
+        mvhr = minimum_valid_hand_rank(hand_evals_sorted)
 
         winner_ids = findall(hand_evals_sorted) do x
-            x.eligible ? hand_rank(x.fhe)==all_valid_min_hrs : false
+            x.eligible ? hand_rank(x.fhe)==mvhr : false
         end
         n_winners = length(winner_ids)
         @cdebug logger "winner_ids = $(winner_ids)"
