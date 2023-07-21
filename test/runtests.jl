@@ -12,6 +12,7 @@ submodules = [
     "game",
     "play",
     "fuzz_play",
+    "reproducibility",
 ]
 
 tests_to_debug = ["play", "fuzz_play"]
