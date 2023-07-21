@@ -15,6 +15,7 @@ makedocs(
     modules = [TexasHoldem],
     pages = Any[
         "Home" => "index.md",
+        "Performance" => "perf.md",
         "API" => "api.md",
     ],
 )
