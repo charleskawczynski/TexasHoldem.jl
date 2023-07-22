@@ -45,8 +45,7 @@ Four methods (variants of `player_option!`) need to be defined to create and pla
 
 ```julia
 using TexasHoldem
-import TexasHoldem
-TH = TexasHoldem
+import TexasHoldem as TH
 
 struct MyBot <: AbstractAI end
 
