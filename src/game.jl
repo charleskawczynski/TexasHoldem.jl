@@ -18,44 +18,7 @@ function Base.show(io::IO, game::Game)
 end
 
 Game(players; kwargs...) = Game(Players(players); kwargs...)
-function Game(
-        players::Players;
-        deck = PlayingCards.MaskedDeck(),
-        table = nothing,
-        dealer_pidx::Int = default_dealer_pidx(),
-        blinds::Blinds = Blinds(1,2),
-        logger = StandardLogger(),
-    )
-
-    n_player_cards = sum(x->cards(x)==nothing ? 0 : length(cards(x)), players)
-
-    @assert 2 ≤ length(players) ≤ 10 "Invalid number of players"
-
-    if length(deck) ≠ 52
-        # if the deck isn't full, then players should have been dealt cards.
-        @assert n_player_cards > 0
-
-        # If the user is specifying the player cards, then the
-        # user should probably also handle the table cards too.
-        @assert table ≠ nothing
-        @assert cards(table) isa Tuple{Card,Card,Card,Card,Card}
-        @assert length(cards(table)) == 5
-        @assert length(deck) + n_player_cards + length(cards(table)) == 52
-    else # nobody has been dealt yet
-        table = Table(players;
-            deck=deck,
-            dealer_pidx=dealer_pidx,
-            blinds=blinds,
-            logger=logger,
-        )
-
-        @assert length(deck) == 52
-        @assert n_player_cards == 0
-        @assert cards(table) == nothing
-    end
-
-    return Game{typeof(table)}(table)
-end
+Game(players::Players; kwargs...) = Game(Table(players; kwargs...))
 
 players_at_table(game::Game) = players_at_table(game.table)
 blinds(game::Game) = blinds(game.table)
@@ -115,16 +78,15 @@ function last_player_to_raise(table::Table)
     return nothing
 end
 
-function all_raises_were_called(table::Table)
+function all_bets_were_called(table::Table)
     lptr = last_player_to_raise(table)
     lptr===nothing && return true
     logger = table.logger
 
     players = players_at_table(table)
-    ltr = last_to_raise.(players)
-    @assert count(ltr) == 1
+    @assert count(x->last_to_raise(x), players) == 1
     players_who_called = []
-    @cdebug logger "Checking if all raises were called"
+    @cdebug logger "Checking if all bets were called"
     @cdebug logger "     table.winners.declared = $(table.winners.declared)"
     arwc = false
     @cdebug logger begin
@@ -190,7 +152,7 @@ function act_generic!(game::Game, stage::AbstractGameStage)
         end
     end
     @cinfo logger "Betting is finished."
-    @assert all_raises_were_called(table)
+    @assert all_bets_were_called(table)
 end
 
 function act!(game::Game, stage::AbstractGameStage)
@@ -198,14 +160,33 @@ function act!(game::Game, stage::AbstractGameStage)
     reset_round!(game.table)
 end
 
-"""
-    play!(::Game)
+metafmt(level, _module, group, id, file, line) =
+    Logging.default_metafmt(level, nothing, group, id, nothing, nothing)
 
-Play a game. Note that this method
-expects no cards (players and table)
-to be dealt.
 """
-function play!(game::Game)
+    play!(game::Game)
+
+Play a hand.
+"""
+play!(game::Game) = deal_and_play!(game::Game)
+
+"""
+    deal_and_play!(game::Game)
+
+Deal and play a hand.
+"""
+function deal_and_play!(game::Game)
+    if game.table.logger isa DebugLogger
+        cl = Logging.ConsoleLogger(stderr,Logging.Debug; meta_formatter=metafmt)
+        Logging.with_logger(cl) do
+            _deal_and_play!(game)
+        end
+    else
+        _deal_and_play!(game)
+    end
+end
+
+function _deal_and_play!(game::Game)
     logger = game.table.logger
     @cinfo logger "------ Playing game!"
 

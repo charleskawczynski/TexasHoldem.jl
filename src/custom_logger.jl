@@ -4,7 +4,8 @@ functions in the Logging infrastructure is elided.
 =#
 import Logging
 
-struct StandardLogger end
+struct DebugLogger end
+struct InfoLogger end
 struct ByPassLogger end
 
 macro cdebug(logger, expr)

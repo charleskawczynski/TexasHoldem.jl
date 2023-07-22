@@ -22,8 +22,7 @@ end
     players = ntuple(3) do i
         Player(Bot5050(), i, pop!(deck, Val(2)))
     end
-    table = Table(players;deck=deck,cards=pop!(deck, Val(5)))
-    game = QuietGame(players;deck=deck,table=table)
+    game = QuietGame(players;deck=deck,cards=pop!(deck, Val(5)))
 end
 
 @testset "Game: contrived game" begin
