@@ -241,12 +241,26 @@ function minimum_valid_hand_rank(sorted_hand_evals, players, perm, i)::Int
     min_hrs = typemax(Int)
     for (ssn, she) in enumerate(sorted_hand_evals)
         player = players[perm[ssn]]
-        still_playing(player) && ssn ≥ i || continue
-        min_hrs = min(min_hrs, she.hand_rank)
+        if is_largest_pot_investment(player, players) || still_playing(player) && ssn ≥ i
+            min_hrs = min(min_hrs, she.hand_rank)
+        end
     end
     @assert min_hrs ≠ typemax(Int)
     return min_hrs
 end
+
+#=largest pot investment, excluding player=#
+function largest_pot_investment(player, players)
+    lpi = typeof(pot_investment(player))(0)
+    for i in 1:length(players)
+        seat_number(players[i]) == seat_number(player) && continue
+        lpi = max(lpi, pot_investment(players[i]))
+    end
+    return lpi
+end
+
+is_largest_pot_investment(player, players) =
+    pot_investment(player) > largest_pot_investment(player, players)
 
 function distribute_winnings!(players, tm::TransactionManager, table_cards, logger=InfoLogger())
     @cdebug logger "Distributing winnings..."
@@ -286,8 +300,12 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards, logg
             for (ssn, she) in enumerate(sorted_hand_evals)
                 player = players[perm[ssn]]
                 inactive(player) && continue # (don't have cards to eval)
-                s *= "eligible=$(ssn ≥ i && still_playing(player)), "
+                eligible=(ssn ≥ i && still_playing(player)) || is_largest_pot_investment(player, players)
+                s *= "eligible=$eligible, "
                 s *= "sn=$(seat_number(player)), "
+                s *= "br=$(bank_roll(player)), "
+                s *= "rbr=$(round_bank_roll(player)), "
+                s *= "pi=$(pot_investment(player)), "
                 s *= "ssn=$(ssn), "
                 s *= "hr=$(she.hand_rank), "
                 s *= "ht=$(she.hand_type)\n"
@@ -300,15 +318,15 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards, logg
         @cdebug logger "length(sorted_hand_evals) = $(length(sorted_hand_evals))"
         n_winners = count(enumerate(sorted_hand_evals)) do (ssn, she)
             player = players[perm[ssn]]
-            still_playing(player) && ssn ≥ i ? she.hand_rank==mvhr : false
+            (still_playing(player) && ssn ≥ i ? she.hand_rank==mvhr : false) || is_largest_pot_investment(player, players)
         end
 
         for (ssn, she) in enumerate(sorted_hand_evals)
             player = players[perm[ssn]]
-            is_winner = still_playing(player) && ssn ≥ i ? she.hand_rank==mvhr : false
+            is_winner = (still_playing(player) && ssn ≥ i ? she.hand_rank==mvhr : false) || is_largest_pot_investment(player, players)
             is_winner || continue
-            @cdebug logger "winning pidx = $(tm.perm[winner_id])"
             winner_id = ssn
+            @cdebug logger "winning pidx = $(tm.perm[winner_id])"
             win_seat = seat_number(players[tm.perm[winner_id]])
             amt = sidepot_winnings(tm, i) / n_winners
             tm.side_pot_winnings[win_seat][i] = amt

@@ -452,8 +452,8 @@ function deal!(table::Table, blinds::Blinds)
     shuffle!(table.deck)
     call_blinds = true
     logger = table.logger
-    for (i, sn) in enumerate(circle(table, SmallBlind()))
-        player = players[sn]
+    for (i, pidx) in enumerate(circle(table, SmallBlind()))
+        player = players[pidx]
 
         i>length(players) && break # deal cards to each player once
 
