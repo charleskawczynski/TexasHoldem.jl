@@ -4,7 +4,7 @@
 
 using TexasHoldem
 import TexasHoldem
-TH = TexasHoldem
+const TH = TexasHoldem
 const AGS = AbstractGameStage
 
 ##### BotCheckFold

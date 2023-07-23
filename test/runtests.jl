@@ -1,35 +1,29 @@
-import Logging
+using SafeTestsets
 
-metafmt(level, _module, group, id, file, line) =
-    Logging.default_metafmt(level, nothing, group, id, nothing, nothing)
-
-submodules = [
-    "players",
-    "transactions",
-    "call_raise_validation",
-    "human_player_option",
-    "table",
-    "game",
-    "play",
-    "fuzz_play",
-    "reproducibility",
-]
-
-tests_to_debug = ["play", "fuzz_play"]
-# tests_to_debug = submodules
-
-for submodule in submodules
-    println("Starting tests for $submodule")
-    t = 0
-    local logger
-    if any(submodule in tests_to_debug)
-        logger = Logging.ConsoleLogger(stderr,Logging.Info)
-        # logger = ConsoleLogger(stderr,Logging.Debug;meta_formatter=metafmt)
-    else
-        logger = Logging.NullLogger()
-    end
-    Logging.with_logger(logger) do
-        t = @elapsed include(submodule*".jl")
-    end
-    println("Completed tests for $submodule, $(round(Int, t)) seconds elapsed")
+@safetestset "players" begin
+    Δt = @elapsed include("players.jl"); @info "Completed tests for players in $Δt seconds"
+end
+@safetestset "transactions" begin
+    Δt = @elapsed include("transactions.jl"); @info "Completed tests for transactions in $Δt seconds"
+end
+@safetestset "call_raise_validation" begin
+    Δt = @elapsed include("call_raise_validation.jl"); @info "Completed tests for call_raise_validation in $Δt seconds"
+end
+@safetestset "human_player_option" begin
+    Δt = @elapsed include("human_player_option.jl"); @info "Completed tests for human_player_option in $Δt seconds"
+end
+@safetestset "table" begin
+    Δt = @elapsed include("table.jl"); @info "Completed tests for table in $Δt seconds"
+end
+@safetestset "game" begin
+    Δt = @elapsed include("game.jl"); @info "Completed tests for game in $Δt seconds"
+end
+@safetestset "play" begin
+    Δt = @elapsed include("play.jl"); @info "Completed tests for play in $Δt seconds"
+end
+@safetestset "fuzz_play" begin
+    Δt = @elapsed include("fuzz_play.jl"); @info "Completed tests for fuzz_play in $Δt seconds"
+end
+@safetestset "reproducibility" begin
+    Δt = @elapsed include("reproducibility.jl"); @info "Completed tests for reproducibility in $Δt seconds"
 end

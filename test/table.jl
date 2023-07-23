@@ -3,7 +3,7 @@ using PlayingCards
 import Logging
 using TexasHoldem
 using TexasHoldem: seat_number
-TH = TexasHoldem
+const TH = TexasHoldem
 
 @testset "Table: constructors / observed cards" begin
     players = ntuple(i-> Player(Bot5050(), i), 2)
@@ -11,7 +11,7 @@ TH = TexasHoldem
     shuffle!(deck)
     blinds = TH.Blinds(1,2)
     cards = TH.get_table_cards!(deck)
-    table = TH.Table(players;deck=deck, cards=cards)
+    table = TH.Table(players;deck=deck, cards=cards, logger=TH.ByPassLogger())
     TH.deal!(table, blinds)
 
     table.stage = PreFlop()
@@ -27,7 +27,7 @@ end
 @testset "Table: Move button" begin
     # All players playing
     players = ntuple(i-> Player(Bot5050(), i), 3)
-    table = Table(players)
+    table = Table(players, logger=TH.ByPassLogger())
     @test TH.buttons(table.buttons) == (1, 2, 3, 1)
     move_buttons!(table)
     @test TH.buttons(table.buttons) == (2, 3, 1, 2)
@@ -42,7 +42,7 @@ end
         Player(Bot5050(), 2; bank_roll=0),
         Player(Bot5050(), 3),
     )
-    table = Table(players)
+    table = Table(players, logger=TH.ByPassLogger())
     @test TH.buttons(table.buttons) == (1, 3, 1, 3)
     move_buttons!(table)
     @test TH.buttons(table.buttons) == (3, 1, 3, 1)
@@ -57,7 +57,7 @@ end
         Player(Bot5050(), 2; bank_roll=0),
         Player(Bot5050(), 3),
     )
-    table = Table(players; dealer_pidx=2)
+    table = Table(players; dealer_pidx=2, logger=TH.ByPassLogger())
     @test TH.buttons(table.buttons) == (3, 1, 3, 1)
     move_buttons!(table)
     @test TH.buttons(table.buttons) == (1, 3, 1, 3)
@@ -84,14 +84,14 @@ end
 
     # dealer_pidx = 1
     players = ntuple(i-> Player(Bot5050(), i), 5)
-    table = Table(players)
+    table = Table(players, logger=TH.ByPassLogger())
     TH.deal!(table, TH.blinds(table))
     ind = collect(TH.circle(table, Dealer(), length(players)))
     @test ind == [1, 2, 3, 4, 5]
 
     dealer_pidx = 2
     players = ntuple(i-> Player(Bot5050(), i), 5)
-    table = Table(players; dealer_pidx = 2)
+    table = Table(players; dealer_pidx = 2, logger=TH.ByPassLogger())
     TH.deal!(table, TH.blinds(table))
     ind = collect(TH.circle(table, Dealer(), length(players)))
     @test ind == [2, 3, 4, 5, 1]
@@ -100,14 +100,14 @@ end
 @testset "Table: SmallBlind iterator" begin
     # dealer_pidx = 1
     players = ntuple(i-> Player(Bot5050(), i), 5)
-    table = Table(players)
+    table = Table(players, logger=TH.ByPassLogger())
     TH.deal!(table, TH.blinds(table))
     ind = collect(TH.circle(table, SmallBlind(), length(players)))
     @test ind == [2, 3, 4, 5, 1]
 
     # dealer_pidx = 2
     players = ntuple(i-> Player(Bot5050(), i), 5)
-    table = Table(players; dealer_pidx = 2)
+    table = Table(players; dealer_pidx = 2, logger=TH.ByPassLogger())
     TH.deal!(table, TH.blinds(table))
     ind = collect(TH.circle(table, SmallBlind(), length(players)))
     @test ind == [3, 4, 5, 1, 2]
@@ -116,14 +116,14 @@ end
 @testset "Table: BigBlind iterator" begin
     # dealer_pidx = 1
     players = ntuple(i-> Player(Bot5050(), i), 5)
-    table = Table(players)
+    table = Table(players, logger=TH.ByPassLogger())
     TH.deal!(table, TH.blinds(table))
     ind = collect(TH.circle(table, BigBlind(), length(players)))
     @test ind == [3, 4, 5, 1, 2]
 
     # dealer_pidx = 2
     players = ntuple(i-> Player(Bot5050(), i), 5)
-    table = Table(players; dealer_pidx = 2)
+    table = Table(players; dealer_pidx = 2, logger=TH.ByPassLogger())
     TH.deal!(table, TH.blinds(table))
     ind = collect(TH.circle(table, BigBlind(), length(players)))
     @test ind == [4, 5, 1, 2, 3]
@@ -132,14 +132,14 @@ end
 @testset "Table: FirstToAct iterator" begin
     # dealer_pidx = 1
     players = ntuple(i-> Player(Bot5050(), i), 5)
-    table = Table(players)
+    table = Table(players, logger=TH.ByPassLogger())
     TH.deal!(table, TH.blinds(table))
     ind = collect(TH.circle(table, FirstToAct(), length(players)))
     @test ind == [4, 5, 1, 2, 3]
 
     # dealer_pidx = 2
     players = ntuple(i-> Player(Bot5050(), i), 5)
-    table = Table(players; dealer_pidx = 2)
+    table = Table(players; dealer_pidx = 2, logger=TH.ByPassLogger())
     TH.deal!(table, TH.blinds(table))
     ind = collect(TH.circle(table, FirstToAct(), length(players)))
     @test ind == [5, 1, 2, 3, 4]
