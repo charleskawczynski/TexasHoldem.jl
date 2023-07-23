@@ -225,7 +225,7 @@ function minimum_valid_hand_rank(hand_evals_sorted)::Int
     return min_hrs
 end
 
-function distribute_winnings!(players, tm::TransactionManager, table_cards, logger=StandardLogger())
+function distribute_winnings!(players, tm::TransactionManager, table_cards, logger=InfoLogger())
     @cdebug logger "Distributing winnings..."
     @cdebug logger "Pot amounts = $(amount.(tm.side_pots))"
     if count(x->still_playing(x), players) == 1

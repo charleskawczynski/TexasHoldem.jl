@@ -107,10 +107,11 @@ function Table(players::Players;
     transactions = TransactionManager(players),
     winners = Winners(),
     play_out_game = false,
-    logger = StandardLogger(),
+    logger = InfoLogger(),
 )
     P = typeof(players)
     buttons = Buttons(players, dealer_pidx)
+    @assert 2 ≤ length(players) ≤ 10 "Invalid number of players"
     n_max_actions = compute_n_max_actions(players, blinds.big)
     @cdebug logger "n_max_actions = $n_max_actions"
     L = typeof(logger)

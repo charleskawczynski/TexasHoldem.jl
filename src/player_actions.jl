@@ -163,7 +163,7 @@ function predict_vrb_max(player, logger)
         end
     end
     warn && @cwarn logger "Detected precision errors"
-    success && @cinfo logger "success vrb_max_predicted"
+    success && @cdebug logger "success vrb_max_predicted"
     @cdebug logger "   vrb_max_predicted = $(vrb_max_predicted)"
     return vrb_max_predicted
 end

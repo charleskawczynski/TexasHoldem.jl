@@ -31,11 +31,10 @@ A package for simulating no-limit Texas Holdem Poker. Install with
 
 # Playing
 
-A single game can be played with `play!` and tournament-style game with `tournament!`:
+A single game can be played with `play!` or a tournament-style game with `tournament!`:
 
 ```julia
 using TexasHoldem
-play!(configure_game()) # play 1 game
 tournament!(configure_game()) # play until 1 player remains
 ```
 
