@@ -3,11 +3,13 @@ using PlayingCards
 using TexasHoldem
 TH = TexasHoldem
 
+QuietGame(args...; kwargs...) = Game(args...; kwargs..., logger=TH.ByPassLogger())
+
 @testset "Game: show" begin
     players = ntuple(2) do i
         Player(Bot5050(), i)
     end
-    game = Game(players)
+    game = QuietGame(players)
     sprint(show, game)
 
     game.table.stage = PreFlop()
@@ -21,14 +23,14 @@ end
         Player(Bot5050(), i, pop!(deck, Val(2)))
     end
     table = Table(players;deck=deck,cards=pop!(deck, Val(5)))
-    game = Game(players;deck=deck,table=table)
+    game = QuietGame(players;deck=deck,table=table)
 end
 
 @testset "Game: contrived game" begin
     players = ntuple(3) do i
         Player(Bot5050(), i)
     end
-    game = Game(players)
+    game = QuietGame(players)
     players = TH.players_at_table(game)
     TH.deal!(game.table, TH.blinds(game.table))
     # Round 1
@@ -54,7 +56,7 @@ end
     players = ntuple(3) do i
         Player(Bot5050(), i)
     end
-    game = Game(players)
+    game = QuietGame(players)
     players = TH.players_at_table(game)
     TH.deal!(game.table, TH.blinds(game.table))
     # Round 1

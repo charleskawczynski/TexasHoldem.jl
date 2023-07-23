@@ -48,7 +48,7 @@ buttons(b::Buttons) = (
     b.first_to_act,
 )
 
-mutable struct Table{P<:Players, L, TM, B <: Blinds, D <: PlayingCards.MaskedDeck}
+mutable struct Table{P<:Players, L, TM, B <: Blinds, D <: PlayingCards.AbstractDeck}
     deck::D
     players::P
     cards::Union{Nothing,Tuple{<:Card,<:Card,<:Card,<:Card,<:Card}}
