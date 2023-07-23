@@ -31,7 +31,7 @@ end
 function get_games(; n_games, crashes, players)
     return map(1:n_games) do x
         logger = x in crashes ? TexasHoldem.InfoLogger() : TexasHoldem.ByPassLogger()
-        Game(deepcopy(players);logger)
+        Game(deepcopy(players);logger=logger)
     end
 end
 

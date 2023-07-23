@@ -1,7 +1,7 @@
 using Test
 using PlayingCards
 using TexasHoldem
-TH = TexasHoldem
+const TH = TexasHoldem
 
 QuietGame(args...; kwargs...) = Game(args...; kwargs..., logger=TH.ByPassLogger())
 

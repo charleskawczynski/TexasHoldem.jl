@@ -2,7 +2,7 @@ using Test
 using REPL.TerminalMenus
 using PlayingCards
 using TexasHoldem
-TH = TexasHoldem
+const TH = TexasHoldem
 
 if VERSION >= v"1.8.0"
     function simulate_keystrokes(keys...)

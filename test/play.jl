@@ -2,7 +2,7 @@ using Test
 using PlayingCards
 using TexasHoldem
 import TexasHoldem
-TH = TexasHoldem
+const TH = TexasHoldem
 
 include("tester_bots.jl")
 QuietGame(args...; kwargs...) = Game(args...; kwargs..., logger=TH.ByPassLogger())
