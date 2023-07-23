@@ -27,3 +27,6 @@ end
 @safetestset "reproducibility" begin
     Δt = @elapsed include("reproducibility.jl"); @info "Completed tests for reproducibility in $Δt seconds"
 end
+@safetestset "aqua" begin
+    Δt = @elapsed include("aqua.jl"); @info "Completed tests for aqua in $Δt seconds"
+end
