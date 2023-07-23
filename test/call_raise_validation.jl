@@ -4,6 +4,8 @@ using PlayingCards
 using TexasHoldem
 TH = TexasHoldem
 
+QuietGame(args...; kwargs...) = Game(args...; kwargs..., logger=TH.ByPassLogger())
+
 function valid_raise_bounds_simple(table::Table, player::Player)
     cra = TH.current_raise_amt(table)
     irra = TH.initial_round_raise_amt(table)
@@ -45,49 +47,49 @@ end
 
 @testset "valid_raise_bounds" begin
     # Case 1
-    table = Game((Player(Bot5050(), 1; bank_roll=0.5), Player(Bot5050(), 2))).table
+    table = QuietGame((Player(Bot5050(), 1; bank_roll=0.5), Player(Bot5050(), 2))).table
     players = TH.players_at_table(table)
     table.current_raise_amt = 0
     @test valid_raise_bounds_simple(table, players[1]) == (TH.valid_raise_bounds(table, players[1]), 1)
 
     # Case 2
-    table = Game((Player(Bot5050(), 1), Player(Bot5050(), 2; bank_roll = 300))).table
+    table = QuietGame((Player(Bot5050(), 1), Player(Bot5050(), 2; bank_roll = 300))).table
     players = TH.players_at_table(table)
     table.current_raise_amt = 0
     @test valid_raise_bounds_simple(table, players[1]) == (TH.valid_raise_bounds(table, players[1]), 2)
 
     # Case 3
-    table = Game((Player(Bot5050(), 1; bank_roll=1), Player(Bot5050(), 2; bank_roll = 0.5))).table
+    table = QuietGame((Player(Bot5050(), 1; bank_roll=1), Player(Bot5050(), 2; bank_roll = 0.5))).table
     players = TH.players_at_table(table)
     table.current_raise_amt = 0
     @test valid_raise_bounds_simple(table, players[1]) == (TH.valid_raise_bounds(table, players[1]), 3)
 
     # Case 4
-    table = Game((Player(Bot5050(), 1), Player(Bot5050(), 2; bank_roll = 50))).table
+    table = QuietGame((Player(Bot5050(), 1), Player(Bot5050(), 2; bank_roll = 50))).table
     players = TH.players_at_table(table)
     table.current_raise_amt = 0
     @test valid_raise_bounds_simple(table, players[1]) == (TH.valid_raise_bounds(table, players[1]), 4)
 
     # Case 5
-    table = Game((Player(Bot5050(), 1; bank_roll=1), Player(Bot5050(), 2))).table
+    table = QuietGame((Player(Bot5050(), 1; bank_roll=1), Player(Bot5050(), 2))).table
     players = TH.players_at_table(table)
     table.current_raise_amt = 1
     @test valid_raise_bounds_simple(table, players[1]) == (TH.valid_raise_bounds(table, players[1]), 5)
 
     # Case 6
-    table = Game((Player(Bot5050(), 1), Player(Bot5050(), 2; bank_roll = 300))).table
+    table = QuietGame((Player(Bot5050(), 1), Player(Bot5050(), 2; bank_roll = 300))).table
     players = TH.players_at_table(table)
     table.current_raise_amt = 1
     @test valid_raise_bounds_simple(table, players[1]) == (TH.valid_raise_bounds(table, players[1]), 6)
 
     # Case 7
-    table = Game((Player(Bot5050(), 1; bank_roll=1), Player(Bot5050(), 2; bank_roll = 0.5))).table
+    table = QuietGame((Player(Bot5050(), 1; bank_roll=1), Player(Bot5050(), 2; bank_roll = 0.5))).table
     players = TH.players_at_table(table)
     table.current_raise_amt = 1
     @test valid_raise_bounds_simple(table, players[1]) == (TH.valid_raise_bounds(table, players[1]), 7)
 
     # Case 8
-    table = Game((Player(Bot5050(), 1), Player(Bot5050(), 2; bank_roll = 50))).table
+    table = QuietGame((Player(Bot5050(), 1), Player(Bot5050(), 2; bank_roll = 50))).table
     players = TH.players_at_table(table)
     table.current_raise_amt = 1
     @test valid_raise_bounds_simple(table, players[1]) == (TH.valid_raise_bounds(table, players[1]), 8)
@@ -95,7 +97,7 @@ end
 
 @testset "is_valid_raise_amount" begin
     players = (Player(Human(), 1), Player(Bot5050(), 2))
-    table = Game(players).table
+    table = QuietGame(players).table
     mra = TH.minimum_raise_amt(table)
     @assert mra == TH.blinds(table).small
     @test TH.is_valid_raise_amount(table, players[1], 0) == (false, "Cannot raise 0. Raise must be between [\$$mra, \$200.0]")
@@ -108,7 +110,7 @@ end
     @test TH.is_valid_raise_amount(table, players[1], TH.bank_roll(players[1])) == (true, "")
 
     players = (Player(Human(), 1), Player(Bot5050(), 2))
-    table = Game(players).table
+    table = QuietGame(players).table
     table.initial_round_raise_amt = 20.0
     table.current_raise_amt = 20.0
     players[1].round_contribution = 200
@@ -116,28 +118,28 @@ end
     @test TH.is_valid_raise_amount(table, players[1], 200) == (false, "Cannot contribute \$0.0 to the pot.")
 
     players = (Player(Human(), 1), Player(Bot5050(), 2))
-    table = Game(players).table
+    table = QuietGame(players).table
     table.initial_round_raise_amt = 10.0
     table.current_raise_amt = 10.0
     players[1].round_bank_roll = 20
     @test TH.is_valid_raise_amount(table, players[1], 10) == (false, "Only allowable raise is \$20.0 (all-in)")
 
     players = (Player(Human(), 1), Player(Bot5050(), 2))
-    table = Game(players).table
+    table = QuietGame(players).table
     table.initial_round_raise_amt = 10.0
     table.current_raise_amt = 10.0
     players[1].round_bank_roll = 20
     @test TH.is_valid_raise_amount(table, players[1], 20) == (true, "")
 
     players = (Player(Human(), 1), Player(Bot5050(), 2))
-    table = Game(players).table
+    table = QuietGame(players).table
     table.initial_round_raise_amt = 5.0
     table.current_raise_amt = 20.0
     players[1].round_bank_roll = 30
     @test TH.is_valid_raise_amount(table, players[1], 25) == (true, "")
 
     players = (Player(Human(), 1), Player(Bot5050(), 2))
-    table = Game(players).table
+    table = QuietGame(players).table
     table.initial_round_raise_amt = 5.0
     table.current_raise_amt = 20.0
     players[1].round_bank_roll = 30
@@ -146,45 +148,45 @@ end
 
 @testset "call_amount" begin
     players = (Player(Human(), 1), Player(Bot5050(), 2))
-    table = Game(players).table
+    table = QuietGame(players).table
     table.current_raise_amt = 20
     players[1].round_contribution = 10
     @test call_amount(table, players[1]) == 10
 
     players = (Player(Human(), 1), Player(Bot5050(), 2))
-    table = Game(players).table
+    table = QuietGame(players).table
     table.current_raise_amt = 10
     players[1].round_contribution = 0
     @test call_amount(table, players[1]) == 10
 
     players = (Player(Human(), 1), Player(Bot5050(), 2))
-    table = Game(players).table
+    table = QuietGame(players).table
     table.current_raise_amt = 0
     players[1].round_contribution = 10
     @test_throws AssertionError("Round contribution must be zero if current raise is zero.") call_amount(table, players[1])
 
     players = (Player(Human(), 1), Player(Bot5050(), 2))
-    table = Game(players).table
+    table = QuietGame(players).table
     table.stage = Flop()
     table.current_raise_amt = 10
     players[1].round_contribution = 10
     @test call_amount(table, players[1]) == 0.0
 
     players = (Player(Human(), 1), Player(Bot5050(), 2))
-    table = Game(players).table
+    table = QuietGame(players).table
     table.stage = Flop()
     table.current_raise_amt = 10
     players[1].round_contribution = 20
     @test_throws AssertionError("Call amount cannot be negative") call_amount(table, players[1])
 
     players = (Player(Human(), 1), Player(Bot5050(), 2))
-    table = Game(players).table
+    table = QuietGame(players).table
     table.current_raise_amt = TH.blinds(table).big
     players[1].round_contribution = TH.blinds(table).big
     @test call_amount(table, players[1]) == 0.0 # action is back to big-blind pre-flop
 
     players = (Player(Human(), 1), Player(Bot5050(), 2))
-    table = Game(players).table
+    table = QuietGame(players).table
     table.current_raise_amt = TH.blinds(table).big
     players[1].round_contribution = TH.blinds(table).big
     @test call_amount(table, players[1]) == 0.0 # action is back to big-blind pre-flop
