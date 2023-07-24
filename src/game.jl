@@ -240,6 +240,11 @@ function _deal_and_play!(game::Game)
     @cdebug logger "initial_brs = $(initial_brs)"
     @cdebug logger "bank_roll.(players_at_table(table)) = $(bank_roll.(players_at_table(table)))"
 
+    @cdebug logger begin
+        if !(initial_∑brs ≈ sum(x->bank_roll(x), players_at_table(table)))
+            @cinfo logger "initial_∑brs=$initial_∑brs, brs=$(bank_roll.(players_at_table(table)))"
+        end
+    end
     @assert initial_∑brs ≈ sum(x->bank_roll(x), players_at_table(table)) # eventual assertion
     @assert sum(sp->amount(sp), table.transactions.side_pots) ≈ 0
 
