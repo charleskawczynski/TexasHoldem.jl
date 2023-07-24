@@ -42,11 +42,11 @@ swap the logger to debug level for the
 indices that fail.
 =#
 function fuzz_debug(;fun,n_players, n_games, bank_roll=200)
-    crashes = fuzz(;fun,n_players, n_games, bank_roll)
+    crashes = fuzz(;fun=fun,n_players=n_players, n_games=n_games, bank_roll=bank_roll)
     Random.seed!(1234)
-    players = ntuple(i->Player(Bot5050(), i; bank_roll), n_players)
+    players = ntuple(i->Player(Bot5050(), i; bank_roll=bank_roll), n_players)
     @time begin
-        games = get_games(; n_games, crashes, players)
+        games = get_games(; n_games=n_games, crashes=crashes, players=players)
     end
     for n in 1:length(games)
         try
