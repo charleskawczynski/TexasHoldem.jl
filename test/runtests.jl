@@ -30,3 +30,9 @@ end
 @safetestset "aqua" begin
     Δt = @elapsed include("aqua.jl"); @info "Completed tests for aqua in $Δt seconds"
 end
+
+if VERSION >= v"1.8.0"
+@safetestset "perf" begin
+    Δt = @elapsed include("perf.jl"); @info "Completed tests for perf in $Δt seconds"
+end
+end
