@@ -85,9 +85,6 @@ function reset!(tm::TransactionManager, players::Players)
     return nothing
 end
 
-amount(tm::TransactionManager) = amount(tm.side_pots[tm.pot_id[1]])
-cap(tm::TransactionManager) = cap(tm.side_pots[tm.pot_id[1]])
-
 function last_action_of_round(table, player, call)
     laor = all_oppononents_all_in(table, player) ||
         (count(x->action_required(x), players_at_table(table)) == 0 && call)
@@ -215,10 +212,10 @@ function distribute_winnings_1_player_left!(players, tm::TransactionManager, tab
     return nothing
 end
 
-function minimum_valid_hand_rank(hand_evals_sorted)::Int
+function minimum_valid_hand_rank(hand_evals_sorted, i)::Int
     min_hrs = typemax(Int)
     for hes in hand_evals_sorted
-        hes.eligible || continue
+        still_playing(hes.player) && hes.ssn ≥ i || continue
         min_hrs = min(min_hrs, hand_rank(hes.fhe))
     end
     @assert min_hrs ≠ typemax(Int)
@@ -234,8 +231,7 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards, logg
     hand_evals_sorted = map(enumerate(tm.perm)) do (ssn, p)
         player = players[p]
         fhe = inactive(player) ? nothing : FullHandEval((player.cards..., table_cards...))
-        eligible = still_playing(player)
-        (; eligible=eligible, player=player, fhe=fhe, ssn=ssn)
+        (; player=player, fhe=fhe, ssn=ssn)
     end
 
     side_pot_winnings = map(players) do player
@@ -246,18 +242,11 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards, logg
     @inbounds for i in 1:length(tm.side_pots)
         sidepot_winnings(tm, length(players)) ≈ 0 && continue # no money left to distribute
 
-        hand_evals_sorted = map(hand_evals_sorted) do (eligible, player, fhe, ssn)
-            if ssn ≥ i # only (sorted) players i:end can win the ith side-pot
-                (; eligible=eligible, player=player, fhe=fhe, ssn=ssn)
-            else
-                (; eligible=false, player=player, fhe=fhe, ssn=ssn)
-            end
-        end
         @cdebug logger begin
             s = "Sorted hand evals: \n"
             for hes in hand_evals_sorted
                 inactive(hes.player) && continue # (don't have cards to eval)
-                s *= "eligible=$(hes.eligible), "
+                s *= "eligible=$(hes.ssn ≥ i && still_playing(hes.player)), "
                 s *= "sn=$(seat_number(hes.player)), "
                 s *= "ssn=$(hes.ssn), "
                 s *= "hr=$(hand_rank(hes.fhe)), "
@@ -265,10 +254,10 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards, logg
             end
             s
         end
-        mvhr = minimum_valid_hand_rank(hand_evals_sorted)
+        mvhr = minimum_valid_hand_rank(hand_evals_sorted, i)
 
         winner_ids = findall(hand_evals_sorted) do x
-            x.eligible ? hand_rank(x.fhe)==mvhr : false
+            still_playing(x.player) && x.ssn ≥ i ? hand_rank(x.fhe)==mvhr : false
         end
         n_winners = length(winner_ids)
         @cdebug logger "winner_ids = $(winner_ids)"
