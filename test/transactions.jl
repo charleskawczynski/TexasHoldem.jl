@@ -20,7 +20,7 @@ const TH = TexasHoldem
     TH.call!(table, players[3]) # call
 
     @test TH.amount.(tm.side_pots) == [300.0, 0.0, 0.0]
-    TH.distribute_winnings!(players, tm, table_cards)
+    TH.distribute_winnings!(players, tm, table_cards, TH.ByPassLogger())
     @test TH.amount.(tm.side_pots) == [0.0, 0.0, 0.0]
 
     @test bank_roll(players[1]) == 300
@@ -43,7 +43,7 @@ end
     TH.call!(table, players[3]) # all-in
 
     @test TH.amount.(tm.side_pots) == [300.0, 0.0, 0.0]
-    TH.distribute_winnings!(players, tm, table_cards)
+    TH.distribute_winnings!(players, tm, table_cards, TH.ByPassLogger())
     @test TH.amount.(tm.side_pots) == [0.0, 0.0, 0.0]
 
     @test bank_roll(players[1]) == 500
@@ -75,7 +75,7 @@ end
     TH.call!(table, players[3]) # call
 
     @test TH.amount.(tm.side_pots) == [300.0, 200.0, 0.0]
-    TH.distribute_winnings!(players, tm, table_cards)
+    TH.distribute_winnings!(players, tm, table_cards, TH.ByPassLogger())
     @test TH.amount.(tm.side_pots) == [0.0, 0.0, 0.0]
 
     @test bank_roll(players[1]) == 300
@@ -107,7 +107,7 @@ end
 
     @test TH.amount.(tm.side_pots) == [300.0, 200.0, 0.0]
 
-    TH.distribute_winnings!(players, tm, table_cards)
+    TH.distribute_winnings!(players, tm, table_cards, TH.ByPassLogger())
     @test TH.amount.(tm.side_pots) == [0.0, 0.0, 0.0]
 
     @test bank_roll(players[1]) == 600
@@ -166,7 +166,7 @@ end
     TH.call!(table, players[6]) # call
     @test TH.amount.(tm.side_pots) ≈ [600.0, 500.0, 400.0, 300.0, 200.0, 0.0]
 
-    TH.distribute_winnings!(players, tm, table_cards)
+    TH.distribute_winnings!(players, tm, table_cards, TH.ByPassLogger())
     @test TH.amount.(tm.side_pots) == [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
     @test bank_roll(players[1]) == 0 # bust
@@ -210,7 +210,7 @@ end
     TH.call!(table, players[6]) # call
     @test TH.amount.(tm.side_pots) ≈ [600.0, 500.0, 400.0, 300.0, 200.0, 0.0]
 
-    TH.distribute_winnings!(players, tm, table_cards)
+    TH.distribute_winnings!(players, tm, table_cards, TH.ByPassLogger())
     @test TH.amount.(tm.side_pots) == [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
     @test bank_roll(players[1]) == 0 # bust
@@ -254,7 +254,7 @@ end
     TH.call!(table, players[6]) # call
     @test TH.amount.(tm.side_pots) == [600.0, 500.0, 400.0, 300.0, 200.0, 0.0]
 
-    TH.distribute_winnings!(players, tm, table_cards)
+    TH.distribute_winnings!(players, tm, table_cards, TH.ByPassLogger())
     @test TH.amount.(tm.side_pots) == [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
     @test bank_roll(players[1]) == 100 # lost (but not all-in)
