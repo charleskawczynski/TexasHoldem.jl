@@ -459,7 +459,7 @@ function deal!(table::Table, blinds::Blinds)
 
         not_playing(player) && continue
 
-        player.cards = pop!(table.deck, Val(2))
+        player.cards = pop!(table.deck, Val(2))::Tuple{Card, Card}
 
         if is_small_blind(table, player) && bank_roll(player) ≤ blinds.small
             contribute!(table, player, bank_roll(player), call_blinds)
@@ -480,7 +480,8 @@ function deal!(table::Table, blinds::Blinds)
         end
     end
 
-    table.cards = get_table_cards!(table.deck)
+    table.cards = get_table_cards!(table.deck)::Tuple{Card,Card,Card,Card,Card}
     @cinfo logger "Table cards dealt (face-down)."
+    @cdebug logger "Post-blinds bank roll summary: $(bank_roll.(players))"
 end
 
