@@ -28,6 +28,7 @@ struct TransactionManager
   initial_brs::Vector{Float64}
   pot_id::Vector{Int}
   side_pots::Vector{SidePot}
+  side_pot_winnings::Vector{Vector{Float64}}
   unsorted_to_sorted_map::Vector{Int}
 end
 
@@ -56,11 +57,14 @@ function TransactionManager(players::Players)
 
     initial_brs = deepcopy(collect(bank_roll.(players)))
     pot_id = Int[1]
+    FT = eltype(initial_brs)
+    side_pot_winnings = collect(map(x->collect(map(x->FT(0), players)), players))
     TransactionManager(
         perm,
         initial_brs,
         pot_id,
         side_pots,
+        side_pot_winnings,
         unsorted_to_sorted_map,
     )
 end
@@ -77,6 +81,7 @@ function reset!(tm::TransactionManager, players::Players)
         tm.side_pots[i].seat_number = ssn
         tm.side_pots[i].amt = Float64(0)
         tm.side_pots[i].cap = cap_i
+        tm.side_pot_winnings[i] .= 0
         j = findfirst(p->seat_number(players[p]) == seat_number(player), perm)::Int
         tm.unsorted_to_sorted_map[i] = j
         tm.initial_brs[i] = bank_roll(player)
@@ -234,10 +239,9 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards, logg
         (; player=player, fhe=fhe, ssn=ssn)
     end
 
-    side_pot_winnings = map(players) do player
-        zeros(length(tm.side_pots))
+    for i in 1:length(players)
+        tm.side_pot_winnings[i] .= 0
     end
-    winning_hands = Vector{Symbol}(undef, length(players))
 
     @inbounds for i in 1:length(tm.side_pots)
         sidepot_winnings(tm, length(players)) ≈ 0 && continue # no money left to distribute
@@ -268,14 +272,13 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards, logg
             winning_player = players[win_seat]
             not_playing(winning_player) && continue
             amt = sidepot_winnings(tm, i) / n_winners
-            side_pot_winnings[win_seat][i] = amt
-            winning_hands[win_seat] = hand_type(hand_evals_sorted[winner_id].fhe)
+            tm.side_pot_winnings[win_seat][i] = amt
         end
         for j in 1:i
             tm.side_pots[j].amt = 0 # empty out distributed winnings
         end
     end
-    for (player, initial_br, player_winnings) in zip(players, tm.initial_brs, side_pot_winnings)
+    for (player, initial_br, player_winnings) in zip(players, tm.initial_brs, tm.side_pot_winnings)
         ∑spw = sum(player_winnings)
         ssn = tm.unsorted_to_sorted_map[seat_number(player)]
         if ∑spw ≈ 0
