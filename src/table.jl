@@ -342,7 +342,7 @@ end
 function check_for_and_declare_winner!(table::Table)
     players = players_at_table(table)
     n_players = length(players)
-    table.winners.declared = count(not_playing.(players)) == n_players-1
+    table.winners.declared = count(x->not_playing(x), players) == n_players-1
     return nothing
 end
 

@@ -34,6 +34,7 @@ among multiple players.
 """
 struct TransactionManager
   perm::Vector{Int}
+  bank_rolls::Vector{Float64} # cache
   initial_brs::Vector{Float64}
   pot_id::Vector{Int}
   side_pots::Vector{SidePot}
@@ -50,6 +51,7 @@ end
 TransactionManager(players) = TransactionManager(Players(players))
 function TransactionManager(players::Players)
     perm = collect(sortperm(players))
+    bank_rolls = collect(map(x->bank_roll(x), players))
 
     cap = zeros(length(players))
     for i in 1:length(players)
@@ -72,6 +74,7 @@ function TransactionManager(players::Players)
     side_pot_winnings = collect(map(x->collect(map(x->FT(0), players)), players))
     TransactionManager(
         perm,
+        bank_rolls,
         initial_brs,
         pot_id,
         side_pots,
@@ -83,7 +86,10 @@ end
 
 function reset!(tm::TransactionManager, players::Players)
     perm = tm.perm
-    sortperm!(perm, players)
+    @inbounds for i in 1:length(players)
+        tm.bank_rolls[i] = bank_roll(players[i])
+    end
+    sortperm!(perm, tm.bank_rolls)
     @inbounds for i in 1:length(players)
         sp = players[perm[i]]
         player = players[i]
@@ -93,7 +99,9 @@ function reset!(tm::TransactionManager, players::Players)
         tm.side_pots[i].seat_number = ssn
         tm.side_pots[i].amt = Float64(0)
         tm.side_pots[i].cap = cap_i
-        tm.side_pot_winnings[i] .= 0
+        for k in 1:length(players)
+            tm.side_pot_winnings[i][k] = 0
+        end
         j = findfirst(p->seat_number(players[p]) == seat_number(player), perm)::Int
         tm.unsorted_to_sorted_map[i] = j
         tm.initial_brs[i] = bank_roll(player)
@@ -164,7 +172,7 @@ function contribute!(table, player, amt, call=false)
     @cdebug logger "caps = $(cap.(tm.side_pots))"
     @cdebug logger "$(name(player))'s pot_investment = $(player.pot_investment)"
 
-    for i in 1:length(tm.side_pots)
+    @inbounds for i in 1:length(tm.side_pots)
         @assert 0 ≤ amt_remaining
         cap_i = cap(tm.side_pots[i])
         sp_amt = amount(tm.side_pots[i])
@@ -201,7 +209,7 @@ function is_side_pot_full(tm::TransactionManager, table, player, call)
     # To switch from pot_id = 1 to pot_id = 2, then exactly 1 player  should be all-in:
     # To switch from pot_id = 2 to pot_id = 3, then exactly 2 players should be all-in:
     # ...
-    return count(x->all_in(x), players) == tm.pot_id[1] && last_action_of_round(table, player, call)
+    return @inbounds count(x->all_in(x), players) == tm.pot_id[1] && last_action_of_round(table, player, call)
 end
 
 set_side_pot_full!(tm::TransactionManager) = (tm.pot_id[1]+=1)
@@ -221,7 +229,7 @@ function distribute_winnings_1_player_left!(players, tm::TransactionManager, tab
         prof = ∑spw-amt_contributed
         @cinfo logger "$(name(player)) wins \$$(∑spw) (\$$(prof) profit) (all opponents folded)"
         player.bank_roll += ∑spw
-        for j in 1:n
+        @inbounds for j in 1:n
             tm.side_pots[j].amt = 0 # empty out distributed winnings
         end
         break
@@ -248,7 +256,7 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards, logg
         return distribute_winnings_1_player_left!(players, tm, table_cards, logger)
     end
     sorted_hand_evals = tm.sorted_hand_evals
-    for (ssn, p) in enumerate(tm.perm)
+    @inbounds for (ssn, p) in enumerate(tm.perm)
         player = players[p]
         if inactive(player)
             sorted_hand_evals[ssn].hand_rank = -1
@@ -264,8 +272,10 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards, logg
         end
     end
 
-    for i in 1:length(players)
-        tm.side_pot_winnings[i] .= 0
+    @inbounds for i in 1:length(players)
+        for k in 1:length(players)
+            tm.side_pot_winnings[i][k] = 0
+        end
     end
 
     @inbounds for i in 1:length(tm.side_pots)

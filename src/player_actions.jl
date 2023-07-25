@@ -62,11 +62,8 @@ call!(game::Game, player::Player) = call!(game.table, player)
 
 function call!(table::Table, player::Player)
     call_amt = call_amount(table, player)
-    if call_amt ≤ bank_roll(player)
-        call_valid_amount!(table, player, call_amt)
-    else
-        call_valid_amount!(table, player, bank_roll(player))
-    end
+    amt = call_amt ≤ bank_roll(player) ? call_amt : bank_roll(player)
+    call_valid_amount!(table, player, amt)
 end
 
 function call_valid_amount!(table::Table, player::Player, amt::Real)
@@ -112,11 +109,14 @@ end
 
 Given a raise amount `amt`, return a valid raise amount.
 """
-bound_raise(table::Table, player::Player, amt::Real) =
-    clamp(amt, valid_raise_bounds(table, player)...)
+function bound_raise(table::Table, player::Player, amt::Real)
+    vrb = valid_raise_bounds(table, player)
+    FT = eltype(vrb)
+    return clamp(FT(amt), vrb...)::Float64
+end
 
 function max_opponent_round_bank_roll(table::Table, player::Player)
-    max_orbr = 0
+    max_orbr = Float64(0)
     for opponent in players_at_table(table)
         seat_number(opponent) == seat_number(player) && continue
         not_playing(opponent) && continue
@@ -183,28 +183,31 @@ function valid_raise_bounds(table::Table, player::Player)
     irra = initial_round_raise_amt(table)
     mra = minimum_raise_amt(table)
     rbr = round_bank_roll(player)
-    Δbr = rbr - bank_roll(player)
-    amt_computed = rbr - round_contribution(player)
-    check = amt_computed ≤ bank_roll(player)
     max_orbr = max_opponent_round_bank_roll(table, player)
     logger = table.logger
-    @cdebug logger "determining valid_raise_bounds"
-    @cdebug logger "   rbr = $rbr, max_orbr = $max_orbr"
-    @cdebug logger "   cra ≈ 0 = $(cra ≈ 0)"
-    @cdebug logger "   amt_computed = $amt_computed"
-    @cdebug logger "   check = $check"
-    @cdebug logger "   max_orbr > rbr = $(max_orbr > rbr)"
-    @cdebug logger "   irra = $irra"
-    @cdebug logger "   cra = $cra"
-    @cdebug logger "   Δbr = $Δbr"
-    @cdebug logger "   (cra+irra) = $(cra+irra)"
-    @cdebug logger "   br = $(bank_roll(player))"
-    @cdebug logger "   br = $(BigFloat(bank_roll(player)))"
-    @cdebug logger "   rc = $(round_contribution(player))"
+    @cdebug logger begin
+        Δbr = rbr - bank_roll(player)
+        amt_computed = rbr - round_contribution(player)
+        check = amt_computed ≤ bank_roll(player)
+        s = ""
+        s*="determining valid_raise_bounds\n"
+        s*="   rbr = $rbr, max_orbr = $max_orbr\n"
+        s*="   cra ≈ 0 = $(cra ≈ 0)\n"
+        s*="   amt_computed = $amt_computed\n"
+        s*="   check = $check\n"
+        s*="   max_orbr > rbr = $(max_orbr > rbr)\n"
+        s*="   irra = $irra\n"
+        s*="   cra = $cra\n"
+        s*="   Δbr = $Δbr\n"
+        s*="   (cra+irra) = $(cra+irra)\n"
+        s*="   br = $(bank_roll(player))\n"
+        s*="   br = $(BigFloat(bank_roll(player)))\n"
+        s*="   rc = $(round_contribution(player))\n"
+        s
+    end
     lim = cra ≈ 0 ? mra : (cra+irra)
     vrb_max_predicted = predict_vrb_max(player, logger)
     @cdebug logger "   lim = $lim"
-    # vrb = custom_clamp(min(max_orbr, rbr), lim)
     vrb = custom_clamp(min(max_orbr, rbr, vrb_max_predicted), lim)
     @cdebug logger "   vrb = $vrb"
     @assert vrb[2] ≥ vrb[1] "Min valid raise bound must be ≤ max valid raise bound."
@@ -282,6 +285,7 @@ raise_to!(game::Game, player::Player, amt::Real) = raise_to!(game.table, player,
 raise_to!(table::Table, player::Player, amt::Real) =
     raise_to_valid_raise_amount!(table, player, valid_raise_amount(table, player, amt))
 
+#=Not performance critical (only needed for info log)=#
 function opponents_being_put_all_in(table::Table, player::Player, amt::Real)
     opponents = filter(players_at_table(table)) do opponent
         rbr = round_bank_roll(opponent)
@@ -296,7 +300,6 @@ end
 
 function raise_to_valid_raise_amount!(table::Table, player::Player, amt::Real)
     logger = table.logger
-    pbpai = opponents_being_put_all_in(table, player, amt)
     @cdebug logger "$(name(player)) raising to $(amt)."
     prc = round_contribution(player)
     @cdebug logger "round_contribution = $prc"
@@ -324,17 +327,20 @@ function raise_to_valid_raise_amount!(table::Table, player::Player, amt::Real)
         # TODO: there's got to be a cleaner way
         opponent.checked = false # to avoid exiting on all_all_in_or_checked(table).
     end
-    if bank_roll(player) ≈ 0
-        if isempty(pbpai)
-            @cinfo logger "$(name(player)) raised to $(amt) (all-in)."
+    @cinfo logger begin
+        pbpai = opponents_being_put_all_in(table, player, amt)
+        if bank_roll(player) ≈ 0
+            if isempty(pbpai)
+                "$(name(player)) raised to $(amt) (all-in)."
+            else
+                "$(name(player)) raised to $(amt). Puts player(s) $(join(pbpai, ", ")) all-in."
+            end
         else
-            @cinfo logger "$(name(player)) raised to $(amt). Puts player(s) $(join(pbpai, ", ")) all-in."
-        end
-    else
-        if isempty(pbpai)
-            @cinfo logger "$(name(player)) raised to $(amt)."
-        else
-            @cinfo logger "$(name(player)) raised to $(amt). Puts player(s) $(join(pbpai, ", ")) all-in."
+            if isempty(pbpai)
+                @cinfo logger "$(name(player)) raised to $(amt)."
+            else
+                @cinfo logger "$(name(player)) raised to $(amt). Puts player(s) $(join(pbpai, ", ")) all-in."
+            end
         end
     end
 end
