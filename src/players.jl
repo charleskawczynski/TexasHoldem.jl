@@ -52,8 +52,6 @@ function Base.sort!(players::Players{<:AbstractArray})
     Base.sort!(players.players; by=x->bank_roll(x))
     return nothing
 end
-sorted_collect(players::Players) =
-    Players(sort(collect(players.players); by = x->bank_roll(x)))
 n_players(players::Players) = length(players)
 
 import TupleTools
@@ -62,18 +60,5 @@ Base.sortperm(players::Players{<:AbstractArray}) =
 
 Base.sortperm(players::Players{<:Tuple}) =
     TupleTools.sortperm(map(x->bank_roll(x), players.players))
-
-# Ideally, we would do this:
-# Base.sortperm!(perm, players::Players) =
-#     Base.sortperm!(perm, players.players; by=x->bank_roll(x))
-
-Base.sortperm!(perm, players::Players) =
-    Base.sortperm!(perm, collect(map(x->bank_roll(x), players.players)))
-
-#=
-# sorted(players::Players) =
-#     Players(map(p->players.players[p], sortperm(players)))
-
-=#
 
 
