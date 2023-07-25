@@ -20,10 +20,10 @@ seat_number(sp::SidePot) = sp.seat_number
 amount(sp::SidePot) = sp.amt
 cap(sp::SidePot) = sp.cap
 
-mutable struct HandEval
-    hand_rank::Int
-    hand_type::Symbol
-    best_cards::NTuple{5,Card}
+Base.@kwdef mutable struct HandEval
+    hand_rank::Int = 1
+    hand_type::Symbol = :empty
+    best_cards::NTuple{5,Card} = ntuple(_->A♡, 5)
 end
 
 """
@@ -39,6 +39,7 @@ struct TransactionManager
   side_pots::Vector{SidePot}
   side_pot_winnings::Vector{Vector{Float64}}
   unsorted_to_sorted_map::Vector{Int}
+  sorted_hand_evals::Vector{HandEval}
 end
 
 function Base.show(io::IO, tm::TransactionManager, include_type = true)
@@ -65,6 +66,7 @@ function TransactionManager(players::Players)
     side_pots = [SidePot(seat_number(players[p]), 0, cap_i) for (cap_i, p) in zip(cap, perm)]
 
     initial_brs = deepcopy(collect(bank_roll.(players)))
+    sorted_hand_evals = map(x->HandEval(), 1:length(players))
     pot_id = Int[1]
     FT = eltype(initial_brs)
     side_pot_winnings = collect(map(x->collect(map(x->FT(0), players)), players))
@@ -75,6 +77,7 @@ function TransactionManager(players::Players)
         side_pots,
         side_pot_winnings,
         unsorted_to_sorted_map,
+        sorted_hand_evals,
     )
 end
 
@@ -244,17 +247,21 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards, logg
     if count(x->still_playing(x), players) == 1
         return distribute_winnings_1_player_left!(players, tm, table_cards, logger)
     end
-    sorted_hand_evals = map(enumerate(tm.perm)) do (ssn, p)
+    sorted_hand_evals = tm.sorted_hand_evals
+    for (ssn, p) in enumerate(tm.perm)
         player = players[p]
         if inactive(player)
-            he = HandEval(-1,:empty, ntuple(j->A♡, 5))
+            sorted_hand_evals[ssn].hand_rank = -1
+            sorted_hand_evals[ssn].hand_type = :empty
+            sorted_hand_evals[ssn].best_cards = ntuple(j->A♡, 5)
         else
             pc = player.cards::Tuple{Card,Card}
             tc = table_cards::Tuple{Card,Card,Card,Card,Card}
             fhe = PHE.FullHandEval((pc..., tc...))
-            he = HandEval(PHE.hand_rank(fhe),PHE.hand_type(fhe), PHE.best_cards(fhe))
+            sorted_hand_evals[ssn].hand_rank = PHE.hand_rank(fhe)
+            sorted_hand_evals[ssn].hand_type = PHE.hand_type(fhe)
+            sorted_hand_evals[ssn].best_cards = PHE.best_cards(fhe)
         end
-        he
     end
 
     for i in 1:length(players)
