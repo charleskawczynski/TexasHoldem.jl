@@ -205,7 +205,7 @@ set_side_pot_full!(tm::TransactionManager) = (tm.pot_id[1]+=1)
 side_pot_full(tm::TransactionManager, i) = i < tm.pot_id[1]
 
 Base.@propagate_inbounds function sidepot_winnings(tm::TransactionManager, id::Int)
-    sum(i->tm.side_pots[i].amt, 1:id)
+    mapreduce(i->tm.side_pots[i].amt, +, 1:id; init=Float64(0))
 end
 
 function distribute_winnings_1_player_left!(players, tm::TransactionManager, table_cards, logger)
