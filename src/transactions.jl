@@ -279,18 +279,20 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards, logg
         end
         mvhr = minimum_valid_hand_rank(sorted_hand_evals, players, perm, i)
 
-        winner_ids = findall(collect(enumerate(sorted_hand_evals))) do (ssn, she)
+        @cdebug logger "length(players) = $(length(players))"
+        @cdebug logger "length(sorted_hand_evals) = $(length(sorted_hand_evals))"
+        n_winners = count(enumerate(sorted_hand_evals)) do (ssn, she)
             player = players[perm[ssn]]
             still_playing(player) && ssn ≥ i ? she.hand_rank==mvhr : false
         end
-        n_winners = length(winner_ids)
-        @cdebug logger "winner_ids = $(winner_ids)"
-        @cdebug logger "length(players) = $(length(players))"
-        @cdebug logger "length(sorted_hand_evals) = $(length(sorted_hand_evals))"
-        for winner_id in winner_ids
+
+        for (ssn, she) in enumerate(sorted_hand_evals)
+            player = players[perm[ssn]]
+            is_winner = still_playing(player) && ssn ≥ i ? she.hand_rank==mvhr : false
+            is_winner || continue
+            @cdebug logger "winning pidx = $(tm.perm[winner_id])"
+            winner_id = ssn
             win_seat = seat_number(players[tm.perm[winner_id]])
-            winning_player = players[win_seat]
-            not_playing(winning_player) && continue
             amt = sidepot_winnings(tm, i) / n_winners
             tm.side_pot_winnings[win_seat][i] = amt
         end
