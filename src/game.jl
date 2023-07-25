@@ -1,6 +1,8 @@
 #####
 ##### Game
 #####
+using PlayingCards
+const PC = PlayingCards
 
 export Game, play!, tournament!
 
@@ -218,11 +220,12 @@ function _deal_and_play!(game::Game)
 
     reset!(table.transactions, players)
 
-    @assert all(p->cards(p) == nothing, players)
-    @assert cards(table) == nothing
+    @assert all(p->all(c->PC.rank(c)==0, cards(p)), players)
+    # @assert cards(table) == ntuple(_->joker, 5)
+    @assert all(c->PC.rank(c)==0,cards(table))# == ntuple(_->joker, 5)
     reset_round_bank_rolls!(table) # round bank-rolls must account for blinds
     deal!(table, blinds(table))
-    @assert cards(table) ≠ nothing
+    @assert cards(table) ≠ (joker, joker)
 
     winners = table.winners
 

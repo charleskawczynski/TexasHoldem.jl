@@ -5,6 +5,7 @@ import TexasHoldem
 const TH = TexasHoldem
 using TexasHoldem
 using BenchmarkTools
+Random.seed!(1234)
 
 players() = ntuple(i->(Player(Bot5050(), i)), 4)
 

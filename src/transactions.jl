@@ -20,10 +20,12 @@ seat_number(sp::SidePot) = sp.seat_number
 amount(sp::SidePot) = sp.amt
 cap(sp::SidePot) = sp.cap
 
+const joker = Card(0, ♡)
+
 Base.@kwdef mutable struct HandEval
     hand_rank::Int = 1
     hand_type::Symbol = :empty
-    best_cards::NTuple{5,Card} = ntuple(_->A♡, 5)
+    best_cards::NTuple{5,Card} = ntuple(_->joker, 5)
 end
 
 """
@@ -275,14 +277,20 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards, logg
         if inactive(player)
             sorted_hand_evals[ssn].hand_rank = -1
             sorted_hand_evals[ssn].hand_type = :empty
-            sorted_hand_evals[ssn].best_cards = ntuple(j->A♡, 5)
+            sorted_hand_evals[ssn].best_cards = ntuple(j->joker, 5)
         else
             pc = player.cards::Tuple{Card,Card}
             tc = table_cards::Tuple{Card,Card,Card,Card,Card}
-            fhe = PHE.FullHandEval((pc..., tc...))
-            sorted_hand_evals[ssn].hand_rank = PHE.hand_rank(fhe)
-            sorted_hand_evals[ssn].hand_type = PHE.hand_type(fhe)
-            sorted_hand_evals[ssn].best_cards = PHE.best_cards(fhe)
+            if logger isa ByPassLogger
+                fhe = PHE.CompactHandEval((pc..., tc...))
+                sorted_hand_evals[ssn].hand_rank = PHE.hand_rank(fhe)
+                sorted_hand_evals[ssn].hand_type = PHE.hand_type(fhe)
+            else
+                fhe = PHE.FullHandEval((pc..., tc...))
+                sorted_hand_evals[ssn].hand_rank = PHE.hand_rank(fhe)
+                sorted_hand_evals[ssn].hand_type = PHE.hand_type(fhe)
+                sorted_hand_evals[ssn].best_cards = PHE.best_cards(fhe)
+            end
         end
     end
 
@@ -356,23 +364,27 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards, logg
     end
     for (player, initial_br, player_winnings) in zip(players, tm.initial_brs, tm.side_pot_winnings)
         ∑spw = sum(player_winnings)
-        ssn = tm.unsorted_to_sorted_map[seat_number(player)]
-        if ∑spw == 0
-            if active(player)
+        @cinfo logger begin
+            if ∑spw == 0 && active(player)
+                ssn = tm.unsorted_to_sorted_map[seat_number(player)]
+                she = sorted_hand_evals[ssn]
+                hand_name = she.hand_type
+                f_str = folded(player) ? " (folded)" : ""
+                bc = she.best_cards
+                "$(name(player)) loses$f_str \$$(pot_investment(player)) with $bc ($hand_name)!"
+            end
+        end
+        if ∑spw ≠ 0
+            @cdebug logger "$(name(player))'s side-pot wins: \$$(player_winnings)!"
+            @cinfo logger begin
+                ssn = tm.unsorted_to_sorted_map[seat_number(player)]
+                amt_contributed = initial_br - bank_roll(player)
+                prof = ∑spw-amt_contributed
                 she = sorted_hand_evals[ssn]
                 hand_name = she.hand_type
                 bc = she.best_cards
-                f_str = folded(player) ? " (folded)" : ""
-                @cinfo logger "$(name(player)) loses$f_str \$$(pot_investment(player)) with $bc ($hand_name)!"
+                "$(name(player)) wins \$$∑spw (\$$prof profit) with $bc ($hand_name)!"
             end
-        else
-            she = sorted_hand_evals[ssn]
-            hand_name = she.hand_type
-            bc = she.best_cards
-            amt_contributed = initial_br - bank_roll(player)
-            @cdebug logger "$(name(player))'s side-pot wins: \$$(player_winnings)!"
-            prof = ∑spw-amt_contributed
-            @cinfo logger "$(name(player)) wins \$$∑spw (\$$prof profit) with $bc ($hand_name)!"
             player.bank_roll += ∑spw
         end
     end

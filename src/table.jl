@@ -51,7 +51,7 @@ buttons(b::Buttons) = (
 mutable struct Table{P<:Players, L, TM, B <: Blinds, D <: PlayingCards.AbstractDeck}
     deck::D
     players::P
-    cards::Union{Nothing,Tuple{<:Card,<:Card,<:Card,<:Card,<:Card}}
+    cards::Tuple{<:Card,<:Card,<:Card,<:Card,<:Card}
     blinds::B
     pot::Int
     stage::AbstractGameStage
@@ -97,7 +97,7 @@ n_raises(i, n_players) = Int(floor(i/n_players))
 Table(players; kwargs...) = Table(Players(players); kwargs...)
 function Table(players::Players;
     deck = PlayingCards.MaskedDeck(),
-    cards = nothing,
+    cards = ntuple(_->joker, 5),
     blinds = Blinds(),
     pot = 0,
     stage = PreFlop(),

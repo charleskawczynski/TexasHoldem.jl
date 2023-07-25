@@ -18,7 +18,7 @@ ai_to_use() = Bot5050()
 mutable struct Player{LF}
     life_form::LF
     seat_number::Int
-    cards::Union{Nothing,Tuple{<:Card,<:Card}}
+    cards::Tuple{<:Card,<:Card}
     bank_roll::Int
     action_history::Vector
     action_required::Bool
@@ -37,7 +37,7 @@ function Base.show(io::IO, player::Player, include_type = true)
     println(io, "$(name(player))        = $(player.cards)")
 end
 
-function Player(life_form, seat_number, cards = nothing; bank_roll = 200)
+function Player(life_form, seat_number, cards = (joker, joker); bank_roll = 200)
     action_history = []
     action_required = true
     all_in = false
