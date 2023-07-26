@@ -1,3 +1,12 @@
+#=
+using Revise;
+include("test/fuzz_utils.jl")
+
+to debug cases, use (for example):
+fuzz_debug(;fun=tournament!,n_players=10,bank_roll=30,n_games=3788)
+where `3788` was found from 
+fuzz(;fun=tournament!,n_players=10,bank_roll=30,n_games=10000)
+=#
 include("fuzz_utils.jl")
 
 @testset "Game: play! (3 Bot5050's)" begin
@@ -19,11 +28,7 @@ end
 end
 
 @testset "Game: tournament! (10 Bot5050's)" begin
-    @test_broken isempty(fuzz(;fun=tournament!,n_players=10,bank_roll=30,n_games=3788))
+    # https://github.com/charleskawczynski/TexasHoldem.jl/issues/151
+    @test isempty(fuzz(;fun=tournament!,n_players=10,bank_roll=30,n_games=3788))
 end
-
-#=
-Breaking cases:
-fuzz_debug(;fun=tournament!,n_players=10,bank_roll=30,n_games=3788)
-=#
 
