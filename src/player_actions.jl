@@ -337,9 +337,9 @@ function raise_to_valid_raise_amount!(table::Table, player::Player, amt::Real)
             end
         else
             if isempty(pbpai)
-                @cinfo logger "$(name(player)) raised to $(amt)."
+                "$(name(player)) raised to $(amt)."
             else
-                @cinfo logger "$(name(player)) raised to $(amt). Puts player(s) $(join(pbpai, ", ")) all-in."
+                "$(name(player)) raised to $(amt). Puts player(s) $(join(pbpai, ", ")) all-in."
             end
         end
     end
