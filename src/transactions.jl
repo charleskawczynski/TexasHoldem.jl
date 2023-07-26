@@ -13,8 +13,8 @@ who has gone all-in with amount `amt`.
 """
 mutable struct SidePot
   seat_number::Int
-  amt::Float64
-  cap::Float64 # total amount any individual player can contribute to this side-pot
+  amt::Int
+  cap::Int # total amount any individual player can contribute to this side-pot
 end
 seat_number(sp::SidePot) = sp.seat_number
 amount(sp::SidePot) = sp.amt
@@ -34,11 +34,11 @@ among multiple players.
 """
 struct TransactionManager
   perm::Vector{Int}
-  bank_rolls::Vector{Float64} # cache
-  initial_brs::Vector{Float64}
+  bank_rolls::Vector{Int} # cache
+  initial_brs::Vector{Int}
   pot_id::Vector{Int}
   side_pots::Vector{SidePot}
-  side_pot_winnings::Vector{Vector{Float64}}
+  side_pot_winnings::Vector{Vector{Int}}
   unsorted_to_sorted_map::Vector{Int}
   sorted_hand_evals::Vector{HandEval}
 end
@@ -53,7 +53,7 @@ function TransactionManager(players::Players)
     perm = collect(sortperm(players))
     bank_rolls = collect(map(x->bank_roll(x), players))
 
-    cap = zeros(length(players))
+    cap = zeros(Int,length(players))
     for i in 1:length(players)
         if i == 1
             cap[i] = bank_roll(players[perm[i]])
@@ -97,7 +97,7 @@ function reset!(tm::TransactionManager, players::Players)
         cap_i = i == 1 ? br : br - bank_roll(players[perm[i-1]])
         ssn = seat_number(sp)::Int
         tm.side_pots[i].seat_number = ssn
-        tm.side_pots[i].amt = Float64(0)
+        tm.side_pots[i].amt = 0
         tm.side_pots[i].cap = cap_i
         for k in 1:length(players)
             tm.side_pot_winnings[i][k] = 0
@@ -163,7 +163,7 @@ function contribute!(table, player, amt, call=false)
         error(msg1*msg2)
     end
     @assert all_in(player) == false
-    @assert !(amt ≈ 0) "Cannot contribute \$$amt to the pot!"
+    @assert !(amt == 0) "Cannot contribute \$$amt to the pot!"
 
     player.round_contribution += amt
     player.pot_investment += amt
@@ -175,26 +175,24 @@ function contribute!(table, player, amt, call=false)
     @inbounds for i in 1:length(tm.side_pots)
         @assert 0 ≤ amt_remaining
         cap_i = cap(tm.side_pots[i])
-        sp_amt = amount(tm.side_pots[i])
         cond = amt_remaining < cap_i
         amt_contrib = cond ? amt_remaining : cap_i
-        contributing = !side_pot_full(tm, i) && !(cap_i ≈ 0)
+        contributing = !side_pot_full(tm, i) && !(cap_i == 0)
         # This is a bit noisy:
         # @cdebug logger "$(name(player)) potentially contributing $amt_contrib to side-pot $(i) ($cond). cap_i=$cap_i, amt_remaining=$amt_remaining"
-        @cdebug logger "contributing = $contributing"
+        @cdebug logger "contributing, amt_contrib = $contributing, $amt_contrib"
         contributing || continue
-        @assert !(amt_contrib ≈ 0)
+        @assert !(amt_contrib == 0)
         tm.side_pots[i].amt += amt_contrib
         player.bank_roll -= amt_contrib
         amt_remaining -= amt_contrib
-        amt_remaining ≈ 0 && break
+        amt_remaining == 0 && break
     end
-    @assert amt_remaining ≈ 0 # pots better be emptied
+    @assert amt_remaining == 0 # pots better be emptied
 
-    if bank_roll(player) ≈ 0 # went all-in, set exactly.
+    if bank_roll(player) == 0 # went all-in, set exactly.
         player.all_in = true
         player.action_required = false
-        player.bank_roll = 0
     end
 
     if is_side_pot_full(tm, table, player, call)
@@ -202,6 +200,7 @@ function contribute!(table, player, amt, call=false)
     end
     @cdebug logger "$(name(player))'s bank roll (post-contribute) = \$$(bank_roll(player))"
     @cdebug logger "all_in($(name(player))) = $(all_in(player))"
+    @cdebug logger "post-contribute side-pots: $(tm.side_pots)"
 end
 
 function is_side_pot_full(tm::TransactionManager, table, player, call)
@@ -216,7 +215,7 @@ set_side_pot_full!(tm::TransactionManager) = (tm.pot_id[1]+=1)
 side_pot_full(tm::TransactionManager, i) = i < tm.pot_id[1]
 
 Base.@propagate_inbounds function sidepot_winnings(tm::TransactionManager, id::Int)
-    mapreduce(i->tm.side_pots[i].amt, +, 1:id; init=Float64(0))
+    mapreduce(i->tm.side_pots[i].amt, +, 1:id; init=0)
 end
 
 function distribute_winnings_1_player_left!(players, tm::TransactionManager, table_cards, logger)
@@ -263,10 +262,11 @@ is_largest_pot_investment(player, players) =
     pot_investment(player) > largest_pot_investment(player, players)
 
 function distribute_winnings!(players, tm::TransactionManager, table_cards, logger=InfoLogger())
-    @cdebug logger "Distributing winnings..."
+    @cdebug logger "--- Distributing winnings..."
     @cdebug logger "Pot amounts = $(amount.(tm.side_pots))"
     perm = tm.perm
     if count(x->still_playing(x), players) == 1
+        @cdebug logger "Distributing to only remaining player"
         return distribute_winnings_1_player_left!(players, tm, table_cards, logger)
     end
     sorted_hand_evals = tm.sorted_hand_evals
@@ -293,7 +293,7 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards, logg
     end
 
     @inbounds for i in 1:length(tm.side_pots)
-        sidepot_winnings(tm, length(players)) ≈ 0 && continue # no money left to distribute
+        sidepot_winnings(tm, length(players)) == 0 && continue # no money left to distribute
 
         @cdebug logger begin
             s = "Sorted hand evals: \n"
@@ -321,6 +321,23 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards, logg
             (still_playing(player) && ssn ≥ i ? she.hand_rank==mvhr : false) || is_largest_pot_investment(player, players)
         end
 
+        # Compute the least winnings per player:
+        amt_total = sidepot_winnings(tm, i)
+        amt_base = div(amt_total, n_winners)
+        remainder = rem(amt_total, n_winners) # ∈ 1:(amt_base-1)
+        eligible_pidxs = Int[]
+        for (ssn, she) in enumerate(sorted_hand_evals)
+            player = players[perm[ssn]]
+            if (still_playing(player) && ssn ≥ i ? she.hand_rank==mvhr : false) || is_largest_pot_investment(player, players)
+                push!(eligible_pidxs, perm[ssn])
+            end
+        end
+        # TODO: distribute remaining more uniformly / with less variance
+        lucky_pidx = isempty(eligible_pidxs) ? -1 : rand(eligible_pidxs)
+        @cdebug logger "eligible_pidxs = $eligible_pidxs"
+        @cdebug logger "lucky_pidx = $lucky_pidx"
+        @cdebug logger "remainder = $remainder"
+
         for (ssn, she) in enumerate(sorted_hand_evals)
             player = players[perm[ssn]]
             is_winner = (still_playing(player) && ssn ≥ i ? she.hand_rank==mvhr : false) || is_largest_pot_investment(player, players)
@@ -328,7 +345,9 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards, logg
             winner_id = ssn
             @cdebug logger "winning pidx = $(tm.perm[winner_id])"
             win_seat = seat_number(players[tm.perm[winner_id]])
-            amt = sidepot_winnings(tm, i) / n_winners
+            # we do a coin flip to see who gets the remaining chips:
+            @cdebug logger "ssn, lucky_pidx: $ssn, $lucky_pidx"
+            amt = perm[ssn] == lucky_pidx ? amt_base + remainder : amt_base
             tm.side_pot_winnings[win_seat][i] = amt
         end
         for j in 1:i
@@ -338,7 +357,7 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards, logg
     for (player, initial_br, player_winnings) in zip(players, tm.initial_brs, tm.side_pot_winnings)
         ∑spw = sum(player_winnings)
         ssn = tm.unsorted_to_sorted_map[seat_number(player)]
-        if ∑spw ≈ 0
+        if ∑spw == 0
             if active(player)
                 she = sorted_hand_evals[ssn]
                 hand_name = she.hand_type
@@ -358,6 +377,6 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards, logg
         end
     end
 
-    @cdebug logger "Distributed winnings..."
+    @cdebug logger "--- Finished distributing winnings..."
     return nothing
 end

@@ -13,7 +13,7 @@ and if any fail, return the indices of
 the games that fail. This is helpful
 to enforce tests that work.
 =#
-function fuzz(;fun, n_players, n_games, bank_roll=200)
+function fuzz(;fun, n_players, n_games, bank_roll=200, chips=Int)
     Random.seed!(1234)
     players = ntuple(i->Player(Bot5050(), i; bank_roll=bank_roll), n_players)
     games = map(x-> Game(deepcopy(players);logger=TexasHoldem.ByPassLogger()), 1:n_games)

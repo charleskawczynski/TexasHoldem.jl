@@ -51,8 +51,8 @@ function call_amount(table::Table, player::Player)
     call_amt = cra - prc
     logger = table.logger
     @cdebug logger "cra = $cra, prc = $prc, call_amt = $call_amt"
-    if cra ≈ 0
-        @assert prc ≈ 0 "Round contribution must be zero if current raise is zero."
+    if cra == 0
+        @assert prc == 0 "Round contribution must be zero if current raise is zero."
     end
     @assert !(call_amt < 0) "Call amount cannot be negative"
     return call_amt
@@ -111,12 +111,11 @@ Given a raise amount `amt`, return a valid raise amount.
 """
 function bound_raise(table::Table, player::Player, amt::Real)
     vrb = valid_raise_bounds(table, player)
-    FT = eltype(vrb)
-    return clamp(FT(amt), vrb...)::Float64
+    return clamp(amt, vrb...)
 end
 
 function max_opponent_round_bank_roll(table::Table, player::Player)
-    max_orbr = Float64(0)
+    max_orbr = 0
     for opponent in players_at_table(table)
         seat_number(opponent) == seat_number(player) && continue
         not_playing(opponent) && continue
@@ -192,7 +191,7 @@ function valid_raise_bounds(table::Table, player::Player)
         s = ""
         s*="determining valid_raise_bounds\n"
         s*="   rbr = $rbr, max_orbr = $max_orbr\n"
-        s*="   cra ≈ 0 = $(cra ≈ 0)\n"
+        s*="   cra == 0 = $(cra == 0)\n"
         s*="   amt_computed = $amt_computed\n"
         s*="   check = $check\n"
         s*="   max_orbr > rbr = $(max_orbr > rbr)\n"
@@ -201,14 +200,14 @@ function valid_raise_bounds(table::Table, player::Player)
         s*="   Δbr = $Δbr\n"
         s*="   (cra+irra) = $(cra+irra)\n"
         s*="   br = $(bank_roll(player))\n"
-        s*="   br = $(BigFloat(bank_roll(player)))\n"
+        s*="   br = $(bank_roll(player))\n"
         s*="   rc = $(round_contribution(player))\n"
         s
     end
-    lim = cra ≈ 0 ? mra : (cra+irra)
-    vrb_max_predicted = predict_vrb_max(player, logger)
+    lim = cra == 0 ? mra : (cra+irra)
+    # vrb_max_predicted = predict_vrb_max(player, logger)
     @cdebug logger "   lim = $lim"
-    vrb = custom_clamp(min(max_orbr, rbr, vrb_max_predicted), lim)
+    vrb = custom_clamp(min(max_orbr, rbr), lim)
     @cdebug logger "   vrb = $vrb"
     @assert vrb[2] ≥ vrb[1] "Min valid raise bound must be ≤ max valid raise bound."
     return vrb
@@ -228,15 +227,15 @@ function is_valid_raise_amount(table::Table, player::Player, amt::Real)
     rbr = round_bank_roll(player)
     vrb = valid_raise_bounds(table, player)
     @cdebug logger "vrb = $vrb, amt = $amt, prc = $prc, rbr=$rbr, br=$(bank_roll(player))"
-    @assert !(vrb[1] == vrb[2] ≈ 0) "Cannot raise 0."
-    if amt ≈ 0
+    @assert !(vrb[1] == vrb[2] == 0) "Cannot raise 0."
+    if amt == 0
         return false, "Cannot raise $amt. Raise must be between [\$$(vrb[1]), \$$(vrb[2])]"
     end
     if !(amt ≤ rbr)
         return false, "Insufficient funds (\$$rbr) to raise \$$amt. Raise must be between [\$$(vrb[1]), \$$(vrb[2])]"
     end
-    if !(vrb[1] ≤ amt ≤ vrb[2] || amt ≈ vrb[1] ≈ vrb[2])
-        if vrb[1] ≈ vrb[2]
+    if !(vrb[1] ≤ amt ≤ vrb[2] || amt == vrb[1] == vrb[2])
+        if vrb[1] == vrb[2]
             return false, "Only allowable raise is \$$(vrb[1]) (all-in)"
         else
             return false, "Raise must be between [\$$(vrb[1]), \$$(vrb[2])]"
@@ -292,7 +291,7 @@ function opponents_being_put_all_in(table::Table, player::Player, amt::Real)
         cond1 = !all_in(opponent)
         cond2 = still_playing(opponent)
         cond3 = seat_number(opponent) ≠ seat_number(player)
-        cond4 = amt > rbr || amt ≈ rbr
+        cond4 = amt > rbr || amt == rbr
         all((cond1, cond2, cond3, cond4))
     end
     return name.(opponents)
@@ -329,7 +328,7 @@ function raise_to_valid_raise_amount!(table::Table, player::Player, amt::Real)
     end
     @cinfo logger begin
         pbpai = opponents_being_put_all_in(table, player, amt)
-        if bank_roll(player) ≈ 0
+        if bank_roll(player) == 0
             if isempty(pbpai)
                 "$(name(player)) raised to $(amt) (all-in)."
             else

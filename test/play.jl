@@ -23,7 +23,7 @@ end
 @testset "Game: Play (BotBetSB) - breaks lowest allowable bet" begin
     game = QuietGame((Player(BotBetSB(),1), Player(BotCheckCall(),2)))
     # Cannot raise small blind on pre-flop! The big blind is the raise min raise, so we must raise at least big-blind
-    @test_throws AssertionError("Raise must be between [\$4.0, \$200.0]") play!(game)
+    @test_throws AssertionError("Raise must be between [\$4, \$200]") play!(game)
 end
 
 @testset "Game: Play (BotBetBB)" begin
@@ -56,7 +56,7 @@ end
     # We catch this incorrect option error before it's completed,
     # so we can't error in `validate_action`
     # @test_throws ErrorException("Cannot call. Available options: CheckRaiseFold") play!(game)
-    @test_throws AssertionError("Cannot contribute \$0.0 to the pot!") play!(game)
+    @test_throws AssertionError("Cannot contribute \$0 to the pot!") play!(game)
 end
 @testset "Non-valid option using BotRaiseOnCallFold" begin
     game = QuietGame((Player(BotRaiseOnCallFold(), 1), Player(BotRaiseAllIn(), 2)))
@@ -96,9 +96,6 @@ end
 n_check_actions = [0]
 n_call_actions = [0]
 @testset "N-actions (custom 1)" begin
-    # Inspired by:
-    # [ Info: Initial bank roll summary: (260.0, 0.0, 37.0, 0.0, 203.0)
-    # [ Info: Buttons (dealer, small, big, 1ˢᵗToAct): (1, 3, 5, 1)
     play!(QuietGame((
         Player(BotNActions(), 1),
         Player(BotNActions(), 2; bank_roll = 0),
@@ -118,15 +115,12 @@ end
 n_check_actions = [0]
 n_call_actions = [0]
 @testset "N-actions (custom 2)" begin
-    # Inspired by:
-    # [ Info: Initial bank roll summary: (195.0, 0.0, 256.0, 4.0, 45.0)
-    # [ Info: Buttons (dealer, small, big, 1ˢᵗToAct): (5, 1, 3, 4)
     play!(QuietGame((
-        Player(BotNActions(), 1; bank_roll = 195.0),
+        Player(BotNActions(), 1; bank_roll = 195),
         Player(BotCheckCall(), 2; bank_roll = 0),
-        Player(BotPreFlopRaise(7.0), 3; bank_roll = 256.0),
-        Player(BotCheckCall(), 4; bank_roll = 4.0),
-        Player(BotCheckFold(), 5; bank_roll = 45.0),
+        Player(BotPreFlopRaise(7), 3; bank_roll = 256),
+        Player(BotCheckCall(), 4; bank_roll = 4),
+        Player(BotCheckFold(), 5; bank_roll = 45),
     ); dealer_pidx = 1))
 
     @test n_call_actions[1] == 2 # dealer + small blind

@@ -27,11 +27,11 @@ function cofigure_bank_roll(blinds)
         println("Enter bank roll:")
         bank_roll = readline()
         try
-            bank_roll = parse(Float64, bank_roll)
+            bank_roll = parse(Real, bank_roll)
             bank_roll ≥ blinds.big && break
             println("Bank roll must be larger than or equal to the big blind")
         catch
-            println("Bank roll must be a Float64 larger than or equal to the big blind")
+            println("Bank roll must be a Real larger than or equal to the big blind")
         end
     end
     @assert bank_roll ≠ nothing
@@ -45,7 +45,7 @@ function cofigure_blinds()
         println("Enter big blind amount:")
         big_blinds = readline()
         try
-            big_blinds = parse(Float64, big_blinds)
+            big_blinds = parse(Real, big_blinds)
             big_blinds > sqrt(eps(Float64)) && break
             println("Blinds must be larger than `sqrt(eps(Float64))`")
         catch

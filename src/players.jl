@@ -60,5 +60,3 @@ Base.sortperm(players::Players{<:AbstractArray}) =
 
 Base.sortperm(players::Players{<:Tuple}) =
     TupleTools.sortperm(map(x->bank_roll(x), players.players))
-
-
