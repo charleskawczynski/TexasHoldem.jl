@@ -19,17 +19,17 @@ mutable struct Player{LF}
     life_form::LF
     seat_number::Int
     cards::Union{Nothing,Tuple{<:Card,<:Card}}
-    bank_roll::Float64
+    bank_roll::Int
     action_history::Vector
     action_required::Bool
     all_in::Bool
-    round_bank_roll::Float64 # bank roll at the beginning of the round
+    round_bank_roll::Int # bank roll at the beginning of the round
     folded::Bool
-    pot_investment::Float64 # accumulation of round_contribution
+    pot_investment::Int # accumulation of round_contribution
     checked::Bool
     last_to_raise::Bool
     active::Bool
-    round_contribution::Float64
+    round_contribution::Int
 end
 
 function Base.show(io::IO, player::Player, include_type = true)
@@ -41,18 +41,19 @@ function Player(life_form, seat_number, cards = nothing; bank_roll = 200)
     action_history = []
     action_required = true
     all_in = false
-    round_bank_roll = Float64(bank_roll)
+    round_bank_roll = bank_roll
     folded = false
-    pot_investment = Float64(0)
+    pot_investment = 0
     checked = false
     active = true
-    round_contribution = Float64(0)
+    round_contribution = 0
     last_to_raise = false
+    LF = typeof(life_form)
     args = (
         life_form,
         seat_number,
         cards,
-        Float64(bank_roll),
+        bank_roll,
         action_history,
         action_required,
         all_in,
@@ -72,7 +73,7 @@ bank_roll(player::Player) = player.bank_roll
 seat_number(player::Player) = player.seat_number
 name(player::Player{LF}) where {LF <: AbstractLifeForm} = "$(nameof(LF))[$(seat_number(player))]"
 folded(player::Player) = player.folded
-zero_bank_roll(player::Player) = bank_roll(player) ≈ 0
+zero_bank_roll(player::Player) = bank_roll(player) == 0
 still_playing(player::Player) = active(player) && !folded(player)
 not_playing(player::Player) = !still_playing(player)
 action_history(player::Player) = player.action_history

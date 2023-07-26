@@ -61,34 +61,34 @@ end
     # No initial round contribution
     players = (Player(Human(), 1), Player(Bot5050(), 2))
     game = Game(players)
-    game.table.current_raise_amt = 10.0
-    simulate_keystrokes(:enter, 'd', 10.0)
+    game.table.current_raise_amt = 10
+    simulate_keystrokes(:enter, 'd', 10)
     TH.player_option!(game, players[1], CallRaiseFold())
-    @test last(TH.action_history(players[1])) == Call{Float64}(10.0)
+    @test last(TH.action_history(players[1])) == Call{Int}(10)
 
     players = (Player(Human(), 1), Player(Bot5050(), 2))
     game = Game(players)
-    game.table.current_raise_amt = 10.0
-    simulate_keystrokes(:enter, 'd', 10.0)
+    game.table.current_raise_amt = 10
+    simulate_keystrokes(:enter, 'd', 10)
     TH.player_option!(game, players[1], CallAllInFold())
-    @test last(TH.action_history(players[1])) == Call{Float64}(10.0)
+    @test last(TH.action_history(players[1])) == Call{Int}(10)
 
     players = (Player(Human(), 1), Player(Bot5050(), 2))
     game = Game(players)
-    game.table.current_raise_amt = 10.0
-    simulate_keystrokes(:enter, 'd', 10.0)
+    game.table.current_raise_amt = 10
+    simulate_keystrokes(:enter, 'd', 10)
     TH.player_option!(game, players[1], CallFold())
-    @test last(TH.action_history(players[1])) == Call{Float64}(10.0)
+    @test last(TH.action_history(players[1])) == Call{Int}(10)
 end
 
 @testset "Test All-in raise" begin
     # No initial round contribution
     players = (Player(Human(), 1), Player(Bot5050(), 2))
     game = Game(players)
-    game.table.current_raise_amt = 10.0
+    game.table.current_raise_amt = 10
     simulate_keystrokes(:down, :enter, 'd')
     TH.player_option!(game, players[1], CallAllInFold())
-    @test last(TH.action_history(players[1])) == Raise{Float64}(200.0)
+    @test last(TH.action_history(players[1])) == Raise{Int}(200)
 end
 
 #=

@@ -95,7 +95,7 @@ function all_bets_were_called(table::Table)
             cond1 = seat_number(player) == seat_number(lptr)
             cond2 = not_playing(player)
             cond3 = all_in(player)
-            cond4 = pot_investment(player) ≈ pot_investment(lptr)
+            cond4 = pot_investment(player) == pot_investment(lptr)
             (sn, cond1, cond2, cond3, cond4)
         end
         for cond in conds_debug
@@ -107,7 +107,7 @@ function all_bets_were_called(table::Table)
         cond1 = seat_number(player) == seat_number(lptr)
         cond2 = not_playing(player)
         cond3 = all_in(player)
-        cond4 = pot_investment(player) ≈ pot_investment(lptr)
+        cond4 = pot_investment(player) == pot_investment(lptr)
         any((cond1, cond2, cond3, cond4))
     end, players)
 end
@@ -240,13 +240,13 @@ function _deal_and_play!(game::Game)
     @cdebug logger "initial_brs = $(initial_brs)"
     @cdebug logger "bank_roll.(players_at_table(table)) = $(bank_roll.(players_at_table(table)))"
 
-    @cdebug logger begin
-        if !(initial_∑brs ≈ sum(x->bank_roll(x), players_at_table(table)))
+    if !(logger isa ByPassLogger)
+        if !(initial_∑brs == sum(x->bank_roll(x), players_at_table(table)))
             @cinfo logger "initial_∑brs=$initial_∑brs, brs=$(bank_roll.(players_at_table(table)))"
         end
     end
-    @assert initial_∑brs ≈ sum(x->bank_roll(x), players_at_table(table)) # eventual assertion
-    @assert sum(sp->amount(sp), table.transactions.side_pots) ≈ 0
+    @assert initial_∑brs == sum(x->bank_roll(x), players_at_table(table)) # eventual assertion
+    @assert sum(sp->amount(sp), table.transactions.side_pots) == 0
 
     @cinfo logger "Final bank roll summary: $(bank_roll.(players))"
     @assert winners.declared
@@ -311,7 +311,7 @@ function tournament!(game::Game)
     players = players_at_table(table)
     while length(players) > 1
         play!(game)
-        n_players_remaining = count(x->!(bank_roll(x) ≈ 0), players)
+        n_players_remaining = count(x->!(bank_roll(x) == 0), players)
         if n_players_remaining ≤ 1
             @cinfo logger "Victor emerges!"
             break

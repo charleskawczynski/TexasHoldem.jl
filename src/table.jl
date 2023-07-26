@@ -15,9 +15,9 @@ function Base.show(io::IO, winners::Winners, include_type = true)
     println(io, "Winners declared = $(winners.declared)")
 end
 
-struct Blinds{S,B}
-    small::S
-    big::B
+struct Blinds{T}
+    small::T
+    big::T
 end
 
 Blinds() = Blinds(1,2) # default
@@ -53,11 +53,11 @@ mutable struct Table{P<:Players, L, TM, B <: Blinds, D <: PlayingCards.AbstractD
     players::P
     cards::Union{Nothing,Tuple{<:Card,<:Card,<:Card,<:Card,<:Card}}
     blinds::B
-    pot::Float64
+    pot::Int
     stage::AbstractGameStage
     buttons::Buttons
-    current_raise_amt::Float64
-    initial_round_raise_amt::Float64
+    current_raise_amt::Int
+    initial_round_raise_amt::Int
     transactions::TM
     winners::Winners
     play_out_game::Bool
@@ -99,10 +99,10 @@ function Table(players::Players;
     deck = PlayingCards.MaskedDeck(),
     cards = nothing,
     blinds = Blinds(),
-    pot = Float64(0),
+    pot = 0,
     stage = PreFlop(),
     dealer_pidx = default_dealer_pidx(),
-    current_raise_amt = Float64(0),
+    current_raise_amt = 0,
     initial_round_raise_amt = blinds.small,
     transactions = TransactionManager(players),
     winners = Winners(),
@@ -216,7 +216,7 @@ are multiple players with the largest
 bank roll.
 """
 function bank_roll_leader(table::Table)
-    max_rbr::Float64 = 0
+    max_rbr = 0
     players = players_at_table(table)
     br_leader = first(players)
     for player in players
@@ -229,14 +229,14 @@ function bank_roll_leader(table::Table)
     end
     multiple_leaders = let max_rbr=max_rbr # avoid variable capture
         count(player->begin
-            round_bank_roll(player) ≈ max_rbr && still_playing(player)
+            round_bank_roll(player) == max_rbr && still_playing(player)
         end, players) > 1
     end
     return br_leader, multiple_leaders
 end
 
 paid_current_raise_amount(table::Table, player::Player) =
-    round_contribution(player) ≈ current_raise_amt(table)
+    round_contribution(player) == current_raise_amt(table)
 
 # Can be true in exactly 2 cases:
 #  1) Everyone (still playing) is all-in.
@@ -304,11 +304,11 @@ function is_blind_call(table::Table, player::Player, amt = call_amount(table, pl
     bb = blinds(table).big
     sb = blinds(table).small
     if is_small_blind(table, player)
-        return amt ≈ sb && pot_inv ≈ sb
+        return amt == sb && pot_inv == sb
     elseif is_big_blind(table, player)
-        return amt ≈ 0 && pot_inv ≈ bb
+        return amt == 0 && pot_inv == bb
     else
-        return amt ≈ bb && pot_inv ≈ 0
+        return amt == bb && pot_inv == 0
     end
 end
 

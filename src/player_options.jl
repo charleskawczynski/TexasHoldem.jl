@@ -35,13 +35,13 @@ function player_option!(game::Game, player::Player)
     logger = game.table.logger
     table = game.table
     call_amt = call_amount(table, player)
-    if !(call_amt ≈ 0) # must call to stay in
+    if !(call_amt == 0) # must call to stay in
         cond_1 = bank_roll(player) > call_amt
         cond_2 = an_opponent_can_call_a_raise(table, player)
         raise_possible = cond_1 && cond_2
         if raise_possible # raise possible
             vrb = valid_raise_bounds(table, player)
-            if first(vrb) ≈ last(vrb) # only all-in raise possible
+            if first(vrb) == last(vrb) # only all-in raise possible
                 option = CallAllInFold()
             else
                 option = CallRaiseFold()
@@ -133,12 +133,12 @@ function input_raise_amt(table, player::Player{Human}, io::IO=stdin)
         println_io(io, "Enter raise amt:")
         raise_amt = readline(io)
         try
-            raise_amt = parse(Float64, raise_amt)
+            raise_amt = parse(Int, raise_amt)
             is_valid, msg = is_valid_raise_amount(table, player, raise_amt)
             is_valid && break
             println_io(io, msg)
         catch
-            println_io(io, "Raise must be a Float64")
+            println_io(io, "Raise must be a Int")
         end
     end
     @assert raise_amt ≠ nothing
