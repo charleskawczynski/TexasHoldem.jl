@@ -279,10 +279,16 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards, logg
         else
             pc = player.cards::Tuple{Card,Card}
             tc = table_cards::Tuple{Card,Card,Card,Card,Card}
-            fhe = PHE.FullHandEval((pc..., tc...))
-            sorted_hand_evals[ssn].hand_rank = PHE.hand_rank(fhe)
-            sorted_hand_evals[ssn].hand_type = PHE.hand_type(fhe)
-            sorted_hand_evals[ssn].best_cards = PHE.best_cards(fhe)
+            if logger isa ByPassLogger
+                he = PHE.CompactHandEval((pc..., tc...))
+                sorted_hand_evals[ssn].hand_rank = PHE.hand_rank(he)
+                sorted_hand_evals[ssn].hand_type = PHE.hand_type(he)
+            else
+                he = PHE.FullHandEval((pc..., tc...))
+                sorted_hand_evals[ssn].hand_rank = PHE.hand_rank(he)
+                sorted_hand_evals[ssn].hand_type = PHE.hand_type(he)
+                sorted_hand_evals[ssn].best_cards = PHE.best_cards(he)
+            end
         end
     end
 
@@ -357,22 +363,24 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards, logg
     for (player, initial_br, player_winnings) in zip(players, tm.initial_brs, tm.side_pot_winnings)
         ∑spw = sum(player_winnings)
         ssn = tm.unsorted_to_sorted_map[seat_number(player)]
-        if ∑spw == 0
-            if active(player)
+        if ∑spw == 0 && active(player)
+            @cinfo logger begin
                 she = sorted_hand_evals[ssn]
                 hand_name = she.hand_type
                 bc = she.best_cards
                 f_str = folded(player) ? " (folded)" : ""
-                @cinfo logger "$(name(player)) loses$f_str \$$(pot_investment(player)) with $bc ($hand_name)!"
+                "$(name(player)) loses$f_str \$$(pot_investment(player)) with $bc ($hand_name)!"
             end
         else
-            she = sorted_hand_evals[ssn]
-            hand_name = she.hand_type
-            bc = she.best_cards
-            amt_contributed = initial_br - bank_roll(player)
             @cdebug logger "$(name(player))'s side-pot wins: \$$(player_winnings)!"
-            prof = ∑spw-amt_contributed
-            @cinfo logger "$(name(player)) wins \$$∑spw (\$$prof profit) with $bc ($hand_name)!"
+            @cinfo logger begin
+                she = sorted_hand_evals[ssn]
+                hand_name = she.hand_type
+                bc = she.best_cards
+                amt_contributed = initial_br - bank_roll(player)
+                prof = ∑spw-amt_contributed
+                "$(name(player)) wins \$$∑spw (\$$prof profit) with $bc ($hand_name)!"
+            end
             player.bank_roll += ∑spw
         end
     end
