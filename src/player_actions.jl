@@ -127,46 +127,6 @@ end
 
 custom_clamp(br, lim) = lim > br ? (br, br) : (lim, br)
 
-#=
-    predict_vrb_max(player, logger)
-
-This function is used inside `valid_raise_bounds`
-to ensure a robust "prediction" of a valid raise bounds.
-
-Due to precision errors, we cannot guarantee that
-`0 ≤ amt ≤ bank_roll(player)` will be satisfied
-(without higher precision) in `contribute!`.
-
-Therefore, we iteratively predict if this condition
-will pass, while correcting the maximum allowable
-raise bounds until the condition passes.
-
-This ensures that these raise bounds won't
-result in a player attempting to contribute more
-to the pot than what they have in their bank roll.
-=#
-function predict_vrb_max(player, logger)
-    rbr = round_bank_roll(player)
-    vrb_max_predicted = bank_roll(player)+round_contribution(player)
-    @cdebug logger "   vrb_max_predicted₀ = $(vrb_max_predicted)"
-    warn = false
-    success = false
-    for i in 1:100
-        if !(rbr-round_contribution(player) ≤ bank_roll(player))
-            # TODO: is `10eps()` best here?
-            vrb_max_predicted -= 10eps()
-            warn = true
-        else
-            success = true
-            break
-        end
-    end
-    warn && @cwarn logger "Detected precision errors"
-    success && @cdebug logger "success vrb_max_predicted"
-    @cdebug logger "   vrb_max_predicted = $(vrb_max_predicted)"
-    return vrb_max_predicted
-end
-
 """
     valid_raise_bounds(table::Table, player::Player)
 
@@ -205,7 +165,6 @@ function valid_raise_bounds(table::Table, player::Player)
         s
     end
     lim = cra == 0 ? mra : (cra+irra)
-    # vrb_max_predicted = predict_vrb_max(player, logger)
     @cdebug logger "   lim = $lim"
     vrb = custom_clamp(min(max_orbr, rbr), lim)
     @cdebug logger "   vrb = $vrb"
