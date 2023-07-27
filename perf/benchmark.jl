@@ -9,13 +9,6 @@ import Logging
 import Random
 Random.seed!(1234)
 
-struct BotCheckCall <: AbstractAI end
-
-TH.player_option!(game::Game, player::Player{BotCheckCall}, ::CheckRaiseFold) = check!(game, player)
-TH.player_option!(game::Game, player::Player{BotCheckCall}, ::CallRaiseFold) = call!(game, player)
-TH.player_option!(game::Game, player::Player{BotCheckCall}, ::CallAllInFold) = call!(game, player)
-TH.player_option!(game::Game, player::Player{BotCheckCall}, ::CallFold) = call!(game, player)
-
 players() = ntuple(i->(Player(Bot5050(), i)), 4)
 
 # It's not easy to benchmark games without
@@ -23,9 +16,7 @@ players() = ntuple(i->(Player(Bot5050(), i)), 4)
 # of games. We previously did, and they're
 # very close in benchmark times.
 function do_work!()
-    Logging.with_logger(Logging.NullLogger()) do
-        play!(Game(players();logger=TH.ByPassLogger()))
-    end
+    play!(Game(players();logger=TH.ByPassLogger()))
     return nothing
 end
 

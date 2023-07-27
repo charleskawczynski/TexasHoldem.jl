@@ -2,6 +2,8 @@ import TexasHoldem
 const TH = TexasHoldem
 using TexasHoldem
 using Test
+import Random
+Random.seed!(1234)
 
 import JET
 # Suggested in: https://github.com/aviatesk/JET.jl/issues/455
@@ -13,14 +15,7 @@ macro n_failures(ex)
     )
 end
 
-struct BotCheckCall <: AbstractAI end
-
-TH.player_option!(game::Game, player::Player{BotCheckCall}, ::CheckRaiseFold) = check!(game, player)
-TH.player_option!(game::Game, player::Player{BotCheckCall}, ::CallRaiseFold) = call!(game, player)
-TH.player_option!(game::Game, player::Player{BotCheckCall}, ::CallAllInFold) = call!(game, player)
-TH.player_option!(game::Game, player::Player{BotCheckCall}, ::CallFold) = call!(game, player)
-
-players() = ntuple(i->(Player(BotCheckCall(), i)), 4)
+players() = ntuple(i->(Player(Bot5050(), i)), 4)
 
 function do_work!(game)
     play!(game)
@@ -31,6 +26,7 @@ end
 game = Game(players();logger=TH.ByPassLogger())
 do_work!(game)
 
+Random.seed!(1234)
 game = Game(players();logger=TH.ByPassLogger())
 n_expected_failures = Dict()
 n_expected_failures[v"1.9.2"] = 3
