@@ -144,7 +144,7 @@ function act_generic!(game::Game, stage::AbstractGameStage)
         end
         all_in(player) && continue
         @cdebug logger "$(name(player))'s turn to act"
-        player_option!(game, player)
+        player_option(game, player)
         table.winners.declared && break
         end_preflop_actions(table, player, stage) && break
         if i > n_max_actions(table)

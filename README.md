@@ -40,7 +40,7 @@ tournament!(configure_game()) # play until 1 player remains
 
 # Creating your own bot
 
-Four methods (variants of `player_option!`) need to be defined to create and play your own bot:
+Four methods (variants of `player_option`) need to be defined to create and play your own bot:
 
 ```julia
 using TexasHoldem
@@ -48,61 +48,61 @@ import TexasHoldem as TH
 
 struct MyBot <: AbstractAI end
 
-function TH.player_option!(game::Game, player::Player{MyBot}, ::CheckRaiseFold)
+function TH.player_option(game::Game, player::Player{MyBot}, ::CheckRaiseFold)
     # options are:
-    #    check!(game, player)
+    #    check(game, player)
     #    raise!(game, player, amt::Real)
-    #    raise_all_in!(game, player)
-    #    fold!(game, player)
+    #    raise_all_in(game, player)
+    #    fold(game, player)
     if rand() < 0.5
-        check!(game, player)
+        check(game, player)
     else
         amt = Int(round(rand()*bank_roll(player), digits=0))
         amt = TH.bound_raise(game.table, player, amt) # to properly bound raise amount
-        raise_to!(game, player, amt)
+        raise_to(game, player, amt)
     end
 end
-function TH.player_option!(game::Game, player::Player{MyBot}, ::CallRaiseFold)
+function TH.player_option(game::Game, player::Player{MyBot}, ::CallRaiseFold)
     # options are:
-    #    call!(game, player)
+    #    call(game, player)
     #    raise!(game, player, amt::Real)
-    #    raise_all_in!(game, player)
-    #    fold!(game, player)
+    #    raise_all_in(game, player)
+    #    fold(game, player)
     if rand() < 0.5
         if rand() < 0.5 # Call
-            call!(game, player)
+            call(game, player)
         else # re-raise
             amt = Int(round(rand()*bank_roll(player), digits=0))
             amt = TH.bound_raise(game.table, player, amt) # to properly bound raise amount
-            raise_to!(game, player, amt)
+            raise_to(game, player, amt)
         end
     else
-        fold!(game, player)
+        fold(game, player)
     end
 end
-function TH.player_option!(game::Game, player::Player{MyBot}, ::CallAllInFold)
+function TH.player_option(game::Game, player::Player{MyBot}, ::CallAllInFold)
     # options are:
-    #    call!(game, player)
-    #    raise_all_in!(game, player)
-    #    fold!(game, player)
+    #    call(game, player)
+    #    raise_all_in(game, player)
+    #    fold(game, player)
     if rand() < 0.5
         if rand() < 0.5 # Call
-            call!(game, player)
+            call(game, player)
         else # re-raise
-            raise_all_in!(game, player)
+            raise_all_in(game, player)
         end
     else
-        fold!(game, player)
+        fold(game, player)
     end
 end
-function TH.player_option!(game::Game, player::Player{MyBot}, ::CallFold)
+function TH.player_option(game::Game, player::Player{MyBot}, ::CallFold)
     # options are:
-    #    call!(game, player)
-    #    fold!(game, player)
+    #    call(game, player)
+    #    fold(game, player)
     if rand() < 0.5
-        call!(game, player)
+        call(game, player)
     else
-        fold!(game, player)
+        fold(game, player)
     end
 end
 

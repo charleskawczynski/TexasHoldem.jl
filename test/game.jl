@@ -33,23 +33,23 @@ end
     players = TH.players_at_table(game)
     TH.deal!(game.table, TH.blinds(game.table))
     # Round 1
-    check!(game, players[1])
-    check!(game, players[2])
-    fold!(game, players[3])
+    TH.check!(game, players[1])
+    TH.check!(game, players[2])
+    TH.fold!(game, players[3])
 
     # Round 2
-    check!(game, players[1])
-    check!(game, players[2])
+    TH.check!(game, players[1])
+    TH.check!(game, players[2])
 
     # Round 3
-    raise_to!(game, players[1], 10)
+    TH.raise_to!(game, players[1], 10)
     @test TH.checked(players[1]) == false
-    call!(game, players[2])
+    TH.call!(game, players[2])
 
     # Round 4
-    raise_to!(game, players[1], 20)
+    TH.raise_to!(game, players[1], 20)
     @test TH.checked(players[1]) == false
-    fold!(game, players[2])
+    TH.fold!(game, players[2])
 
     # All-in cases
     players = ntuple(3) do i
@@ -59,15 +59,15 @@ end
     players = TH.players_at_table(game)
     TH.deal!(game.table, TH.blinds(game.table))
     # Round 1
-    check!(game, players[1])
-    check!(game, players[2])
-    fold!(game, players[3])
+    TH.check!(game, players[1])
+    TH.check!(game, players[2])
+    TH.fold!(game, players[3])
 
     # Round 2
-    raise_to!(game, players[1], players[1].bank_roll)
+    TH.raise_to!(game, players[1], players[1].bank_roll)
     @test TH.checked(players[1]) == false
-    call!(game, players[2])
+    TH.call!(game, players[2])
 
-    @test_throws AssertionError raise_to!(game, players[1], 10000) # raise exceeds bank roll!
+    @test_throws AssertionError TH.raise_to!(game, players[1], 10000) # raise exceeds bank roll!
 end
 

@@ -10,28 +10,95 @@ struct CallRaiseFold <: PlayerOptions end
 struct CallAllInFold <: PlayerOptions end
 struct CallFold <: PlayerOptions end
 
-validate_action(::Fold, ::CheckRaiseFold) = nothing
-validate_action(::Fold, ::CallRaiseFold) = nothing
-validate_action(::Fold, ::CallAllInFold) = nothing
-validate_action(::Fold, ::CallFold) = nothing
+validate_action(a::Action, ::CheckRaiseFold) = @assert a.name in (:check, :raise, :all_in, :fold)
+validate_action(a::Action, ::CallRaiseFold) = @assert a.name in (:call, :raise, :all_in, :fold)
+validate_action(a::Action, ::CallAllInFold) = @assert a.name in (:call, :all_in, :fold)
+validate_action(a::Action, ::CallFold) = @assert a.name in (:call, :fold)
 
-validate_action(::Check, ::CheckRaiseFold) = nothing
-validate_action(::Check, ::CallRaiseFold) = error("Cannot check. Available options: CallRaiseFold")
-validate_action(::Check, ::CallAllInFold) = error("Cannot check. Available options: CallAllInFold")
-validate_action(::Check, ::CallFold) = error("Cannot check. Available options: CallFold")
+function update_given_raise!(table, player, amt)
+    logger = table.logger
+    @cdebug logger "$(name(player)) raising to $(amt)."
+    prc = round_contribution(player)
+    @cdebug logger "round_contribution = $prc"
+    @cdebug logger "contributing = $(amt - prc)"
+    @cdebug logger "bank_roll = $(bank_roll(player))"
+    contribute!(table, player, amt - prc, false)
+    table.current_raise_amt = amt
 
-# We catch this error before `call!` completes, so we don't need to catch here.
-# validate_action(::Call, ::CheckRaiseFold) = error("Cannot call. Available options: CheckRaiseFold")
-validate_action(::Call, ::CallRaiseFold) = nothing
-validate_action(::Call, ::CallAllInFold) = nothing
-validate_action(::Call, ::CallFold) = nothing
+    players = players_at_table(table)
+    if all(player -> !player.last_to_raise, players)
+        table.initial_round_raise_amt = amt
+    end
+    player.action_required = false
+    player.last_to_raise = true
+    player.checked = false
+    for opponent in players
+        seat_number(opponent) == seat_number(player) && continue
+        not_playing(opponent) && continue
+        if !all_in(opponent)
+            opponent.action_required = true
+        end
+        opponent.last_to_raise = false
+        # TODO: there's got to be a cleaner way
+        opponent.checked = false # to avoid exiting on all_all_in_or_checked(table).
+    end
+    @cinfo logger begin
+        pbpai = opponents_being_put_all_in(table, player, amt)
+        if bank_roll(player) == 0
+            if isempty(pbpai)
+                "$(name(player)) raised to $(amt) (all-in)."
+            else
+                "$(name(player)) raised to $(amt). Puts player(s) $(join(pbpai, ", ")) all-in."
+            end
+        else
+            if isempty(pbpai)
+                "$(name(player)) raised to $(amt)."
+            else
+                "$(name(player)) raised to $(amt). Puts player(s) $(join(pbpai, ", ")) all-in."
+            end
+        end
+    end
+end
 
-validate_action(::Raise, ::CheckRaiseFold) = nothing
-validate_action(::Raise, ::CallRaiseFold) = nothing
-validate_action(::Raise, ::CallAllInFold) = nothing
-validate_action(::Raise, ::CallFold) = error("Cannot Raise. Available options: CallFold")
+update_given_valid_action!(game::Game, player::Player, action::Action) =
+    update_given_valid_action!(game.table, player, action)
 
-function player_option!(game::Game, player::Player)
+function update_given_valid_action!(table::Table, player::Player, action::Action)
+    logger = table.logger
+    @assert action.name in (:fold, :raise, :call, :check, :all_in)
+    if action.name == :fold
+        player.action_required = false
+        player.folded = true
+        check_for_and_declare_winner!(table)
+        @cinfo logger "$(name(player)) folded!"
+    elseif action.name == :raise || action.name == :all_in
+        amt = valid_raise_amount(table, player, action.amt) # asserts valid requested raise amount
+        update_given_raise!(table, player, amt)
+    elseif action.name == :call
+        # call_valid_amount!(table, player, action.amt)
+        amt = action.amt
+        @cdebug logger "$(name(player)) calling $(amt)."
+        player.action_required = false
+        player.checked = false
+        contribute!(table, player, amt, true)
+        @cinfo logger begin
+            blind_str = is_blind_call(table, player, amt) ? " (blind)" : ""
+            if all_in(player)
+                "$(name(player)) called $(amt)$blind_str (now all-in)."
+            else
+                "$(name(player)) called $(amt)$blind_str."
+            end
+        end
+
+    elseif action.name == :check
+        player.action_required = false
+        player.checked = true
+        @cinfo logger "$(name(player)) checked!"
+    end
+
+end
+
+function predict_option(game, player)
     logger = game.table.logger
     table = game.table
     call_amt = call_amount(table, player)
@@ -52,39 +119,60 @@ function player_option!(game::Game, player::Player)
     else
         option = CheckRaiseFold()
     end
-    @cdebug logger "option = $option"
-
-    n_actions = length(action_history(player))
-
-    player_option!(game, player, option)
-
-    # exactly 1 action must be taken
-    player_action = action_history(player)
-    @assert n_actions + 1 == length(player_action) "Must take exactly 1 action."
-    validate_action(last(player_action), option)
+    return option
 end
 
-# By default, forward to `player_option!` with
+function player_option(game::Game, player::Player)
+    logger = game.table.logger
+    @cdebug logger "predicted option = $(predict_option(game, player))"
+    table = game.table
+    call_amt = call_amount(table, player)
+    local action
+    if !(call_amt == 0) # must call to stay in
+        cond_1 = bank_roll(player) > call_amt
+        cond_2 = an_opponent_can_call_a_raise(table, player)
+        raise_possible = cond_1 && cond_2
+        if raise_possible # raise possible
+            vrb = valid_raise_bounds(table, player)
+            if first(vrb) == last(vrb) # only all-in raise possible
+                action = player_option(game, player, CallAllInFold())::Action
+                validate_action(action, CallAllInFold())
+            else
+                action = player_option(game, player, CallRaiseFold())::Action
+                validate_action(action, CallRaiseFold())
+            end
+        else # only all-in possible
+            action = player_option(game, player, CallFold())::Action
+            validate_action(action, CallFold())
+        end
+    else
+        action = player_option(game, player, CheckRaiseFold())::Action
+        validate_action(action, CheckRaiseFold())
+    end
+    update_given_valid_action!(table, player, action)
+end
+
+# By default, forward to `player_option` with
 # game stage:
-player_option!(game::Game, player::Player, option) =
-    player_option!(game, player, stage(game.table), option)
+player_option(game::Game, player::Player, option) =
+    player_option(game, player, stage(game.table), option)
 
 #####
 ##### Human player options (ask via prompts)
 #####
 
-function player_option!(game::Game, player::Player{Human}, ::CheckRaiseFold, io::IO=stdin)
+function player_option(game::Game, player::Player{Human}, ::CheckRaiseFold, io::IO=stdin)
     table = game.table
     vrb = valid_raise_bounds(table, player)
     options = ["Check", "Raise [\$$(minimum(vrb)), \$$(maximum(vrb))]", "Fold"]
     menu = RadioMenu(options, pagesize=4)
     choice = request("$(name(player))'s turn to act:", menu)
     choice == -1 && error("Uncaught case")
-    choice == 1 && check!(game, player)
-    choice == 2 && raise_to!(game, player, input_raise_amt(table, player, io))
-    choice == 3 && fold!(game, player)
+    choice == 1 && return check(game, player)
+    choice == 2 && return raise_to(game, player, input_raise_amt(table, player, io))
+    choice == 3 && return fold(game, player)
 end
-function player_option!(game::Game, player::Player{Human}, ::CallRaiseFold, io::IO=stdin)
+function player_option(game::Game, player::Player{Human}, ::CallRaiseFold, io::IO=stdin)
     table = game.table
     vrb = valid_raise_bounds(table, player)
     call_amt = call_amount(table, player)
@@ -93,11 +181,11 @@ function player_option!(game::Game, player::Player{Human}, ::CallRaiseFold, io::
     menu = RadioMenu(options, pagesize=4)
     choice = request("$(name(player))'s turn to act:", menu)
     choice == -1 && error("Uncaught case")
-    choice == 1 && call!(game, player)
-    choice == 2 && raise_to!(game, player, input_raise_amt(game.table, player, io))
-    choice == 3 && fold!(game, player)
+    choice == 1 && return call(game, player)
+    choice == 2 && return raise_to(game, player, input_raise_amt(game.table, player, io))
+    choice == 3 && return fold(game, player)
 end
-function player_option!(game::Game, player::Player{Human}, ::CallAllInFold)
+function player_option(game::Game, player::Player{Human}, ::CallAllInFold)
     table = game.table
     call_amt = call_amount(table, player)
     all_in_amt = round_bank_roll(player)
@@ -106,11 +194,11 @@ function player_option!(game::Game, player::Player{Human}, ::CallAllInFold)
     menu = RadioMenu(options, pagesize=4)
     choice = request("$(name(player))'s turn to act:", menu)
     choice == -1 && error("Uncaught case")
-    choice == 1 && call!(game, player)
-    choice == 2 && raise_all_in!(game, player)
-    choice == 3 && fold!(game, player)
+    choice == 1 && return call(game, player)
+    choice == 2 && return raise_all_in(game, player)
+    choice == 3 && return fold(game, player)
 end
-function player_option!(game::Game, player::Player{Human}, ::CallFold)
+function player_option(game::Game, player::Player{Human}, ::CallFold)
     table = game.table
     call_amt = call_amount(table, player)
     blind_str = is_blind_call(table, player) ? " (blind)" : ""
@@ -118,8 +206,8 @@ function player_option!(game::Game, player::Player{Human}, ::CallFold)
     menu = RadioMenu(options, pagesize=4)
     choice = request("$(name(player))'s turn to act:", menu)
     choice == -1 && error("Uncaught case")
-    choice == 1 && call!(game, player)
-    choice == 2 && fold!(game, player)
+    choice == 1 && return call(game, player)
+    choice == 2 && return fold(game, player)
 end
 
 # io only works for tests, but does not for user input
@@ -152,43 +240,43 @@ end
 
 ##### Bot5050
 
-function player_option!(game::Game, player::Player{Bot5050}, ::CheckRaiseFold)
+function player_option(game::Game, player::Player{Bot5050}, ::CheckRaiseFold)
     if rand() < 0.5
-        check!(game, player)
+        return check(game, player)
     else
         amt = Int(round(rand()*bank_roll(player), digits=0))
         amt = bound_raise(game.table, player, amt)
-        raise_to!(game, player, amt)
+        return raise_to(game, player, amt)
     end
 end
-function player_option!(game::Game, player::Player{Bot5050}, ::CallRaiseFold)
+function player_option(game::Game, player::Player{Bot5050}, ::CallRaiseFold)
     if rand() < 0.5
         if rand() < 0.5 # Call
-            call!(game, player)
+            return call(game, player)
         else # re-raise
             amt = Int(round(rand()*bank_roll(player), digits=0))
             amt = bound_raise(game.table, player, amt)
-            raise_to!(game, player, amt)
+            return raise_to(game, player, amt)
         end
     else
-        fold!(game, player)
+        return fold(game, player)
     end
 end
-function player_option!(game::Game, player::Player{Bot5050}, ::CallAllInFold)
+function player_option(game::Game, player::Player{Bot5050}, ::CallAllInFold)
     if rand() < 0.5
         if rand() < 0.5 # Call
-            call!(game, player)
+            return call(game, player)
         else # re-raise
-            raise_all_in!(game, player)
+            return raise_all_in(game, player)
         end
     else
-        fold!(game, player)
+        return fold(game, player)
     end
 end
-function player_option!(game::Game, player::Player{Bot5050}, ::CallFold)
+function player_option(game::Game, player::Player{Bot5050}, ::CallFold)
     if rand() < 0.5
-        call!(game, player)
+        return call(game, player)
     else
-        fold!(game, player)
+        return fold(game, player)
     end
 end

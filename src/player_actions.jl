@@ -2,44 +2,37 @@
 ##### Player actions
 #####
 
-export fold!, check!, raise_to!, call!, raise_all_in!
+export fold, check, raise_to, call, raise_all_in
 export Fold, Check, Call, Raise
 export call_amount
 
-abstract type AbstractAction end
-struct Fold <: AbstractAction end
-struct Check <: AbstractAction end
-struct Call{T <: Real} <: AbstractAction
-    amt::T
+struct Action
+    name::Symbol
+    amt::Int
 end
-struct Raise{T <: Real} <: AbstractAction
-    amt::T
+Fold() = Action(:fold, 0)
+Check() = Action(:check, 0)
+Call(amt::Int) = Action(:call, amt)
+function Raise(amt::Int)
+    @assert amt > 0 "Cannot raise less than 0!"
+    Action(:raise, amt)
+end
+function AllIn(amt::Int)
+    @assert amt > 0 "Cannot raise less than 0!"
+    Action(:all_in, amt)
 end
 
 #####
 ##### Fold
 #####
 
-function fold!(game::Game, player::Player)
-    push!(player.action_history, Fold())
-    player.action_required = false
-    player.folded = true
-    check_for_and_declare_winner!(game.table)
-    logger = game.table.logger
-    @cinfo logger "$(name(player)) folded!"
-end
+fold(game::Game, player::Player) = Fold()
 
 #####
 ##### Check
 #####
 
-function check!(game::Game, player::Player)
-    push!(player.action_history, Check())
-    player.action_required = false
-    player.checked = true
-    logger = game.table.logger
-    @cinfo logger "$(name(player)) checked!"
-end
+check(game::Game, player::Player) = Check()
 
 #####
 ##### Call
@@ -58,18 +51,17 @@ function call_amount(table::Table, player::Player)
     return call_amt
 end
 
-call!(game::Game, player::Player) = call!(game.table, player)
+call(game::Game, player::Player) = call(game.table, player)
 
-function call!(table::Table, player::Player)
+function call(table::Table, player::Player)
     call_amt = call_amount(table, player)
     amt = call_amt ≤ bank_roll(player) ? call_amt : bank_roll(player)
-    call_valid_amount!(table, player, amt)
+    return Call(amt)
 end
 
 function call_valid_amount!(table::Table, player::Player, amt::Real)
     logger = table.logger
     @cdebug logger "$(name(player)) calling $(amt)."
-    push!(player.action_history, Call(amt))
     player.action_required = false
     player.checked = false
     blind_str = is_blind_call(table, player, amt) ? " (blind)" : ""
@@ -218,7 +210,7 @@ function valid_raise_amount(table::Table, player::Player, amt::Real)
 end
 
 """
-    raise_to!(game::Game, player::Player, amt)
+    raise_to(game::Game, player::Player, amt)
 
 Raise bet, for the _round_, to amount `amt`. Example:
 ```
@@ -238,10 +230,14 @@ Player[2] call
 Player[3] call
 ```
 """
-raise_to!(game::Game, player::Player, amt::Real) = raise_to!(game.table, player, amt)
+raise_to(game::Game, player::Player, amt::Real) = raise_to(game.table, player, amt)
+raise_to(table::Table, player::Player, amt::Real) =
+    Raise(amt)
 
-raise_to!(table::Table, player::Player, amt::Real) =
-    raise_to_valid_raise_amount!(table, player, valid_raise_amount(table, player, amt))
+call!(t, p) = update_given_valid_action!(t, p, call(t, p))
+raise_to!(t, p, amt) = update_given_valid_action!(t, p, raise_to(t, p, amt))
+fold!(t, p) = update_given_valid_action!(t, p, fold(t, p))
+check!(t, p) = update_given_valid_action!(t, p, check(t, p))
 
 #=Not performance critical (only needed for info log)=#
 function opponents_being_put_all_in(table::Table, player::Player, amt::Real)
@@ -256,55 +252,6 @@ function opponents_being_put_all_in(table::Table, player::Player, amt::Real)
     return name.(opponents)
 end
 
-function raise_to_valid_raise_amount!(table::Table, player::Player, amt::Real)
-    logger = table.logger
-    @cdebug logger "$(name(player)) raising to $(amt)."
-    prc = round_contribution(player)
-    @cdebug logger "round_contribution = $prc"
-    @cdebug logger "contributing = $(amt - prc)"
-    @cdebug logger "bank_roll = $(bank_roll(player))"
-    contribute!(table, player, amt - prc, false)
-    table.current_raise_amt = amt
-
-    push!(player.action_history, Raise(amt))
-
-    players = players_at_table(table)
-    if all(player -> !player.last_to_raise, players)
-        table.initial_round_raise_amt = amt
-    end
-    player.action_required = false
-    player.last_to_raise = true
-    player.checked = false
-    for opponent in players
-        seat_number(opponent) == seat_number(player) && continue
-        not_playing(opponent) && continue
-        if !all_in(opponent)
-            opponent.action_required = true
-        end
-        opponent.last_to_raise = false
-        # TODO: there's got to be a cleaner way
-        opponent.checked = false # to avoid exiting on all_all_in_or_checked(table).
-    end
-    @cinfo logger begin
-        pbpai = opponents_being_put_all_in(table, player, amt)
-        if bank_roll(player) == 0
-            if isempty(pbpai)
-                "$(name(player)) raised to $(amt) (all-in)."
-            else
-                "$(name(player)) raised to $(amt). Puts player(s) $(join(pbpai, ", ")) all-in."
-            end
-        else
-            if isempty(pbpai)
-                "$(name(player)) raised to $(amt)."
-            else
-                "$(name(player)) raised to $(amt). Puts player(s) $(join(pbpai, ", ")) all-in."
-            end
-        end
-    end
-end
-
-raise_all_in!(game::Game, player::Player) = raise_all_in!(game.table, player)
-function raise_all_in!(table::Table, player::Player)
-    vrb = valid_raise_bounds(table, player)
-    raise_to!(table, player, last(vrb))
-end
+raise_all_in(game::Game, player::Player) = raise_all_in(game.table, player)
+raise_all_in(table::Table, player::Player) =
+    AllIn(last(valid_raise_bounds(table, player)))
