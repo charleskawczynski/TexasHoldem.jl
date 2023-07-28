@@ -6,17 +6,17 @@ export Player, bank_roll
 export Human, round_bank_roll
 export AbstractAI, Bot5050
 
-abstract type AbstractLifeForm end
+abstract type AbstractStrategy end
 
-struct Human <: AbstractLifeForm end
+struct Human <: AbstractStrategy end
 
-abstract type AbstractAI <: AbstractLifeForm end
+abstract type AbstractAI <: AbstractStrategy end
 struct Bot5050 <: AbstractAI end
 
 ai_to_use() = Bot5050()
 
-mutable struct Player{LF}
-    life_form::LF
+mutable struct Player{S}
+    strategy::S
     seat_number::Int
     cards::Union{Nothing,Tuple{<:Card,<:Card}}
     bank_roll::Int
@@ -37,7 +37,7 @@ function Base.show(io::IO, player::Player, include_type = true)
     println(io, "$(name(player))        = $(player.cards)")
 end
 
-function Player(life_form, seat_number, cards = nothing; bank_roll = 200)
+function Player(strategy, seat_number, cards = nothing; bank_roll = 200)
     action_history = []
     action_required = true
     all_in = false
@@ -48,9 +48,9 @@ function Player(life_form, seat_number, cards = nothing; bank_roll = 200)
     active = true
     round_contribution = 0
     last_to_raise = false
-    LF = typeof(life_form)
+    S = typeof(strategy)
     args = (
-        life_form,
+        strategy,
         seat_number,
         cards,
         bank_roll,
@@ -71,7 +71,7 @@ end
 cards(player::Player) = player.cards
 bank_roll(player::Player) = player.bank_roll
 seat_number(player::Player) = player.seat_number
-name(player::Player{LF}) where {LF <: AbstractLifeForm} = "$(nameof(LF))[$(seat_number(player))]"
+name(player::Player{S}) where {S <: AbstractStrategy} = "$(nameof(S))[$(seat_number(player))]"
 folded(player::Player) = player.folded
 zero_bank_roll(player::Player) = bank_roll(player) == 0
 still_playing(player::Player) = active(player) && !folded(player)
@@ -86,5 +86,5 @@ inactive(player::Player) = !active(player)
 round_bank_roll(player::Player) = player.round_bank_roll
 pot_investment(player::Player) = player.pot_investment
 round_contribution(player::Player) = player.round_contribution
-life_form(player::Player) = player.life_form
+strategy(player::Player) = player.strategy
 

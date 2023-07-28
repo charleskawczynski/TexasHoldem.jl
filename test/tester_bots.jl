@@ -117,7 +117,7 @@ end
 # Call blind / check pre-flop, raise on flop
 
 TH.player_option!(game::Game, player::Player{<:BotPreFlopRaise}, ::AGS, ::CheckRaiseFold) = check!(game, player)
-TH.player_option!(game::Game, player::Player{<:BotPreFlopRaise}, ::AGS, ::CallRaiseFold) = raise_to!(game, player, TH.life_form(player).amt)
+TH.player_option!(game::Game, player::Player{<:BotPreFlopRaise}, ::AGS, ::CallRaiseFold) = raise_to!(game, player, TH.strategy(player).amt)
 TH.player_option!(game::Game, player::Player{<:BotPreFlopRaise}, ::AGS, ::CallAllInFold) = call!(game, player)
 TH.player_option!(game::Game, player::Player{<:BotPreFlopRaise}, ::AGS, ::CallFold) = call!(game, player)
-TH.player_option!(game::Game, player::Player{<:BotPreFlopRaise}, ::PreFlop, ::CheckRaiseFold) = raise_to!(game, player, TH.life_form(player).amt)
+TH.player_option!(game::Game, player::Player{<:BotPreFlopRaise}, ::PreFlop, ::CheckRaiseFold) = raise_to!(game, player, TH.strategy(player).amt)
