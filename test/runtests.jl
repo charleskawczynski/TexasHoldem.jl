@@ -9,8 +9,11 @@ end
 @safetestset "call_raise_validation" begin
     Δt = @elapsed include("call_raise_validation.jl"); @info "Completed tests for call_raise_validation in $Δt seconds"
 end
+if VERSION ≤ v"1.9"
+# https://github.com/JuliaDebug/TerminalRegressionTests.jl/issues/12
 @safetestset "human_player_option" begin
     Δt = @elapsed include("human_player_option.jl"); @info "Completed tests for human_player_option in $Δt seconds"
+end
 end
 @safetestset "table" begin
     Δt = @elapsed include("table.jl"); @info "Completed tests for table in $Δt seconds"
