@@ -27,11 +27,11 @@ function cofigure_bank_roll(blinds)
         println("Enter bank roll:")
         bank_roll = readline()
         try
-            bank_roll = parse(Real, bank_roll)
+            bank_roll = parse(Int, bank_roll)
             bank_roll ≥ blinds.big && break
             println("Bank roll must be larger than or equal to the big blind")
         catch
-            println("Bank roll must be a Real larger than or equal to the big blind")
+            println("Bank roll must be a Int larger than or equal to the big blind")
         end
     end
     @assert bank_roll ≠ nothing
@@ -40,21 +40,21 @@ function cofigure_bank_roll(blinds)
 end
 
 function cofigure_blinds()
-    sb = nothing
+    small_blind = nothing
     while true
         println("Enter small blind amount:")
-        sb = readline()
+        small_blind = readline()
         try
-            sb = parse(Int, sb)
-            sb > 0 && break
+            small_blind = parse(Int, small_blind)
+            small_blind > 0 && break
             println("Small blind must be larger than 0")
         catch
             println("Small blind must be a `Int` larger than 0")
         end
     end
-    @assert sb ≠ nothing
-    @info "Blinds: $(sb), $(2*sb)"
-    return Blinds(sb, 2*sb)
+    @assert small_blind ≠ nothing
+    @info "Blinds: $(small_blind), $(2*small_blind)"
+    return Blinds(small_blind, 2*small_blind)
 end
 
 function configure_basic_heads_up_game()

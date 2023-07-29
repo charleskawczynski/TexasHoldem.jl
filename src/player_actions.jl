@@ -59,7 +59,7 @@ function call(table::Table, player::Player)
     return Call(amt)
 end
 
-function call_valid_amount!(table::Table, player::Player, amt::Real)
+function call_valid_amount!(table::Table, player::Player, amt::Int)
     logger = table.logger
     @cdebug logger "$(name(player)) calling $(amt)."
     player.action_required = false
@@ -101,7 +101,7 @@ end
 
 Given a raise amount `amt`, return a valid raise amount.
 """
-function bound_raise(table::Table, player::Player, amt::Real)
+function bound_raise(table::Table, player::Player, amt::Int)
     vrb = valid_raise_bounds(table, player)
     return clamp(amt, vrb...)
 end
@@ -172,7 +172,7 @@ A `Tuple` of two elements:
  - A `Bool`, `is_valid`, indicating if the raise amount is valid or not
  - A `String`, `msg`, of the error message (`msg` = "" if `is_valid = true`).
 """
-function is_valid_raise_amount(table::Table, player::Player, amt::Real)
+function is_valid_raise_amount(table::Table, player::Player, amt::Int)
     logger = table.logger
     prc = round_contribution(player)
     rbr = round_bank_roll(player)
@@ -203,7 +203,7 @@ end
 
 Return back `amt` if `amt` is a valid raise amount.
 """
-function valid_raise_amount(table::Table, player::Player, amt::Real)
+function valid_raise_amount(table::Table, player::Player, amt::Int)
     is_valid, msg = is_valid_raise_amount(table, player, amt)
     @assert is_valid "$msg"
     return amt
@@ -230,8 +230,8 @@ Player[2] call
 Player[3] call
 ```
 """
-raise_to(game::Game, player::Player, amt::Real) = raise_to(game.table, player, amt)
-raise_to(table::Table, player::Player, amt::Real) =
+raise_to(game::Game, player::Player, amt::Int) = raise_to(game.table, player, amt)
+raise_to(table::Table, player::Player, amt::Int) =
     Raise(amt)
 
 call!(t, p) = update_given_valid_action!(t, p, call(t, p))
@@ -240,7 +240,7 @@ fold!(t, p) = update_given_valid_action!(t, p, fold(t, p))
 check!(t, p) = update_given_valid_action!(t, p, check(t, p))
 
 #=Not performance critical (only needed for info log)=#
-function opponents_being_put_all_in(table::Table, player::Player, amt::Real)
+function opponents_being_put_all_in(table::Table, player::Player, amt::Int)
     opponents = filter(players_at_table(table)) do opponent
         rbr = round_bank_roll(opponent)
         cond1 = !all_in(opponent)
