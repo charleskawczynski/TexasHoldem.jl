@@ -6,7 +6,7 @@ TH = TexasHoldem
 
 QuietGame(args...; kwargs...) = Game(args...; kwargs..., logger=TH.ByPassLogger())
 
-function valid_raise_bounds_simple(table::Table, player::Player)
+function valid_raise_range_simple(table::Table, player::Player)
     cra = TH.current_raise_amt(table)
     irra = TH.initial_round_raise_amt(table)
     rbr = TH.round_bank_roll(player)
@@ -15,84 +15,86 @@ function valid_raise_bounds_simple(table::Table, player::Player)
         mr = TH.minimum_raise_amt(table)
         if max_orbr > rbr # at least one opponent can cover `player`'s all-in
             if mr > rbr
-                vrb, case = (rbr, rbr), 1
+                vrr, case = (rbr, rbr), 1
             else
-                vrb, case = (mr, rbr), 2
+                vrr, case = (mr, rbr), 2
             end
         else # raise limited by opponent's bank roll
             if mr > max_orbr
-                vrb, case = (max_orbr, max_orbr), 3
+                vrr, case = (max_orbr, max_orbr), 3
             else
-                vrb, case = (mr, max_orbr), 4
+                vrr, case = (mr, max_orbr), 4
             end
         end
     else # re-raise
         if max_orbr > rbr # at least one opponent can cover `player`'s all-in
             if (cra+irra) > rbr
-                vrb, case = (rbr, rbr), 5
+                vrr, case = (rbr, rbr), 5
             else
-                vrb, case = ((cra+irra), rbr), 6
+                vrr, case = ((cra+irra), rbr), 6
             end
         else # raise limited by opponent's bank roll
             if (cra+irra) > max_orbr
-                vrb, case = (max_orbr, max_orbr), 7
+                vrr, case = (max_orbr, max_orbr), 7
             else
-                vrb, case = ((cra+irra), max_orbr), 8
+                vrr, case = ((cra+irra), max_orbr), 8
             end
         end
     end
-    @assert vrb[2] ≥ vrb[1] "Min valid raise bound must be ≤ max valid raise bound."
-    return vrb, case
+    minraise = first(vrr)
+    maxraise = last(vrr)
+    @assert maxraise ≥ minraise "Min valid raise bound must be ≤ max valid raise bound."
+    return (minraise:maxraise), case
 end
 
-@testset "valid_raise_bounds" begin
+@testset "valid_raise_range" begin
     # Case 1
     table = QuietGame((Player(Bot5050(), 1; bank_roll=1), Player(Bot5050(), 2));blinds = TH.Blinds(2,4)).table
     players = TH.players_at_table(table)
     table.current_raise_amt = 0
-    @test valid_raise_bounds_simple(table, players[1]) == (TH.valid_raise_bounds(table, players[1]), 1)
+    @test valid_raise_range_simple(table, players[1]) == (TH.valid_raise_range(table, players[1]), 1)
 
     # Case 2
     table = QuietGame((Player(Bot5050(), 1), Player(Bot5050(), 2; bank_roll = 300))).table
     players = TH.players_at_table(table)
     table.current_raise_amt = 0
-    @test valid_raise_bounds_simple(table, players[1]) == (TH.valid_raise_bounds(table, players[1]), 2)
+    @test valid_raise_range_simple(table, players[1]) == (TH.valid_raise_range(table, players[1]), 2)
 
     # Case 3
     table = QuietGame((Player(Bot5050(), 1; bank_roll=2), Player(Bot5050(), 2; bank_roll = 1)); blinds=TH.Blinds(2,4)).table
     players = TH.players_at_table(table)
     table.current_raise_amt = 0
-    @test valid_raise_bounds_simple(table, players[1]) == (TH.valid_raise_bounds(table, players[1]), 3)
+    @test valid_raise_range_simple(table, players[1]) == (TH.valid_raise_range(table, players[1]), 3)
 
     # Case 4
     table = QuietGame((Player(Bot5050(), 1), Player(Bot5050(), 2; bank_roll = 50))).table
     players = TH.players_at_table(table)
     table.current_raise_amt = 0
-    @test valid_raise_bounds_simple(table, players[1]) == (TH.valid_raise_bounds(table, players[1]), 4)
+    @test valid_raise_range_simple(table, players[1]) == (TH.valid_raise_range(table, players[1]), 4)
 
     # Case 5
     table = QuietGame((Player(Bot5050(), 1; bank_roll=1), Player(Bot5050(), 2))).table
     players = TH.players_at_table(table)
     table.current_raise_amt = 1
-    @test valid_raise_bounds_simple(table, players[1]) == (TH.valid_raise_bounds(table, players[1]), 5)
+    @test valid_raise_range_simple(table, players[1]) == (TH.valid_raise_range(table, players[1]), 5)
 
     # Case 6
     table = QuietGame((Player(Bot5050(), 1), Player(Bot5050(), 2; bank_roll = 300))).table
     players = TH.players_at_table(table)
     table.current_raise_amt = 1
-    @test valid_raise_bounds_simple(table, players[1]) == (TH.valid_raise_bounds(table, players[1]), 6)
+    @test valid_raise_range_simple(table, players[1]) == (TH.valid_raise_range(table, players[1]), 6)
 
     # Case 7
     table = QuietGame((Player(Bot5050(), 1; bank_roll=2), Player(Bot5050(), 2; bank_roll = 1));blinds=TH.Blinds(2,4)).table
     players = TH.players_at_table(table)
     table.current_raise_amt = 1
-    @test valid_raise_bounds_simple(table, players[1]) == (TH.valid_raise_bounds(table, players[1]), 7)
+    @test valid_raise_range_simple(table, players[1]) == (TH.valid_raise_range(table, players[1]), 7)
 
     # Case 8
     table = QuietGame((Player(Bot5050(), 1), Player(Bot5050(), 2; bank_roll = 50))).table
     players = TH.players_at_table(table)
     table.current_raise_amt = 1
-    @test valid_raise_bounds_simple(table, players[1]) == (TH.valid_raise_bounds(table, players[1]), 8)
+    @test valid_raise_range_simple(table, players[1]) == (TH.valid_raise_range(table, players[1]), 8)
 end
 
 @testset "is_valid_raise_amount" begin
@@ -100,9 +102,9 @@ end
     table = QuietGame(players).table
     mra = TH.minimum_raise_amt(table)
     @assert mra == TH.blinds(table).small
-    @test TH.is_valid_raise_amount(table, players[1], 0) == (false, "Cannot raise 0. Raise must be between [\$$mra, \$200]")
-    @test TH.is_valid_raise_amount(table, players[1], TH.bank_roll(players[1])+1) == (false, "Insufficient funds (\$200) to raise \$201. Raise must be between [\$$mra, \$200]")
-    @test TH.is_valid_raise_amount(table, players[1], -1) == (false, "Raise must be between [\$$mra, \$200]")
+    @test TH.is_valid_raise_amount(table, players[1], 0) == (false, "Cannot raise 0. Raise must be between [$mra, 200]")
+    @test TH.is_valid_raise_amount(table, players[1], TH.bank_roll(players[1])+1) == (false, "Insufficient funds (200) to raise 201. Raise must be between [$mra, 200]")
+    @test TH.is_valid_raise_amount(table, players[1], -1) == (false, "Cannot raise -1. Raise must be between [$mra, 200]")
 
     @test TH.is_valid_raise_amount(table, players[1], TH.bank_roll(players[1])-1) == (true, "")
     @test TH.is_valid_raise_amount(table, players[1], TH.blinds(table).small) == (true, "")
@@ -115,14 +117,14 @@ end
     table.current_raise_amt = 20
     players[1].round_contribution = 200
     players[1].round_bank_roll = 500 # oops
-    @test TH.is_valid_raise_amount(table, players[1], 200) == (false, "Cannot contribute \$0 to the pot.")
+    @test TH.is_valid_raise_amount(table, players[1], 200) == (false, "Cannot contribute 0 to the pot.")
 
     players = (Player(Human(), 1), Player(Bot5050(), 2))
     table = QuietGame(players).table
     table.initial_round_raise_amt = 10
     table.current_raise_amt = 10
     players[1].round_bank_roll = 20
-    @test TH.is_valid_raise_amount(table, players[1], 10) == (false, "Only allowable raise is \$20 (all-in)")
+    @test TH.is_valid_raise_amount(table, players[1], 10) == (false, "Only allowable raise is 20 (all-in)")
 
     players = (Player(Human(), 1), Player(Bot5050(), 2))
     table = QuietGame(players).table
@@ -143,7 +145,7 @@ end
     table.initial_round_raise_amt = 5
     table.current_raise_amt = 20
     players[1].round_bank_roll = 30
-    @test TH.is_valid_raise_amount(table, players[1], 22) == (false, "Raise must be between [\$25, \$30]")
+    @test TH.is_valid_raise_amount(table, players[1], 22) == (false, "Cannot raise 22. Raise must be between [25, 30]")
 end
 
 @testset "call_amount" begin

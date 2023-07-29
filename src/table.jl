@@ -441,7 +441,7 @@ function Base.iterate(ct::CircleTable{FirstToAct}, ncpidx = first_to_act_pidx(ct
 end
 
 show_cards(table::Table, player::Player{Human}) = player.cards
-show_cards(table::Table, player::Player{S}) where {S <: AbstractAI} = "(??,??)"
+show_cards(table::Table, player::Player{S}) where {S <: AbstractStrategy} = "(??,??)"
 
 #####
 ##### Deal

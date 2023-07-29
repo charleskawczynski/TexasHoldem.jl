@@ -44,66 +44,32 @@ Four methods (variants of `player_option`) need to be defined to create and play
 
 ```julia
 using TexasHoldem
-import TexasHoldem as TH
+import TexasHoldem: player_option
 
-struct MyBot <: AbstractAI end
+struct MyBot <: AbstractStrategy end
 
-function TH.player_option(game::Game, player::Player{MyBot}, ::CheckRaiseFold)
-    # options are:
-    #    check(game, player)
-    #    raise!(game, player, amt::Int)
-    #    raise_all_in(game, player)
-    #    fold(game, player)
-    if rand() < 0.5
-        return check(game, player)
-    else
-        amt = Int(round(rand()*bank_roll(player), digits=0))
-        amt = TH.bound_raise(game.table, player, amt) # to properly bound raise amount
-        return raise_to(game, player, amt)
-    end
+function player_option(game::Game, player::Player{MyBot}, ::CheckRaiseFold)
+    # options:
+    rand() < 0.5 && return Raise(rand(valid_raise_range(game.table, player)))
+    return Check()
+    # return Fold() # we can fold, but we can check for free
 end
-function TH.player_option(game::Game, player::Player{MyBot}, ::CallRaiseFold)
-    # options are:
-    #    call(game, player)
-    #    raise!(game, player, amt::Int)
-    #    raise_all_in(game, player)
-    #    fold(game, player)
-    if rand() < 0.5
-        if rand() < 0.5 # Call
-            return call(game, player)
-        else # re-raise
-            amt = Int(round(rand()*bank_roll(player), digits=0))
-            amt = TH.bound_raise(game.table, player, amt) # to properly bound raise amount
-            return raise_to(game, player, amt)
-        end
-    else
-        return fold(game, player)
-    end
+function player_option(game::Game, player::Player{MyBot}, ::CallRaiseFold)
+    # options:
+    rand() < 0.5 && return Call(game.table, player)
+    rand() < 0.5 && return Raise(rand(valid_raise_range(game.table, player)))
+    return Fold()
 end
-function TH.player_option(game::Game, player::Player{MyBot}, ::CallAllInFold)
-    # options are:
-    #    call(game, player)
-    #    raise_all_in(game, player)
-    #    fold(game, player)
-    if rand() < 0.5
-        if rand() < 0.5 # Call
-            return call(game, player)
-        else # re-raise
-            return raise_all_in(game, player)
-        end
-    else
-        return fold(game, player)
-    end
+function player_option(game::Game, player::Player{MyBot}, ::CallAllInFold)
+    # options:
+    rand() < 0.5 && return Call(game.table, player)
+    rand() < 0.5 && return AllIn(game.table, player)
+    return Fold()
 end
-function TH.player_option(game::Game, player::Player{MyBot}, ::CallFold)
-    # options are:
-    #    call(game, player)
-    #    fold(game, player)
-    if rand() < 0.5
-        return call(game, player)
-    else
-        return fold(game, player)
-    end
+function player_option(game::Game, player::Player{MyBot}, ::CallFold)
+    # options:
+    rand() < 0.5 && return Call()
+    return Fold()
 end
 
 # Heads-up against the MyBot!

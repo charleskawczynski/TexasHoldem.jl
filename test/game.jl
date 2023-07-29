@@ -3,6 +3,16 @@ using PlayingCards
 using TexasHoldem
 const TH = TexasHoldem
 
+#=
+This reaches into internals
+(`update_given_valid_action!`)
+for the convenience of testing
+=#
+call!(t, p) = TH.update_given_valid_action!(t, p, Call(t, p))
+raise_to!(t, p, amt) = TH.update_given_valid_action!(t, p, Raise(amt))
+fold!(t, p) = TH.update_given_valid_action!(t, p, Fold())
+check!(t, p) = TH.update_given_valid_action!(t, p, Check())
+
 QuietGame(args...; kwargs...) = Game(args...; kwargs..., logger=TH.ByPassLogger())
 
 @testset "Game: show" begin
@@ -33,23 +43,23 @@ end
     players = TH.players_at_table(game)
     TH.deal!(game.table, TH.blinds(game.table))
     # Round 1
-    TH.check!(game, players[1])
-    TH.check!(game, players[2])
-    TH.fold!(game, players[3])
+    check!(game, players[1])
+    check!(game, players[2])
+    fold!(game, players[3])
 
     # Round 2
-    TH.check!(game, players[1])
-    TH.check!(game, players[2])
+    check!(game, players[1])
+    check!(game, players[2])
 
     # Round 3
-    TH.raise_to!(game, players[1], 10)
+    raise_to!(game, players[1], 10)
     @test TH.checked(players[1]) == false
-    TH.call!(game, players[2])
+    call!(game, players[2])
 
     # Round 4
-    TH.raise_to!(game, players[1], 20)
+    raise_to!(game, players[1], 20)
     @test TH.checked(players[1]) == false
-    TH.fold!(game, players[2])
+    fold!(game, players[2])
 
     # All-in cases
     players = ntuple(3) do i
@@ -59,15 +69,15 @@ end
     players = TH.players_at_table(game)
     TH.deal!(game.table, TH.blinds(game.table))
     # Round 1
-    TH.check!(game, players[1])
-    TH.check!(game, players[2])
-    TH.fold!(game, players[3])
+    check!(game, players[1])
+    check!(game, players[2])
+    fold!(game, players[3])
 
     # Round 2
-    TH.raise_to!(game, players[1], players[1].bank_roll)
+    raise_to!(game, players[1], players[1].bank_roll)
     @test TH.checked(players[1]) == false
-    TH.call!(game, players[2])
+    call!(game, players[2])
 
-    @test_throws AssertionError TH.raise_to!(game, players[1], 10000) # raise exceeds bank roll!
+    @test_throws AssertionError raise_to!(game, players[1], 10000) # raise exceeds bank roll!
 end
 

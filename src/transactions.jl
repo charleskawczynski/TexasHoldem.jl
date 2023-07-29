@@ -158,14 +158,14 @@ of the (sorted) players at the start of the game.
 function contribute!(table, player, amt, call=false)
     tm = table.transactions
     logger = table.logger
-    @cdebug logger "$(name(player))'s bank roll (pre-contribute) = \$$(bank_roll(player))"
+    @cdebug logger "$(name(player))'s bank roll (pre-contribute) = $(bank_roll(player))"
     if !(0 ≤ amt ≤ bank_roll(player))
         msg1 = "$(name(player)) has insufficient bank"
-        msg2 = "roll (\$$(bank_roll(player))) to add \$$amt to pot."
+        msg2 = "roll ($(bank_roll(player))) to add $amt to pot."
         error(msg1*msg2)
     end
     @assert all_in(player) == false
-    @assert !(amt == 0) "Cannot contribute \$$amt to the pot!"
+    @assert !(amt == 0) "Cannot contribute $amt to the pot!"
 
     player.round_contribution += amt
     player.pot_investment += amt
@@ -200,7 +200,7 @@ function contribute!(table, player, amt, call=false)
     if is_side_pot_full(tm, table, player, call)
         set_side_pot_full!(tm)
     end
-    @cdebug logger "$(name(player))'s bank roll (post-contribute) = \$$(bank_roll(player))"
+    @cdebug logger "$(name(player))'s bank roll (post-contribute) = $(bank_roll(player))"
     @cdebug logger "all_in($(name(player))) = $(all_in(player))"
     @cdebug logger "post-contribute side-pots: $(tm.side_pots)"
 end
@@ -230,7 +230,7 @@ function distribute_winnings_1_player_left!(players, tm::TransactionManager, tab
         prof = ∑spw-amt_contributed
         player.bank_roll += ∑spw
         if !(∑spw == 0 && player.bank_roll == 0 && amt_contributed == 0)
-            @cinfo logger "$(name(player)) wins \$$(∑spw) (\$$(prof) profit) (all opponents folded)"
+            @cinfo logger "$(name(player)) wins $(∑spw) ($(prof) profit) (all opponents folded)"
         end
         @inbounds for j in 1:n
             tm.side_pots[j].amt = 0 # empty out distributed winnings
@@ -373,17 +373,17 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards, logg
                 hand_name = she.hand_type
                 bc = she.best_cards
                 f_str = folded(player) ? " (folded)" : ""
-                "$(name(player)) loses$f_str \$$(pot_investment(player)) with $bc ($hand_name)!"
+                "$(name(player)) loses$f_str $(pot_investment(player)) with $bc ($hand_name)!"
             end
         else
-            @cdebug logger "$(name(player))'s side-pot wins: \$$(player_winnings)!"
+            @cdebug logger "$(name(player))'s side-pot wins: $(player_winnings)!"
             @cinfo logger begin
                 she = sorted_hand_evals[ssn]
                 hand_name = she.hand_type
                 bc = she.best_cards
                 amt_contributed = initial_br - bank_roll(player)
                 prof = ∑spw-amt_contributed
-                "$(name(player)) wins \$$∑spw (\$$prof profit) with $bc ($hand_name)!"
+                "$(name(player)) wins $∑spw ($prof profit) with $bc ($hand_name)!"
             end
             player.bank_roll += ∑spw
         end
