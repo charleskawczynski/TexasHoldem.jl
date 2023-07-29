@@ -20,7 +20,6 @@ mutable struct Player{S}
     seat_number::Int
     cards::Union{Nothing,Tuple{<:Card,<:Card}}
     bank_roll::Int
-    action_history::Vector
     action_required::Bool
     all_in::Bool
     round_bank_roll::Int # bank roll at the beginning of the round
@@ -38,7 +37,6 @@ function Base.show(io::IO, player::Player, include_type = true)
 end
 
 function Player(strategy, seat_number, cards = nothing; bank_roll = 200)
-    action_history = []
     action_required = true
     all_in = false
     round_bank_roll = bank_roll
@@ -54,7 +52,6 @@ function Player(strategy, seat_number, cards = nothing; bank_roll = 200)
         seat_number,
         cards,
         bank_roll,
-        action_history,
         action_required,
         all_in,
         round_bank_roll,
@@ -76,7 +73,6 @@ folded(player::Player) = player.folded
 zero_bank_roll(player::Player) = bank_roll(player) == 0
 still_playing(player::Player) = active(player) && !folded(player)
 not_playing(player::Player) = !still_playing(player)
-action_history(player::Player) = player.action_history
 checked(player::Player) = player.checked
 last_to_raise(player::Player) = player.last_to_raise
 all_in(player::Player) = player.all_in

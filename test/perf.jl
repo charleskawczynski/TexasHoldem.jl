@@ -29,11 +29,12 @@ do_work!(game)
 Random.seed!(1234)
 game = Game(players();logger=TH.ByPassLogger())
 n_expected_failures = Dict()
-n_expected_failures[v"1.9.2"] = 3
-n_expected_failures[v"1.8.5"] = 14
+n_expected_failures[v"1.9.2"] = 0
+n_expected_failures[v"1.8.5"] = 11
 nef = get(n_expected_failures, VERSION, minimum(values(n_expected_failures)))
 @testset "Inference" begin
     n = @n_failures do_work!(game)
     @test n ≤ nef
+    n < nef && @show n
     @test_broken n < nef
 end

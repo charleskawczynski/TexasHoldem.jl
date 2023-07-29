@@ -32,35 +32,33 @@ end
 
 struct NoActionBot <: AbstractAI end
 
-TH.player_option!(game::Game, player::Player{NoActionBot}, ::AbstractGameStage, ::PlayerOptions) = nothing
+TH.player_option(game::Game, player::Player{NoActionBot}, ::AbstractGameStage, ::PlayerOptions) = nothing
 
 @testset "Game: Play (NoActionBot)" begin
     game = QuietGame((Player(BotCheckCall(), 1), Player(NoActionBot(), 2),))
-    @test_throws AssertionError("Must take exactly 1 action.") play!(game)
+    # @test_throws AssertionError("Must take exactly 1 action.") play!(game)
+    @test_throws TypeError(:typeassert, "", TH.Action, nothing) play!(game)
 end
 
 @testset "Non-valid option using BotCheckOnCallRaiseFold" begin
     game = QuietGame((Player(BotCheckCall(), 1), Player(BotCheckOnCallRaiseFold(), 2),))
-    @test_throws ErrorException("Cannot check. Available options: CallRaiseFold") play!(game)
+    @test_throws AssertionError("a.name in (:call, :raise, :all_in, :fold)") play!(game)
 end
 @testset "Non-valid option using BotCheckOnCallAllInFold" begin
     game = QuietGame((Player(BotCheckOnCallAllInFold(), 1), Player(BotRaiseAlmostAllIn(), 2)))
-    @test_throws ErrorException("Cannot check. Available options: CallAllInFold") play!(game)
+    @test_throws AssertionError("a.name in (:call, :all_in, :fold)") play!(game)
 end
 @testset "Non-valid option using BotCheckOnCallFold" begin
     game = QuietGame((Player(BotCheckOnCallFold(), 1), Player(BotRaiseAllIn(), 2)))
-    @test_throws ErrorException("Cannot check. Available options: CallFold") play!(game)
+    @test_throws AssertionError("a.name in (:call, :fold)") play!(game)
 end
 @testset "Non-valid option using BotCallOnCheckRaiseFold" begin
     game = QuietGame((Player(BotCheckCall(), 1), Player(BotCallOnCheckRaiseFold(), 2),))
-    # We catch this incorrect option error before it's completed,
-    # so we can't error in `validate_action`
-    # @test_throws ErrorException("Cannot call. Available options: CheckRaiseFold") play!(game)
-    @test_throws AssertionError("Cannot contribute \$0 to the pot!") play!(game)
+    @test_throws AssertionError("a.name in (:check, :raise, :all_in, :fold)") play!(game)
 end
 @testset "Non-valid option using BotRaiseOnCallFold" begin
     game = QuietGame((Player(BotRaiseOnCallFold(), 1), Player(BotRaiseAllIn(), 2)))
-    @test_throws AssertionError("Cannot raise 0.") play!(game)
+    @test_throws AssertionError("a.name in (:call, :fold)") play!(game)
 end
 
 @testset "Player limps all in" begin
