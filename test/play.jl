@@ -23,16 +23,16 @@ end
 @testset "Game: Play (BotBetSB) - breaks lowest allowable bet" begin
     game = QuietGame((Player(BotBetSB(),1), Player(BotCheckCall(),2)))
     # Cannot raise small blind on pre-flop! The big blind is the raise min raise, so we must raise at least big-blind
-    @test_throws AssertionError("Raise must be between [\$4, \$200]") play!(game)
+    @test_throws AssertionError("Cannot raise 1. Raise must be between [4, 200]") play!(game)
 end
 
 @testset "Game: Play (BotBetBB)" begin
     play!(QuietGame((Player(BotBetBB(), 1), Player(BotCheckCall(), 2),)))
 end
 
-struct NoActionBot <: AbstractAI end
+struct NoActionBot <: AbstractStrategy end
 
-TH.player_option(game::Game, player::Player{NoActionBot}, ::AbstractGameStage, ::PlayerOptions) = nothing
+TH.player_option(game::Game, player::Player{NoActionBot}, ::AbstractGameStage, ::AbstractPlayerOptions) = nothing
 
 @testset "Game: Play (NoActionBot)" begin
     game = QuietGame((Player(BotCheckCall(), 1), Player(NoActionBot(), 2),))

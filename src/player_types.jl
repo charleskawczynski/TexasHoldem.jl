@@ -4,14 +4,12 @@
 
 export Player, bank_roll
 export Human, round_bank_roll
-export AbstractAI, Bot5050
+export AbstractStrategy, Bot5050
 
 abstract type AbstractStrategy end
 
 struct Human <: AbstractStrategy end
-
-abstract type AbstractAI <: AbstractStrategy end
-struct Bot5050 <: AbstractAI end
+struct Bot5050 <: AbstractStrategy end
 
 ai_to_use() = Bot5050()
 

@@ -2,42 +2,109 @@
 ##### Player actions
 #####
 
-export fold, check, raise_to, call, raise_all_in
-export Fold, Check, Call, Raise
-export call_amount
+export Fold, Check, Call, Raise, AllIn
+export call_amount, valid_raise_range
 
+"""
+    Action
+
+An action type, to be returned by [`player_option`](@ref)
+during each players turn to act. This is an internal
+type, but documented for user understanding.
+
+Users are expected to return an action from
+[`player_option`](@ref) by calling one of `Action`'s
+convenience methods:
+
+ - [`Fold`](@ref)
+ - [`Check`](@ref)
+ - [`Call`](@ref)
+ - [`Raise`](@ref)
+ - [`AllIn`](@ref)
+"""
 struct Action
     name::Symbol
     amt::Int
 end
+
+"""
+    Fold()
+
+The fold action, to be returned from [`player_option`](@ref),
+when a player wants to fold.
+"""
 Fold() = Action(:fold, 0)
+
+"""
+    Check()
+
+The check action, to be returned from [`player_option`](@ref),
+when a player wants to check.
+"""
 Check() = Action(:check, 0)
+
+"""
+    Call(amt::Int)
+    Call(table::Table, player::Player)
+
+The call action, should be returned from [`player_option`](@ref).
+when a player wants to call amount `amt`.
+
+Use [`call_amount`](@ref) to query how much is needed to call.
+"""
 Call(amt::Int) = Action(:call, amt)
+Call(game::Game, player::Player) = Call(game.table, player)
+function Call(table::Table, player::Player)
+    call_amt = call_amount(table, player)
+    amt = call_amt ≤ bank_roll(player) ? call_amt : bank_roll(player)
+    return Call(amt)
+end
+
+"""
+    Raise(amt::Int)
+
+The raise action, should be returned from [`player_option`](@ref).
+when a player wants to raise to amount `amt`.
+
+Use [`valid_raise_range`](@ref) to query the valid range that
+they are allowed to raise.
+"""
 function Raise(amt::Int)
     @assert amt > 0 "Cannot raise less than 0!"
     Action(:raise, amt)
 end
+
+"""
+    AllIn(amt::Int)
+    AllIn(table::Table, player::Player)
+
+The call action, should be returned from [`player_option`](@ref).
+when a player wants to raise to amount `amt`.
+
+When `AllIn` is a player's only raise option, [`valid_raise_range`](@ref)
+will return a unit range of `br:br`, which is the player's
+appropriate (i.e., allowable) all-in bet.
+
+For example, if players A and B have 150 and 100 bank rolls
+respectively, and player B bets 100, then player A's all-in
+raise amount would be 50 (on-top of the 100 call). This number
+is determined automatically.
+
+So, users may simply use `AllIn(table, player)`, which enters
+`last(valid_raise_range(table, player))` as the amount.
+"""
 function AllIn(amt::Int)
     @assert amt > 0 "Cannot raise less than 0!"
     Action(:all_in, amt)
 end
+AllIn(table::Table, player::Player) = # convenience function
+    AllIn(last(valid_raise_range(table, player)))
 
-#####
-##### Fold
-#####
+"""
+    call_amount(table::Table, player::Player)
 
-fold(game::Game, player::Player) = Fold()
-
-#####
-##### Check
-#####
-
-check(game::Game, player::Player) = Check()
-
-#####
-##### Call
-#####
-
+Return the amount to call inside [`player_option`](@ref).
+"""
 function call_amount(table::Table, player::Player)
     cra = current_raise_amt(table)
     prc = round_contribution(player)
@@ -51,61 +118,6 @@ function call_amount(table::Table, player::Player)
     return call_amt
 end
 
-call(game::Game, player::Player) = call(game.table, player)
-
-function call(table::Table, player::Player)
-    call_amt = call_amount(table, player)
-    amt = call_amt ≤ bank_roll(player) ? call_amt : bank_roll(player)
-    return Call(amt)
-end
-
-function call_valid_amount!(table::Table, player::Player, amt::Int)
-    logger = table.logger
-    @cdebug logger "$(name(player)) calling $(amt)."
-    player.action_required = false
-    player.checked = false
-    blind_str = is_blind_call(table, player, amt) ? " (blind)" : ""
-    contribute!(table, player, amt, true)
-    if all_in(player)
-        @cinfo logger "$(name(player)) called $(amt)$blind_str (now all-in)."
-    else
-        @cinfo logger "$(name(player)) called $(amt)$blind_str."
-    end
-end
-
-#####
-##### Raise
-#####
-
-"""
-    an_opponent_can_call_a_raise(table::Table, player::Player)
-
-A `Bool` indicating that at least one of `player`'s
-opponents can call a raise by `player`.
-"""
-function an_opponent_can_call_a_raise(table::Table, player::Player)
-    occr = false
-    for opponent in players_at_table(table)
-        seat_number(opponent) == seat_number(player) && continue
-        not_playing(opponent) && continue
-        all_in(opponent) && continue
-        if round_bank_roll(opponent) > current_raise_amt(table)
-            occr = true
-        end
-    end
-    return occr
-end
-
-"""
-    bound_raise(table::Table, player::Player, amt)
-
-Given a raise amount `amt`, return a valid raise amount.
-"""
-function bound_raise(table::Table, player::Player, amt::Int)
-    vrb = valid_raise_bounds(table, player)
-    return clamp(amt, vrb...)
-end
-
 function max_opponent_round_bank_roll(table::Table, player::Player)
     max_orbr = 0
     for opponent in players_at_table(table)
@@ -117,19 +129,17 @@ function max_opponent_round_bank_roll(table::Table, player::Player)
     return max_orbr
 end
 
-custom_clamp(br, lim) = lim > br ? (br, br) : (lim, br)
-
 """
-    valid_raise_bounds(table::Table, player::Player)
+    valid_raise_range(table::Table, player::Player)
 
-A tuple of valid raise bounds. Note that
-all-in is the only option if both elements
-are equal.
+A `UnitRange{Int}` of valid raises. Note that
+sometimes the range is `n:n` when all-in is the
+only available option.
 
-See `valid_raise_bounds_simple` in the test suite
+See `valid_raise_range_simple` in the test suite
 for a more verbose but simpler implementation.
 """
-function valid_raise_bounds(table::Table, player::Player)
+function valid_raise_range(table::Table, player::Player)
     cra = current_raise_amt(table)
     irra = initial_round_raise_amt(table)
     mra = minimum_raise_amt(table)
@@ -141,7 +151,7 @@ function valid_raise_bounds(table::Table, player::Player)
         amt_computed = rbr - round_contribution(player)
         check = amt_computed ≤ bank_roll(player)
         s = ""
-        s*="determining valid_raise_bounds\n"
+        s*="determining valid_raise_range\n"
         s*="   rbr = $rbr, max_orbr = $max_orbr\n"
         s*="   cra == 0 = $(cra == 0)\n"
         s*="   amt_computed = $amt_computed\n"
@@ -158,100 +168,11 @@ function valid_raise_bounds(table::Table, player::Player)
     end
     lim = cra == 0 ? mra : (cra+irra)
     @cdebug logger "   lim = $lim"
-    vrb = custom_clamp(min(max_orbr, rbr), lim)
-    @cdebug logger "   vrb = $vrb"
-    @assert vrb[2] ≥ vrb[1] "Min valid raise bound must be ≤ max valid raise bound."
-    return vrb
+    br₀ = min(max_orbr, rbr)
+    vrr = lim > br₀ ? (br₀, br₀) : (lim, br₀) # somewhat like clamp
+    @cdebug logger "   vrr = $vrr"
+    minraise = first(vrr)
+    maxraise = last(vrr)
+    @assert maxraise ≥ minraise "Min valid raise bound must be ≤ max valid raise bound."
+    return (minraise:maxraise)
 end
-
-
-"""
-    is_valid, msg = is_valid_raise_amount(table::Table, player::Player, amt)
-
-A `Tuple` of two elements:
- - A `Bool`, `is_valid`, indicating if the raise amount is valid or not
- - A `String`, `msg`, of the error message (`msg` = "" if `is_valid = true`).
-"""
-function is_valid_raise_amount(table::Table, player::Player, amt::Int)
-    logger = table.logger
-    prc = round_contribution(player)
-    rbr = round_bank_roll(player)
-    vrb = valid_raise_bounds(table, player)
-    @cdebug logger "vrb = $vrb, amt = $amt, prc = $prc, rbr=$rbr, br=$(bank_roll(player))"
-    @assert !(vrb[1] == vrb[2] == 0) "Cannot raise 0."
-    if amt == 0
-        return false, "Cannot raise $amt. Raise must be between [\$$(vrb[1]), \$$(vrb[2])]"
-    end
-    if !(amt ≤ rbr)
-        return false, "Insufficient funds (\$$rbr) to raise \$$amt. Raise must be between [\$$(vrb[1]), \$$(vrb[2])]"
-    end
-    if !(vrb[1] ≤ amt ≤ vrb[2] || amt == vrb[1] == vrb[2])
-        if vrb[1] == vrb[2]
-            return false, "Only allowable raise is \$$(vrb[1]) (all-in)"
-        else
-            return false, "Raise must be between [\$$(vrb[1]), \$$(vrb[2])]"
-        end
-    end
-    if !(amt - prc > 0)
-        return false, "Cannot contribute \$$(amt - prc) to the pot."
-    end
-    return true, ""
-end
-
-"""
-    valid_raise_amount(table::Table, player::Player, amt)
-
-Return back `amt` if `amt` is a valid raise amount.
-"""
-function valid_raise_amount(table::Table, player::Player, amt::Int)
-    is_valid, msg = is_valid_raise_amount(table, player, amt)
-    @assert is_valid "$msg"
-    return amt
-end
-
-"""
-    raise_to(game::Game, player::Player, amt)
-
-Raise bet, for the _round_, to amount `amt`. Example:
-```
-# Flop
-Player[1] raise to 10 (`amt = 10`, contribute 10)
-Player[2] raise to 20 (`amt = 20`, contribute 20)
-Player[3] raise to 40 (`amt = 40`, contribute 40)
-Player[1] raise to 80 (`amt = 80`, contribute 80-10=70)
-Player[2] call
-Player[3] call
-# Turn
-Player[1] raise to 1 (`amt = 1`, contribute 1)
-Player[2] raise to 2 (`amt = 2`, contribute 2)
-Player[3] raise to 4 (`amt = 4`, contribute 4)
-Player[1] raise to 8 (`amt = 8`, contribute 8-1=7)
-Player[2] call
-Player[3] call
-```
-"""
-raise_to(game::Game, player::Player, amt::Int) = raise_to(game.table, player, amt)
-raise_to(table::Table, player::Player, amt::Int) =
-    Raise(amt)
-
-call!(t, p) = update_given_valid_action!(t, p, call(t, p))
-raise_to!(t, p, amt) = update_given_valid_action!(t, p, raise_to(t, p, amt))
-fold!(t, p) = update_given_valid_action!(t, p, fold(t, p))
-check!(t, p) = update_given_valid_action!(t, p, check(t, p))
-
-#=Not performance critical (only needed for info log)=#
-function opponents_being_put_all_in(table::Table, player::Player, amt::Int)
-    opponents = filter(players_at_table(table)) do opponent
-        rbr = round_bank_roll(opponent)
-        cond1 = !all_in(opponent)
-        cond2 = still_playing(opponent)
-        cond3 = seat_number(opponent) ≠ seat_number(player)
-        cond4 = amt > rbr || amt == rbr
-        all((cond1, cond2, cond3, cond4))
-    end
-    return name.(opponents)
-end
-
-raise_all_in(game::Game, player::Player) = raise_all_in(game.table, player)
-raise_all_in(table::Table, player::Player) =
-    AllIn(last(valid_raise_bounds(table, player)))
