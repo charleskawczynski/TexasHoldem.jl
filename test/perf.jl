@@ -38,3 +38,14 @@ nef = get(n_expected_failures, VERSION, minimum(values(n_expected_failures)))
     n < nef && @show n
     @test_broken n < nef
 end
+
+@testset "Allocations" begin
+    Random.seed!(1234)
+    game = Game(players();logger=TH.ByPassLogger())
+    play!(game) # compile
+
+    Random.seed!(1234)
+    game = Game(players();logger=TH.ByPassLogger())
+    p = @allocated play!(game)
+    @test p < 1000
+end
