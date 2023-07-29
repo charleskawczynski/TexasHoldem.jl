@@ -377,12 +377,15 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards, logg
             end
         else
             @cdebug logger "$(name(player))'s side-pot wins: $(player_winnings)!"
+            amt_contributed = initial_br - bank_roll(player)
+            prof = ∑spw-amt_contributed
+            if amt_contributed == 0 && ∑spw == 0 && prof == 0 && !still_playing(player)
+                continue
+            end
             @cinfo logger begin
                 she = sorted_hand_evals[ssn]
                 hand_name = she.hand_type
                 bc = she.best_cards
-                amt_contributed = initial_br - bank_roll(player)
-                prof = ∑spw-amt_contributed
                 "$(name(player)) wins $∑spw ($prof profit) with $bc ($hand_name)!"
             end
             player.bank_roll += ∑spw
