@@ -38,6 +38,6 @@ end
 
 @testset "Game: tournament! (10 Bot5050's)" begin
     # https://github.com/charleskawczynski/TexasHoldem.jl/issues/151
-    @test isempty(fuzz(;fun=tournament!,n_players=10,bank_roll=30,n_games=3788, chips=Float64))
+    @test isempty(fuzz(;fun=tournament!,n_players=10,bank_roll=30,n_games=3788))
 end
 

@@ -51,7 +51,7 @@ struct MyBot <: AbstractAI end
 function TH.player_option(game::Game, player::Player{MyBot}, ::CheckRaiseFold)
     # options are:
     #    check(game, player)
-    #    raise!(game, player, amt::Real)
+    #    raise!(game, player, amt::Int)
     #    raise_all_in(game, player)
     #    fold(game, player)
     if rand() < 0.5
@@ -65,7 +65,7 @@ end
 function TH.player_option(game::Game, player::Player{MyBot}, ::CallRaiseFold)
     # options are:
     #    call(game, player)
-    #    raise!(game, player, amt::Real)
+    #    raise!(game, player, amt::Int)
     #    raise_all_in(game, player)
     #    fold(game, player)
     if rand() < 0.5

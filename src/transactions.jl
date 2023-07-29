@@ -20,10 +20,12 @@ seat_number(sp::SidePot) = sp.seat_number
 amount(sp::SidePot) = sp.amt
 cap(sp::SidePot) = sp.cap
 
+const joker = Card(0, 1)
+
 Base.@kwdef mutable struct HandEval
     hand_rank::Int = 1
     hand_type::Symbol = :empty
-    best_cards::NTuple{5,Card} = ntuple(_->A♡, 5)
+    best_cards::NTuple{5,Card} = ntuple(_->joker, 5)
 end
 
 """
@@ -275,7 +277,7 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards, logg
         if inactive(player)
             sorted_hand_evals[ssn].hand_rank = -1
             sorted_hand_evals[ssn].hand_type = :empty
-            sorted_hand_evals[ssn].best_cards = ntuple(j->A♡, 5)
+            sorted_hand_evals[ssn].best_cards = ntuple(j->joker, 5)
         else
             pc = player.cards::Tuple{Card,Card}
             tc = table_cards::Tuple{Card,Card,Card,Card,Card}
