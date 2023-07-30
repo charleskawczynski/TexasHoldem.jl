@@ -169,14 +169,14 @@ end
 
     players = (Player(Human(), 1), Player(Bot5050(), 2))
     table = QuietGame(players).table
-    table.stage = Flop()
+    table.round = Flop()
     table.current_raise_amt = 10
     players[1].round_contribution = 10
     @test call_amount(table, players[1]) == 0
 
     players = (Player(Human(), 1), Player(Bot5050(), 2))
     table = QuietGame(players).table
-    table.stage = Flop()
+    table.round = Flop()
     table.current_raise_amt = 10
     players[1].round_contribution = 20
     @test_throws AssertionError("Call amount cannot be negative") call_amount(table, players[1])

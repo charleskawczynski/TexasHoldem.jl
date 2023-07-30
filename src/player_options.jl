@@ -260,9 +260,9 @@ function player_option(game::Game, player::Player)
 end
 
 # By default, forward to `player_option` with
-# game stage:
+# game round:
 player_option(game::Game, player::Player, option) =
-    player_option(game, player, stage(game.table), option)
+    player_option(game, player, round(game.table), option)
 
 #####
 ##### Human player options (ask via prompts)

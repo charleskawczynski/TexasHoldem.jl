@@ -6,22 +6,30 @@ TexasHoldem
 
 ## Game-level functions
 ```@docs
-TexasHoldem.move_buttons!
-TexasHoldem.play!
-TexasHoldem.tournament!
+move_buttons!
+play!
+tournament!
+```
+
+## Player type
+```@docs
+AbstractStrategy
+Human
+Bot5050
+Player
 ```
 
 ## Player actions
 
 ```@docs
 TexasHoldem.Action
-TexasHoldem.Check
-TexasHoldem.Fold
-TexasHoldem.Call
-TexasHoldem.call_amount
-TexasHoldem.Raise
-TexasHoldem.AllIn
-TexasHoldem.valid_raise_range
+Check
+Fold
+Call
+call_amount
+Raise
+AllIn
+valid_raise_range
 ```
 
 ## Player options

@@ -22,7 +22,7 @@ QuietGame(args...; kwargs...) = Game(args...; kwargs..., logger=TH.ByPassLogger(
     game = QuietGame(players)
     sprint(show, game)
 
-    game.table.stage = PreFlop()
+    game.table.round = PreFlop()
     sprint(show, game)
 end
 

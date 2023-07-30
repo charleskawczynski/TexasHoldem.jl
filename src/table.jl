@@ -54,7 +54,7 @@ mutable struct Table{P<:Players, L, TM, B <: Blinds, D <: PlayingCards.AbstractD
     cards::Union{Nothing,Tuple{<:Card,<:Card,<:Card,<:Card,<:Card}}
     blinds::B
     pot::Int
-    stage::AbstractGameStage
+    round::AbstractRound
     buttons::Buttons
     current_raise_amt::Int
     initial_round_raise_amt::Int
@@ -100,7 +100,7 @@ function Table(players::Players;
     cards = nothing,
     blinds = Blinds(),
     pot = 0,
-    stage = PreFlop(),
+    round = PreFlop(),
     dealer_pidx = default_dealer_pidx(),
     current_raise_amt = 0,
     initial_round_raise_amt = blinds.small,
@@ -122,7 +122,7 @@ function Table(players::Players;
         cards,
         blinds,
         pot,
-        stage,
+        round,
         buttons,
         current_raise_amt,
         initial_round_raise_amt,
@@ -172,7 +172,7 @@ end
 get_table_cards!(deck::PlayingCards.MaskedDeck) = pop!(deck, Val(5))
 cards(table::Table) = table.cards
 
-observed_cards(table::Table) = observed_cards(table, table.stage)
+observed_cards(table::Table) = observed_cards(table, table.round)
 observed_cards(table::Table, ::PreFlop) = ()
 observed_cards(table::Table, ::Flop) = table.cards[1:3]
 observed_cards(table::Table, ::Turn) = table.cards[1:4]
@@ -181,7 +181,7 @@ current_raise_amt(table::Table) = table.current_raise_amt
 initial_round_raise_amt(table::Table) = table.initial_round_raise_amt
 minimum_raise_amt(table::Table) = blinds(table).small
 
-stage(table::Table) = table.stage
+round(table::Table) = table.round
 
 play_out_game(table::Table) = table.play_out_game
 
@@ -333,8 +333,8 @@ function reset_round!(table::Table)
     table.current_raise_amt = 0
 end
 
-function set_stage!(table::Table, stage::AbstractGameStage)
-    table.stage = stage
+function set_round!(table::Table, round::AbstractRound)
+    table.round = round
 end
 
 # Check for winner, in case when only a single player remains
@@ -357,6 +357,8 @@ end
 Move the dealer, small blind, big blind,
 and first-to-act buttons to the next set
 of players.
+
+This is an internal method.
 """
 function move_buttons!(table::Table)
     players = players_at_table(table)
