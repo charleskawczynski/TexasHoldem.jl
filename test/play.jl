@@ -32,7 +32,7 @@ end
 
 struct NoActionBot <: AbstractStrategy end
 
-TH.player_option(game::Game, player::Player{NoActionBot}, ::AbstractGameStage, ::AbstractPlayerOptions) = nothing
+TH.player_option(game::Game, player::Player{NoActionBot}, ::AbstractRound, ::AbstractPlayerOptions) = nothing
 
 @testset "Game: Play (NoActionBot)" begin
     game = QuietGame((Player(BotCheckCall(), 1), Player(NoActionBot(), 2),))

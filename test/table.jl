@@ -14,13 +14,13 @@ const TH = TexasHoldem
     table = TH.Table(players;deck=deck, cards=cards, logger=TH.ByPassLogger())
     TH.deal!(table, blinds)
 
-    table.stage = PreFlop()
+    table.round = PreFlop()
     @test TH.observed_cards(table) == ()
-    table.stage = Flop()
+    table.round = Flop()
     @test TH.observed_cards(table) == table.cards[1:3]
-    table.stage = Turn()
+    table.round = Turn()
     @test TH.observed_cards(table) == table.cards[1:4]
-    table.stage = River()
+    table.round = River()
     @test TH.observed_cards(table) == table.cards
 end
 

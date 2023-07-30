@@ -62,7 +62,7 @@ function configure_basic_heads_up_game()
     blinds = Blinds(1, 2)
     players = (
         Player(Human(), 1; bank_roll=bank_roll),
-        Player(ai_to_use(), 2; bank_roll=bank_roll)
+        Player(Bot5050(), 2; bank_roll=bank_roll)
     )
     return Game(players; blinds=blinds)
 end
@@ -72,10 +72,10 @@ function configure_basic_1v4_game()
     blinds = Blinds(1, 2)
     players = (
         Player(Human(), 1; bank_roll=bank_roll),
-        Player(ai_to_use(), 2; bank_roll=bank_roll),
-        Player(ai_to_use(), 3; bank_roll=bank_roll),
-        Player(ai_to_use(), 4; bank_roll=bank_roll),
-        Player(ai_to_use(), 5; bank_roll=bank_roll),
+        Player(Bot5050(), 2; bank_roll=bank_roll),
+        Player(Bot5050(), 3; bank_roll=bank_roll),
+        Player(Bot5050(), 4; bank_roll=bank_roll),
+        Player(Bot5050(), 5; bank_roll=bank_roll),
     )
     return Game(players; blinds=blinds)
 end
@@ -84,8 +84,8 @@ function configure_basic_2_bots_game()
     bank_roll = 100
     blinds = Blinds(1, 2)
     players = (
-        Player(ai_to_use(), 1; bank_roll=bank_roll),
-        Player(ai_to_use(), 2; bank_roll=bank_roll),
+        Player(Bot5050(), 1; bank_roll=bank_roll),
+        Player(Bot5050(), 2; bank_roll=bank_roll),
     )
     return Game(players; blinds=blinds)
 end
@@ -94,10 +94,10 @@ function configure_basic_4_bots_game()
     bank_roll = 100
     blinds = Blinds(1, 2)
     players = (
-        Player(ai_to_use(), 1; bank_roll=bank_roll),
-        Player(ai_to_use(), 2; bank_roll=bank_roll),
-        Player(ai_to_use(), 3; bank_roll=bank_roll),
-        Player(ai_to_use(), 4; bank_roll=bank_roll),
+        Player(Bot5050(), 1; bank_roll=bank_roll),
+        Player(Bot5050(), 2; bank_roll=bank_roll),
+        Player(Bot5050(), 3; bank_roll=bank_roll),
+        Player(Bot5050(), 4; bank_roll=bank_roll),
     )
     return Game(players; blinds=blinds)
 end
@@ -123,7 +123,7 @@ function configure_custom_game()
         if i in human_seat_numbers
             Player(Human(), i; bank_roll=bank_roll)
         else
-            Player(ai_to_use(), i; bank_roll=bank_roll)
+            Player(Bot5050(), i; bank_roll=bank_roll)
         end
     end
 
@@ -132,8 +132,8 @@ end
 
 function configure_game()
     options = [
-        "1) Heads up-- you vs AI, \$1-\$2 blinds, \$100 bank roll",
-        "2) 1v4-- you vs 4 AI, \$1-\$2 blinds, \$100 bank roll",
+        "1) Heads up-- you vs Bot5050, \$1-\$2 blinds, \$100 bank roll",
+        "2) 1v4-- you vs 4 Bot5050's, \$1-\$2 blinds, \$100 bank roll",
         "3) 2 bots!, \$1-\$2 blinds, \$100 bank roll",
         "4) 4 bots!, \$1-\$2 blinds, \$100 bank roll",
         "5) custom game"

@@ -12,7 +12,7 @@ function Base.show(io::IO, game::Game)
     println(io, "\n----------------------- Poker game")
     show(io, game.table, false)
     for player in players_at_table(game)
-        show(io, player, false)
+        show(io, player)
     end
     println(io, "-----------------------")
 end
@@ -23,15 +23,15 @@ Game(players::Players; kwargs...) = Game(Table(players; kwargs...))
 players_at_table(game::Game) = players_at_table(game.table)
 blinds(game::Game) = blinds(game.table)
 any_actions_required(game::Game) = any_actions_required(game.table)
-stage(game::Game) = stage(game.table)
+round(game::Game) = round(game.table)
 move_buttons!(game) = move_buttons!(game.table)
 
-print_game_stage(table, stage::PreFlop) = @cinfo table.logger "Pre-flop!"
-print_game_stage(table, stage::Flop) =  @cinfo table.logger "Flop: $(repeat(" ", 44)) $(table.cards[1:3])"
-print_game_stage(table, stage::Turn) =  @cinfo table.logger "Turn: $(repeat(" ", 44)) $(table.cards[4])"
-print_game_stage(table, stage::River) = @cinfo table.logger "River: $(repeat(" ", 43)) $(table.cards[5])"
+print_round(table, round::PreFlop) = @cinfo table.logger "Pre-flop!"
+print_round(table, round::Flop) =  @cinfo table.logger "Flop: $(repeat(" ", 44)) $(table.cards[1:3])"
+print_round(table, round::Turn) =  @cinfo table.logger "Turn: $(repeat(" ", 44)) $(table.cards[4])"
+print_round(table, round::River) = @cinfo table.logger "River: $(repeat(" ", 43)) $(table.cards[5])"
 
-set_preflop_blind_raise!(table::Table, player, ::AbstractGameStage, i::Int) = nothing
+set_preflop_blind_raise!(table::Table, player, ::AbstractRound, i::Int) = nothing
 function set_preflop_blind_raise!(table::Table, player::Player, ::PreFlop, i::Int)
     if 1 ≤ i ≤ length(players_at_table(table))
         if is_first_to_act(table, player)
@@ -41,8 +41,8 @@ function set_preflop_blind_raise!(table::Table, player::Player, ::PreFlop, i::In
         end
     end
 end
-reset_round_bank_rolls!(game::Game, stage::PreFlop) = nothing # called separately prior to deal
-reset_round_bank_rolls!(game::Game, stage::AbstractGameStage) = reset_round_bank_rolls!(game.table)
+reset_round_bank_rolls!(game::Game, round::PreFlop) = nothing # called separately prior to deal
+reset_round_bank_rolls!(game::Game, round::AbstractRound) = reset_round_bank_rolls!(game.table)
 
 # TODO: compactify. Some of these cases/conditions may be redundant
 function end_of_actions(table::Table, player)
@@ -112,7 +112,7 @@ function all_bets_were_called(table::Table)
     end, players)
 end
 
-end_preflop_actions(table, player, ::AbstractGameStage) = false
+end_preflop_actions(table, player, ::AbstractRound) = false
 function end_preflop_actions(table::Table, player::Player, ::PreFlop)
     cond1 = is_big_blind(table, player)
     cond2 = checked(player)
@@ -120,14 +120,14 @@ function end_preflop_actions(table::Table, player::Player, ::PreFlop)
     return all((cond1, cond2, cond3))
 end
 
-function act_generic!(game::Game, stage::AbstractGameStage)
+function act_generic!(game::Game, round::AbstractRound)
     table = game.table
     players = table.players
     logger = table.logger
     table.winners.declared && return
-    set_stage!(table, stage)
-    print_game_stage(table, stage)
-    reset_round_bank_rolls!(game, stage)
+    set_round!(table, round)
+    print_round(table, round)
+    reset_round_bank_rolls!(game, round)
 
     any_actions_required(game) || return
     play_out_game(table) && return
@@ -138,7 +138,7 @@ function act_generic!(game::Game, stage::AbstractGameStage)
         @cdebug logger "     not_playing(player) = $(not_playing(player))"
         @cdebug logger "     all_in(player) = $(all_in(player))"
         not_playing(player) && continue # skip players not playing
-        set_preflop_blind_raise!(table, player, stage, i)
+        set_preflop_blind_raise!(table, player, round, i)
         if end_of_actions(table, player)
             break
         end
@@ -146,7 +146,7 @@ function act_generic!(game::Game, stage::AbstractGameStage)
         @cdebug logger "$(name(player))'s turn to act"
         player_option(game, player)
         table.winners.declared && break
-        end_preflop_actions(table, player, stage) && break
+        end_preflop_actions(table, player, round) && break
         if i > n_max_actions(table)
             error("Too many actions have occured, please open an issue.")
         end
@@ -155,8 +155,8 @@ function act_generic!(game::Game, stage::AbstractGameStage)
     @assert all_bets_were_called(table)
 end
 
-function act!(game::Game, stage::AbstractGameStage)
-    act_generic!(game, stage)
+function act!(game::Game, round::AbstractRound)
+    act_generic!(game, round)
     reset_round!(game.table)
 end
 
@@ -166,14 +166,14 @@ metafmt(level, _module, group, id, file, line) =
 """
     play!(game::Game)
 
-Play a hand.
+Play a game.
 """
 play!(game::Game) = deal_and_play!(game::Game)
 
 """
     deal_and_play!(game::Game)
 
-Deal and play a hand.
+Deal and play a game.
 """
 function deal_and_play!(game::Game)
     if game.table.logger isa DebugLogger
