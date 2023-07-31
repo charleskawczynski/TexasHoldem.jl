@@ -54,6 +54,7 @@ mutable struct Player{S #=<: AbstractStrategy=#}
     seat_number::Int
     cards::Union{Nothing,Tuple{<:Card,<:Card}}
     bank_roll::Int
+    game_profit::Int
     action_required::Bool
     all_in::Bool
     round_bank_roll::Int # bank roll at the beginning of the round
@@ -75,6 +76,7 @@ function Player(strategy, seat_number, cards = nothing; bank_roll = 200)
     round_bank_roll = bank_roll
     folded = false
     pot_investment = 0
+    game_profit = 0
     checked = false
     active = true
     round_contribution = 0
@@ -85,6 +87,7 @@ function Player(strategy, seat_number, cards = nothing; bank_roll = 200)
         seat_number,
         cards,
         bank_roll,
+        game_profit,
         action_required,
         all_in,
         round_bank_roll,
@@ -118,3 +121,4 @@ pot_investment(player::Player) = player.pot_investment
 round_contribution(player::Player) = player.round_contribution
 strategy(player::Player) = player.strategy
 
+notify_reward(player) = nothing

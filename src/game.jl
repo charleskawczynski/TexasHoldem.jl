@@ -250,6 +250,9 @@ function _deal_and_play!(game::Game)
 
     @cinfo logger "Final bank roll summary: $(bank_roll.(players))"
     @assert winners.declared
+    for player in players
+        notify_reward(player)
+    end
 
     @cinfo logger "------ Finished game!"
     return winners
@@ -286,6 +289,7 @@ function reset_game!(game::Game)
     for player in players
         player.cards = nothing
         player.pot_investment = 0
+        player.game_profit = 0
         player.all_in = false
         player.round_bank_roll = bank_roll(player)
         player.checked = false
