@@ -66,8 +66,8 @@ end
 The raise action, should be returned from [`player_option`](@ref).
 when a player wants to raise to amount `amt`.
 
-Use [`valid_raise_range`](@ref) to query the valid range that
-they are allowed to raise.
+Use [`valid_raise_range`](@ref) to query the valid range
+that they are allowed to raise.
 """
 function Raise(amt::Int)
     @assert amt > 0 "Cannot raise less than 0!"
@@ -78,20 +78,14 @@ end
     AllIn(amt::Int)
     AllIn(table::Table, player::Player)
 
-The call action, should be returned from [`player_option`](@ref).
-when a player wants to raise to amount `amt`.
+The all-in action, should be returned from [`player_option`](@ref).
+when a player wants to raise all in (to amount `amt`).
 
-When `AllIn` is a player's only raise option, [`valid_raise_range`](@ref)
-will return a unit range of `br:br`, which is the player's
-appropriate (i.e., allowable) all-in bet.
+Users may call this via `AllIn(last(valid_raise_range(table, player)))`
+or use the convenience function `AllIn(table, player)`.
 
-For example, if players A and B have 150 and 100 bank rolls
-respectively, and player B bets 100, then player A's all-in
-raise amount would be 50 (on-top of the 100 call). This number
-is determined automatically.
-
-So, users may simply use `AllIn(table, player)`, which enters
-`last(valid_raise_range(table, player))` as the amount.
+See [`valid_raise_range`](@ref) for querying the valid range
+that they are allowed to raise.
 """
 function AllIn(amt::Int)
     @assert amt > 0 "Cannot raise less than 0!"
@@ -133,11 +127,9 @@ end
     valid_raise_range(table::Table, player::Player)
 
 A `UnitRange{Int}` of valid raises. Note that
-sometimes the range is `n:n` when all-in is the
+sometimes the range's starting and ending values
+are the same when, for example, all-in is the
 only available option.
-
-See `valid_raise_range_simple` in the test suite
-for a more verbose but simpler implementation.
 """
 function valid_raise_range(table::Table, player::Player)
     cra = current_raise_amt(table)

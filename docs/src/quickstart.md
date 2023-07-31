@@ -21,7 +21,7 @@ function player_option(game::Game, player::Player{RandomBot}, ::CallAllInFold)
     return Fold()
 end
 function player_option(game::Game, player::Player{RandomBot}, ::CallFold)
-    rand() < 0.5 && return Call()
+    rand() < 0.5 && return Call(game.table, player)
     return Fold()
 end
 # Play against some bots!

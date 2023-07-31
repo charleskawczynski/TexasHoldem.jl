@@ -35,5 +35,10 @@ valid_raise_range
 ## Player options
 
 ```@docs
+TexasHoldem.AbstractPlayerOptions
+TexasHoldem.CheckRaiseFold
+TexasHoldem.CallRaiseFold
+TexasHoldem.CallAllInFold
+TexasHoldem.CallFold
 TexasHoldem.player_option
 ```

@@ -9,7 +9,7 @@ export bank_roll, round_bank_roll
 """
     AbstractStrategy
 
-An abstract strategy type, which users must
+An abstract strategy type, which users can
 subtype when passing to players.
 """
 abstract type AbstractStrategy end
