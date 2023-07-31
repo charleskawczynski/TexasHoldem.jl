@@ -4,10 +4,44 @@ export AbstractPlayerOptions,
     CallAllInFold,
     CallFold
 
+
+"""
+    AbstractPlayerOptions
+
+The option super type.
+"""
 abstract type AbstractPlayerOptions end
+
+"""
+    CheckRaiseFold
+
+The option when a player is only able to
+check, raise, or fold.
+"""
 struct CheckRaiseFold <: AbstractPlayerOptions end
+
+"""
+    CallRaiseFold
+
+The option when a player is only able to
+call, raise, or fold.
+"""
 struct CallRaiseFold <: AbstractPlayerOptions end
+
+"""
+    CallAllInFold
+
+The option when a player is only able to
+call, raise all-in, or fold.
+"""
 struct CallAllInFold <: AbstractPlayerOptions end
+
+"""
+    CallFold
+
+The option when a player is only able to
+call or fold.
+"""
 struct CallFold <: AbstractPlayerOptions end
 
 validate_action(a::Action, ::CheckRaiseFold) = @assert a.name in (:check, :raise, :all_in, :fold)
@@ -218,14 +252,17 @@ end
     player_option(game::Game, player::Player, option::AbstractPlayerOptions)
 
 Returns a valid action (see [`Action`](@ref)),
-given the possible option. `TexasHoldem` calls `player_option`
+given the allowable option. `TexasHoldem` calls `player_option`
 for each player on the table during each round. This
 function is entirely where the strategy logic resides.
 
- - `CheckRaiseFold`
- - `CallRaiseFold`
- - `CallAllInFold`
- - `CallFold`
+Users may overload this method to develop their
+own poker bots. The option type is one of
+
+ - [`CheckRaiseFold`](@ref)
+ - [`CallRaiseFold`](@ref)
+ - [`CallAllInFold`](@ref)
+ - [`CallFold`](@ref)
 """
 function player_option end
 
