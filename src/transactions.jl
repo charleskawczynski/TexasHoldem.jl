@@ -228,6 +228,7 @@ function distribute_winnings_1_player_left!(players, tm::TransactionManager, tab
         amt_contributed = initial_br - bank_roll(player)
         ∑spw = sidepot_winnings(tm, n)
         prof = ∑spw-amt_contributed
+        player.game_profit = prof
         player.bank_roll += ∑spw
         if !(∑spw == 0 && player.bank_roll == 0 && amt_contributed == 0)
             @cinfo logger "$(name(player)) wins $(∑spw) ($(prof) profit) (all opponents folded)"
@@ -388,6 +389,7 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards, logg
                 bc = she.best_cards
                 "$(name(player)) wins $∑spw ($prof profit) with $bc ($hand_name)!"
             end
+            player.game_profit = prof
             player.bank_roll += ∑spw
         end
     end
