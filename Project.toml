@@ -12,7 +12,7 @@ REPL = "3fa0cd96-eef1-5676-8a61-b3b8758bbffb"
 TupleTools = "9d95972d-f1c8-5527-a6e0-b4b365fa01f6"
 
 [compat]
-PlayingCards = "0.3.2"
+PlayingCards = "0.3.2, 0.4"
 PokerHandEvaluator = "0.2"
 TupleTools = "1"
 julia = "1.4"
