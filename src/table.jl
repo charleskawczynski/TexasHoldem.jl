@@ -2,6 +2,8 @@
 ##### Table
 #####
 
+import StatsBase
+const SB = StatsBase
 export Dealer, SmallBlind, BigBlind, FirstToAct
 export Table
 export move_buttons!
@@ -169,7 +171,7 @@ function Base.show(io::IO, table::Table, include_type = true)
     println(io, "Observed cards   = $(observed_cards(table))")
 end
 
-get_table_cards!(deck::PlayingCards.MaskedDeck) = pop!(deck, Val(5))
+get_table_cards!(deck::PlayingCards.MaskedDeck) = ntuple(_->SB.sample!(deck), Val(5))::Tuple{Card, Card, Card, Card, Card}
 cards(table::Table) = table.cards
 
 observed_cards(table::Table) = observed_cards(table, table.round)
@@ -451,7 +453,6 @@ show_cards(table::Table, player::Player{S}) where {S <: AbstractStrategy} = "(??
 
 function deal!(table::Table, blinds::Blinds)
     players = players_at_table(table)
-    shuffle!(table.deck)
     call_blinds = true
     logger = table.logger
     for (i, pidx) in enumerate(circle(table, SmallBlind()))
@@ -461,7 +462,7 @@ function deal!(table::Table, blinds::Blinds)
 
         not_playing(player) && continue
 
-        player.cards = pop!(table.deck, Val(2))::Tuple{Card, Card}
+        player.cards = ntuple(_->SB.sample!(table.deck), 2)::Tuple{Card, Card}
 
         if is_small_blind(table, player) && bank_roll(player) ≤ blinds.small
             contribute!(table, player, bank_roll(player), call_blinds)

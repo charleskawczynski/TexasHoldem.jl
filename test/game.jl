@@ -28,6 +28,7 @@ end
 
 @testset "Game: pre-dealt deck" begin
     deck = PlayingCards.MaskedDeck()
+    # we use StatsBase.sample! for efficiency, but shuffle! is convenient
     shuffle!(deck)
     players = ntuple(3) do i
         Player(Bot5050(), i, pop!(deck, Val(2)))
