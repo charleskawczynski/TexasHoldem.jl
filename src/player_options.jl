@@ -268,30 +268,27 @@ function player_option end
 
 function player_option(game::Game, player::Player)
     logger = game.table.logger
-    @cdebug logger "predicted option = $(predict_option(game, player))"
     table = game.table
-    call_amt = call_amount(table, player)
-    local action
-    if !(call_amt == 0) # must call to stay in
-        cond_1 = bank_roll(player) > call_amt
-        cond_2 = an_opponent_can_call_a_raise(table, player)
-        raise_possible = cond_1 && cond_2
-        if raise_possible # raise possible
-            vrr = valid_raise_range(table, player)
-            if first(vrr) == last(vrr) # only all-in raise possible
-                action = player_option(game, player, CallAllInFold())::Action
-                validate_action(action, CallAllInFold())
-            else
-                action = player_option(game, player, CallRaiseFold())::Action
-                validate_action(action, CallRaiseFold())
-            end
-        else # only all-in possible
-            action = player_option(game, player, CallFold())::Action
-            validate_action(action, CallFold())
-        end
+    # `predict_option(game, player)` is type-unstable,
+    # so, we use manual dispatch to avoid inference:
+    # we could alternatively inline the if-else contents
+    # into `predict_option`, but then
+    option = predict_option(game, player)
+    @cdebug logger "predicted option = $(option)"
+    if option isa CallAllInFold
+        action = player_option(game, player, option)::Action # CallAllInFold
+        validate_action(action, option)
+    elseif option isa CallRaiseFold
+        action = player_option(game, player, option)::Action # CallRaiseFold
+        validate_action(action, option)
+    elseif option isa CallFold
+        action = player_option(game, player, option)::Action # CallFold
+        validate_action(action, option)
+    elseif option isa CheckRaiseFold
+        action = player_option(game, player, option)::Action # CheckRaiseFold
+        validate_action(action, option)
     else
-        action = player_option(game, player, CheckRaiseFold())::Action
-        validate_action(action, CheckRaiseFold())
+        error("Uncaught case")
     end
     update_given_valid_action!(table, player, action)
 end
