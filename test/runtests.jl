@@ -21,6 +21,9 @@ end
 @safetestset "game" begin
     Δt = @elapsed include("game.jl"); @info "Completed tests for game in $Δt seconds"
 end
+@safetestset "recreate" begin
+    Δt = @elapsed include("recreate.jl"); @info "Completed tests for recreate in $Δt seconds"
+end
 @safetestset "play" begin
     Δt = @elapsed include("play.jl"); @info "Completed tests for play in $Δt seconds"
 end

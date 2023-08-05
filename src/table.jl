@@ -174,11 +174,19 @@ end
 get_table_cards!(deck::PlayingCards.MaskedDeck) = ntuple(_->SB.sample!(deck), Val(5))::Tuple{Card, Card, Card, Card, Card}
 cards(table::Table) = table.cards
 
-observed_cards(table::Table) = observed_cards(table, table.round)
+observed_cards(table::Table) = observed_cards(table, round(table))
 observed_cards(table::Table, ::PreFlop) = ()
 observed_cards(table::Table, ::Flop) = table.cards[1:3]
 observed_cards(table::Table, ::Turn) = table.cards[1:4]
 observed_cards(table::Table, ::River) = table.cards
+
+# for testing
+unobserved_cards(table::Table) = unobserved_cards(table, round(table))
+unobserved_cards(table::Table, ::PreFlop) = table.cards
+unobserved_cards(table::Table, ::Flop) = table.cards[4:5]
+unobserved_cards(table::Table, ::Turn) = (table.cards[5],)
+unobserved_cards(table::Table, ::River) = ()
+
 current_raise_amt(table::Table) = table.current_raise_amt
 initial_round_raise_amt(table::Table) = table.initial_round_raise_amt
 minimum_raise_amt(table::Table) = blinds(table).small
