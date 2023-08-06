@@ -42,3 +42,11 @@ TexasHoldem.CallAllInFold
 TexasHoldem.CallFold
 TexasHoldem.player_option
 ```
+
+## Training
+
+There are additional functionalities added for training purposes
+
+```@docs
+TexasHoldem.recreate_game
+```

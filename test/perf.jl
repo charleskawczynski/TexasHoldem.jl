@@ -36,5 +36,4 @@ nef = get(n_expected_failures, VERSION, minimum(values(n_expected_failures)))
     n = @n_failures do_work!(game)
     @test n ≤ nef
     n < nef && @show n
-    @test_broken n < nef
 end

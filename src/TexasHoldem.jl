@@ -36,5 +36,6 @@ include("game.jl")
 include("player_actions.jl")
 include("player_options.jl")
 include("config_game.jl")
+include("recreate.jl")
 
 end # module
