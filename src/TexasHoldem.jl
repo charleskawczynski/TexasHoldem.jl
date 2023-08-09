@@ -28,6 +28,7 @@ struct Flop <: AbstractRound end
 struct Turn <: AbstractRound end
 struct River <: AbstractRound end
 
+include("goto_player_option.jl")
 include("player_type.jl")
 include("players.jl")
 include("transactions.jl")

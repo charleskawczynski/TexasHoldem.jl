@@ -220,18 +220,29 @@ Base.@propagate_inbounds function sidepot_winnings(tm::TransactionManager, id::I
     mapreduce(i->tm.side_pots[i].amt, +, 1:id; init=0)
 end
 
+function profit(player, tm)
+    if not_playing(player)
+        return -pot_investment(player)
+    else
+        n = length(tm.side_pots)
+        ∑spw = sidepot_winnings(tm, n)
+        return ∑spw-pot_investment(player)
+    end
+end
+
 function distribute_winnings_1_player_left!(players, tm::TransactionManager, table_cards, logger)
     @assert count(x->still_playing(x), players) == 1
     n = length(tm.side_pots)
     for (player, initial_br) in zip(players, tm.initial_brs)
+        player.game_profit = profit(player, tm)
+    end
+    for (player, initial_br) in zip(players, tm.initial_brs)
+        ∑spw = sidepot_winnings(tm, n)
         not_playing(player) && continue
         amt_contributed = initial_br - bank_roll(player)
-        ∑spw = sidepot_winnings(tm, n)
-        prof = ∑spw-amt_contributed
-        player.game_profit = prof
         player.bank_roll += ∑spw
         if !(∑spw == 0 && player.bank_roll == 0 && amt_contributed == 0)
-            @cinfo logger "$(name(player)) wins $(∑spw) ($(prof) profit) (all opponents folded)"
+            @cinfo logger "$(name(player)) wins $(∑spw) ($(profit(player, tm)) profit) (all opponents folded)"
         end
         @inbounds for j in 1:n
             tm.side_pots[j].amt = 0 # empty out distributed winnings
@@ -255,7 +266,7 @@ end
 
 #=largest pot investment, excluding player=#
 function largest_pot_investment(player, players)
-    lpi = typeof(pot_investment(player))(0)
+    lpi = 0
     for i in 1:length(players)
         seat_number(players[i]) == seat_number(player) && continue
         lpi = max(lpi, pot_investment(players[i]))
@@ -368,6 +379,9 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards, logg
     for (player, initial_br, player_winnings) in zip(players, tm.initial_brs, tm.side_pot_winnings)
         ∑spw = sum(player_winnings)
         ssn = tm.unsorted_to_sorted_map[seat_number(player)]
+        amt_contributed = initial_br - bank_roll(player)
+        prof = profit(player, tm)
+        player.game_profit = prof
         if ∑spw == 0 && active(player)
             @cinfo logger begin
                 she = sorted_hand_evals[ssn]
@@ -378,8 +392,6 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards, logg
             end
         else
             @cdebug logger "$(name(player))'s side-pot wins: $(player_winnings)!"
-            amt_contributed = initial_br - bank_roll(player)
-            prof = ∑spw-amt_contributed
             if amt_contributed == 0 && ∑spw == 0 && prof == 0 && !still_playing(player)
                 continue
             end
@@ -389,7 +401,6 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards, logg
                 bc = she.best_cards
                 "$(name(player)) wins $∑spw ($prof profit) with $bc ($hand_name)!"
             end
-            player.game_profit = prof
             player.bank_roll += ∑spw
         end
     end
