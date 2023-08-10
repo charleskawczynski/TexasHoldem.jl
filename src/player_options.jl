@@ -293,7 +293,7 @@ function player_option(game::Game, player::Player)
         action = player_option(game, player, CheckRaiseFold())::Action
         validate_action(action, CheckRaiseFold())
     end
-    update_given_valid_action!(table, player, action)
+    return action
 end
 
 # By default, forward to `player_option` with

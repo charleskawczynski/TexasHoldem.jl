@@ -120,43 +120,96 @@ function end_preflop_actions(table::Table, player::Player, ::PreFlop)
     return all((cond1, cond2, cond3))
 end
 
-function act_generic!(game::Game, round::AbstractRound)
+skip_pre_option(sf::StartFrom{StartOfGame}, _) = false
+skip_option(sf::StartFrom{StartOfGame}, _) = false
+skip_post_option(sf::StartFrom{StartOfGame}, _) = false
+
+skip_pre_option(sf::StartFrom{GP}, player) where {GP <: PlayerOption} =
+    true
+skip_option(sf::StartFrom{GP}, player) where {GP <: PlayerOption} =
+    seat_number(sf.game_point.player) ≠ seat_number(player)
+skip_post_option(sf::StartFrom{GP}, player) where {GP <: PlayerOption} =
+    seat_number(sf.game_point.player) ≠ seat_number(player)
+
+function act_generic!(game::Game, round::AbstractRound, sf::StartFrom)
     table = game.table
     players = table.players
     logger = table.logger
     table.winners.declared && return
-    set_round!(table, round)
-    print_round(table, round)
-    reset_round_bank_rolls!(game, round)
+    @assert sf.game_point isa StartOfGame || sf.game_point isa PlayerOption
+    if sf.game_point isa StartOfGame
+        set_round!(table, round)
+        print_round(table, round)
+        reset_round_bank_rolls!(game, round)
 
-    any_actions_required(game) || return
-    play_out_game(table) && return
-    set_play_out_game!(table)
+        any_actions_required(game) || return
+        play_out_game(table) && return
+        set_play_out_game!(table)
+    end
+    reached_game_point = false # to support when StartFrom is not StartOfGame
+    # need a bool so that we pick the recreated
+    # action (in `sf.game_point.action`) once,
+    # and then continue with `player_option`.
+    past_game_point = false
     for (i, sn) in enumerate(circle(table, FirstToAct()))
         player = players[sn]
-        @cdebug logger "Checking to see if it's $(name(player))'s turn to act"
-        @cdebug logger "     not_playing(player) = $(not_playing(player))"
-        @cdebug logger "     all_in(player) = $(all_in(player))"
-        not_playing(player) && continue # skip players not playing
-        set_preflop_blind_raise!(table, player, round, i)
-        if end_of_actions(table, player)
-            break
+        if reached_game_point || !skip_pre_option(sf, player)
+            @cdebug logger "Checking to see if it's $(name(player))'s turn to act"
+            @cdebug logger "     not_playing(player) = $(not_playing(player))"
+            @cdebug logger "     all_in(player) = $(all_in(player))"
+            not_playing(player) && continue # skip players not playing
+            set_preflop_blind_raise!(table, player, round, i)
+            if end_of_actions(table, player)
+                break
+            end
+            all_in(player) && continue
+            @cdebug logger "$(name(player))'s turn to act"
         end
-        all_in(player) && continue
-        @cdebug logger "$(name(player))'s turn to act"
-        player_option(game, player)
-        table.winners.declared && break
-        end_preflop_actions(table, player, round) && break
+        if reached_game_point || !skip_option(sf, player)
+            reached_game_point = true
+            if sf.game_point isa PlayerOption && !past_game_point
+                action = sf.game_point.action
+                past_game_point = true
+            else
+                action = player_option(game, player)
+            end
+        end
+        if reached_game_point || !skip_post_option(sf, player)
+            update_given_valid_action!(table, player, action)
+            table.winners.declared && break
+            end_preflop_actions(table, player, round) && break
+        end
         if i > n_max_actions(table)
-            error("Too many actions have occured, please open an issue.")
+            error("Too many actions have occurred, please open an issue.")
         end
     end
     @cinfo logger "Betting is finished."
     @assert all_bets_were_called(table)
 end
 
-function act!(game::Game, round::AbstractRound)
-    act_generic!(game, round)
+skip_round(round::AbstractRound, sf::StartFrom) = skip_round(round, sf.game_point)
+skip_round(round::AbstractRound, gp::StartOfGame) = false
+skip_round(round::AbstractRound, po::PlayerOption) = skip_round(round, po.round)
+skip_round(round::AbstractRound, ::AbstractRound) = false
+
+# Skip to Preflop
+# Nothing needed-- we automatically skip to this if `StartFrom` is not StartOfGame
+
+# Skip to Flop
+skip_round(round::PreFlop, ::Flop) = true
+
+# Skip to Turn
+skip_round(round::PreFlop, ::Turn) = true
+skip_round(round::Flop, ::Turn) = true
+
+# Skip to River
+skip_round(round::PreFlop, ::River) = true
+skip_round(round::Flop, ::River) = true
+skip_round(round::Turn, ::River) = true
+
+function act!(game::Game, round::AbstractRound, sf::StartFrom)
+    skip_round(round, sf) && return nothing
+    act_generic!(game, round, sf)
     reset_round!(game.table)
 end
 
@@ -164,72 +217,87 @@ metafmt(level, _module, group, id, file, line) =
     Logging.default_metafmt(level, nothing, group, id, nothing, nothing)
 
 """
-    play!(game::Game)
+    play!(game::Game[, sf::StartFrom])
 
 Play a game.
+
+Optionally, users can pass in a `StartFrom`
+option, to start from a game-point, specified
+by `sf`.
 """
-play!(game::Game) = deal_and_play!(game::Game)
+play!(game::Game, sf::StartFrom = StartFrom(StartOfGame())) =
+    deal_and_play!(game::Game, sf)
 
 """
-    deal_and_play!(game::Game)
+    deal_and_play!(game::Game[, sf::StartFrom])
 
 Deal and play a game.
+
+Optionally, users can pass in a `StartFrom`
+option, to start from a game-point, specified
+by `sf`.
 """
-function deal_and_play!(game::Game)
+function deal_and_play!(game::Game, sf::StartFrom = StartFrom(StartOfGame()))
     if game.table.logger isa DebugLogger
         cl = Logging.ConsoleLogger(stderr,Logging.Debug; meta_formatter=metafmt)
         Logging.with_logger(cl) do
-            _deal_and_play!(game)
+            _deal_and_play!(game, sf)
         end
     else
-        _deal_and_play!(game)
+        _deal_and_play!(game, sf)
     end
 end
 
-function _deal_and_play!(game::Game)
+function _deal_and_play!(game::Game, sf::StartFrom)
     logger = game.table.logger
-    @cinfo logger "------ Playing game!"
-
     table = game.table
-    set_active_status!(table)
+    winners = table.winners
     players = players_at_table(table)
-
     local initial_brs
+    if sf.game_point isa PlayerOption
+        # Cannot (or, should not) play from a point
+        # at which a winner has been declared
+        @assert !winners.declared
+    end
+
     @cdebug logger begin
         initial_brs = deepcopy(bank_roll.(players))
     end
-    initial_∑brs = sum(x->bank_roll(x), players)
+    if sf.game_point isa StartOfGame
+        @cinfo logger "------ Playing game!"
+        set_active_status!(table)
+        initial_∑brs = sum(x->bank_roll(x), players)
 
-    @cinfo logger "Initial bank roll summary: $(bank_roll.(players))"
-    did = dealer_pidx(table)
-    sb = seat_number(small_blind(table))
-    bb = seat_number(big_blind(table))
-    f2a = seat_number(first_to_act(table))
-    @cinfo logger "Buttons (dealer, small, big, 1ˢᵗToAct): ($did, $sb, $bb, $f2a)"
+        @cinfo logger "Initial bank roll summary: $(bank_roll.(players))"
 
-    @assert still_playing(dealer(table)) "The button must be placed on a non-folded player"
-    @assert still_playing(small_blind(table)) "The small blind button must be placed on a non-folded player"
-    @assert still_playing(big_blind(table)) "The big blind button must be placed on a non-folded player"
-    @assert still_playing(first_to_act(table)) "The first-to-act button must be placed on a non-folded player"
+        did = dealer_pidx(table)
+        sb = seat_number(small_blind(table))
+        bb = seat_number(big_blind(table))
+        f2a = seat_number(first_to_act(table))
+        @cinfo logger "Buttons (dealer, small, big, 1ˢᵗToAct): ($did, $sb, $bb, $f2a)"
+        @assert still_playing(dealer(table)) "The button must be placed on a non-folded player"
+        @assert still_playing(small_blind(table)) "The small blind button must be placed on a non-folded player"
+        @assert still_playing(big_blind(table)) "The big blind button must be placed on a non-folded player"
+        @assert still_playing(first_to_act(table)) "The first-to-act button must be placed on a non-folded player"
+    end
 
     @assert dealer_pidx(table) ≠ small_blind_pidx(table) "The button and small blind cannot coincide"
     @assert small_blind_pidx(table) ≠ big_blind_pidx(table) "The small and big blinds cannot coincide"
     @assert big_blind_pidx(table) ≠ first_to_act_pidx(table) "The big blind and first to act cannot coincide"
 
-    reset!(table.transactions, players)
+    if sf.game_point isa StartOfGame
+        reset!(table.transactions, players)
+        @assert all(p->cards(p) == nothing, players)
+        @assert cards(table) == nothing
+        reset_round_bank_rolls!(table) # round bank-rolls must account for blinds
+        deal!(table, blinds(table))
+        @assert cards(table) ≠ nothing
+    end
 
-    @assert all(p->cards(p) == nothing, players)
-    @assert cards(table) == nothing
-    reset_round_bank_rolls!(table) # round bank-rolls must account for blinds
-    deal!(table, blinds(table))
-    @assert cards(table) ≠ nothing
-
-    winners = table.winners
-
-    winners.declared || act!(game, PreFlop())   # Pre-flop bet/check/raise
-    winners.declared || act!(game, Flop())      # Deal flop , then bet/check/raise
-    winners.declared || act!(game, Turn())      # Deal turn , then bet/check/raise
-    winners.declared || act!(game, River())     # Deal river, then bet/check/raise
+    winners.declared || act!(game, PreFlop(), sf)   # Pre-flop bet/check/raise
+    winners.declared || act!(game, Flop(), sf)      # Deal flop , then bet/check/raise
+    winners.declared || act!(game, Turn(), sf)      # Deal turn , then bet/check/raise
+    winners.declared || act!(game, River(), sf)     # Deal river, then bet/check/raise
 
     distribute_winnings!(players, table.transactions, cards(table), logger)
     winners.declared = true
@@ -240,12 +308,14 @@ function _deal_and_play!(game::Game)
     @cdebug logger "initial_brs = $(initial_brs)"
     @cdebug logger "bank_roll.(players_at_table(table)) = $(bank_roll.(players_at_table(table)))"
 
-    if !(logger isa ByPassLogger)
-        if !(initial_∑brs == sum(x->bank_roll(x), players_at_table(table)))
-            @cinfo logger "initial_∑brs=$initial_∑brs, brs=$(bank_roll.(players_at_table(table)))"
+    if sf.game_point isa StartOfGame
+        if !(logger isa ByPassLogger)
+            if !(initial_∑brs == sum(x->bank_roll(x), players_at_table(table)))
+                @cinfo logger "initial_∑brs=$initial_∑brs, brs=$(bank_roll.(players_at_table(table)))"
+            end
         end
+        @assert initial_∑brs == sum(x->bank_roll(x), players_at_table(table)) # eventual assertion
     end
-    @assert initial_∑brs == sum(x->bank_roll(x), players_at_table(table)) # eventual assertion
     @assert sum(sp->amount(sp), table.transactions.side_pots) == 0
 
     @cinfo logger "Final bank roll summary: $(bank_roll.(players))"
