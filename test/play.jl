@@ -2,6 +2,7 @@ using Test
 using PlayingCards
 using TexasHoldem
 import TexasHoldem
+import Random
 const TH = TexasHoldem
 import Random
 
@@ -64,6 +65,8 @@ end
 
 Random.seed!(1234)
 @testset "Player limps all in" begin
+    # TODO: this is broken due to https://github.com/charleskawczynski/TexasHoldem.jl/issues/200
+    # game = Game((Player(BotCheckCall(), 2; bank_roll = 11), Player(BotLimpAllIn(), 1; bank_roll = 1)); logger = TH.DebugLogger())
     game = QuietGame((Player(BotCheckCall(), 2; bank_roll = 11), Player(BotLimpAllIn(), 1; bank_roll = 1)))
     play!(game)
 end

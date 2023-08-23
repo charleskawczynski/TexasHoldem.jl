@@ -4,8 +4,9 @@
 
 export Game, play!, tournament!
 
-mutable struct Game{T<:Table}
+mutable struct Game{T<:Table, IBRs}
     table::T
+    initial_brs::IBRs
 end
 
 function Base.show(io::IO, game::Game)
@@ -18,7 +19,10 @@ function Base.show(io::IO, game::Game)
 end
 
 Game(players; kwargs...) = Game(Players(players); kwargs...)
-Game(players::Players; kwargs...) = Game(Table(players; kwargs...))
+function Game(players::Players; kwargs...)
+    table = Table(players; kwargs...)
+    Game(table, deepcopy(bank_roll_chips.(players)))
+end
 
 players_at_table(game::Game) = players_at_table(game.table)
 blinds(game::Game) = blinds(game.table)
@@ -216,6 +220,25 @@ end
 metafmt(level, _module, group, id, file, line) =
     Logging.default_metafmt(level, nothing, group, id, nothing, nothing)
 
+function pidx_from_seat_number(player, players)::Int
+    for (i, p) in enumerate(players)
+        if seat_number(player) == seat_number(p)
+            return i
+        end
+    end
+    error("Uncaught case")
+end
+
+function max_possible_profit(player, players, initial_brs)
+    mpp = Chips(0)
+    pidx = pidx_from_seat_number(player, players)
+    for (oidx, opponent) in enumerate(players)
+        seat_number(player) == seat_number(opponent) && continue
+        mpp += min(initial_brs[pidx], initial_brs[oidx])
+    end
+    return mpp
+end
+
 """
     play!(game::Game[, sf::StartFrom])
 
@@ -256,22 +279,22 @@ function _deal_and_play!(game::Game, sf::StartFrom)
     table = game.table
     winners = table.winners
     players = players_at_table(table)
-    local initial_brs
+    initial_brs = game.initial_brs
     if sf.game_point isa PlayerOption
         # Cannot (or, should not) play from a point
         # at which a winner has been declared
         @assert !winners.declared
     end
 
-    @cdebug logger begin
-        initial_brs = deepcopy(bank_roll.(players))
-    end
     if sf.game_point isa StartOfGame
+        for (pidx, player) in enumerate(players)
+            initial_brs[pidx] = bank_roll_chips(player)
+        end
         @cinfo logger "------ Playing game!"
         set_active_status!(table)
         initial_∑brs = ∑bank_rolls(players)
 
-        @cinfo logger "Initial bank roll summary: $(bank_roll.(players))"
+        @cinfo logger "Initial bank roll summary: $initial_brs"
 
         did = dealer_pidx(table)
         sb = seat_number(small_blind(table))
@@ -320,6 +343,18 @@ function _deal_and_play!(game::Game, sf::StartFrom)
         @assert initial_∑brs == ∑bank_rolls(players) "initial_∑brs = $(initial_∑brs), ∑bank_rolls = $(∑bank_rolls(players))"
     end
     @assert sum(sp->amount(sp), table.transactions.side_pots) == 0
+    for (player, initial_br) in zip(players, initial_brs)
+        mpp = max_possible_profit(player, players, initial_brs)
+        prof = bank_roll_chips(player) - initial_br
+        br = map(x->bank_roll_chips(x), players)
+        # TODO: this is broken due to https://github.com/charleskawczynski/TexasHoldem.jl/issues/200
+        # @assert prof ≤ mpp string("Over-winning occurred:\n",
+        #       "    Player $(name(player))\n",
+        #       "    Initial BRs $(initial_brs)\n",
+        #       "    BRs $br\n",
+        #       "    profit $prof\n",
+        #       "    max possible profit $mpp")
+    end
 
     @cinfo logger "Final bank roll summary: $(bank_roll.(players))"
     @assert winners.declared
