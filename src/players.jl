@@ -48,6 +48,7 @@ struct Players{PS<:Union{Tuple,AbstractArray}}
         return new{typeof(splayers)}(splayers)
     end
 end
+Players(players...) = Players(players)
 
 sortperm_by_seat_number(players::Tuple) = TupleTools.sortperm(map(x->seat_number(x), players))
 sortperm_by_seat_number(players) = Base.sortperm(map(x->seat_number(x), players))
