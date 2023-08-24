@@ -36,11 +36,11 @@ among multiple players.
 """
 struct TransactionManager
   perm::Vector{Int}
-  bank_rolls::Vector{Int} # cache
-  initial_brs::Vector{Int}
+  bank_rolls::Vector{Chips} # cache
+  initial_brs::Vector{Chips}
   pot_id::Vector{Int}
   side_pots::Vector{SidePot}
-  side_pot_winnings::Vector{Vector{Int}}
+  side_pot_winnings::Vector{Vector{Chips}}
   unsorted_to_sorted_map::Vector{Int}
   sorted_hand_evals::Vector{HandEval}
 end
@@ -53,7 +53,7 @@ end
 TransactionManager(players) = TransactionManager(Players(players))
 function TransactionManager(players::Players)
     perm = collect(sortperm(players))
-    bank_rolls = collect(map(x->bank_roll(x), players))
+    bank_rolls = collect(map(x->bank_roll_chips(x), players))
 
     cap = zeros(Int,length(players))
     for i in 1:length(players)
@@ -69,7 +69,7 @@ function TransactionManager(players::Players)
     end)
     side_pots = [SidePot(seat_number(players[p]), 0, cap_i) for (cap_i, p) in zip(cap, perm)]
 
-    initial_brs = deepcopy(collect(bank_roll.(players)))
+    initial_brs = deepcopy(collect(bank_roll_chips.(players)))
     sorted_hand_evals = map(x->HandEval(), 1:length(players))
     pot_id = Int[1]
     FT = eltype(initial_brs)
@@ -89,7 +89,7 @@ end
 function reset!(tm::TransactionManager, players::Players)
     perm = tm.perm
     @inbounds for i in 1:length(players)
-        tm.bank_rolls[i] = bank_roll(players[i])
+        tm.bank_rolls[i] = bank_roll_chips(players[i])
     end
     sortperm!(perm, tm.bank_rolls)
     @inbounds for i in 1:length(players)
@@ -102,11 +102,11 @@ function reset!(tm::TransactionManager, players::Players)
         tm.side_pots[i].amt = 0
         tm.side_pots[i].cap = cap_i
         for k in 1:length(players)
-            tm.side_pot_winnings[i][k] = 0
+            tm.side_pot_winnings[i][k] = Chips(0)
         end
         j = findfirst(p->seat_number(players[p]) == seat_number(player), perm)::Int
         tm.unsorted_to_sorted_map[i] = j
-        tm.initial_brs[i] = bank_roll(player)
+        tm.initial_brs[i] = bank_roll_chips(player)
     end
     @inbounds tm.pot_id[1] = 1
     return nothing
@@ -221,12 +221,13 @@ Base.@propagate_inbounds function sidepot_winnings(tm::TransactionManager, id::I
 end
 
 function profit(player, tm)
+    # TODO: this is wrong (but only used for log / game_profit)
     if not_playing(player)
-        return -pot_investment(player)
+        return Chips(-pot_investment(player))
     else
         n = length(tm.side_pots)
         ∑spw = sidepot_winnings(tm, n)
-        return ∑spw-pot_investment(player)
+        return Chips(∑spw-pot_investment(player))
     end
 end
 
@@ -310,7 +311,7 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards, logg
 
     @inbounds for i in 1:length(players)
         for k in 1:length(players)
-            tm.side_pot_winnings[i][k] = 0
+            tm.side_pot_winnings[i][k] = Chips(0)
         end
     end
 
@@ -344,21 +345,21 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards, logg
         end
 
         # Compute the least winnings per player:
-        amt_total = sidepot_winnings(tm, i)
-        amt_base = div(amt_total, n_winners)
-        remainder = rem(amt_total, n_winners) # ∈ 1:(amt_base-1)
-        eligible_pidxs = Int[]
-        for (ssn, she) in enumerate(sorted_hand_evals)
-            player = players[perm[ssn]]
-            if (still_playing(player) && ssn ≥ i ? she.hand_rank==mvhr : false) || is_largest_pot_investment(player, players)
-                push!(eligible_pidxs, perm[ssn])
-            end
-        end
+        # amt_total = sidepot_winnings(tm, i)
+        # amt_base = div(amt_total, n_winners)
+        # remainder = rem(amt_total, n_winners) # ∈ 1:(amt_base-1)
+        # eligible_pidxs = Int[]
+        # for (ssn, she) in enumerate(sorted_hand_evals)
+        #     player = players[perm[ssn]]
+        #     if (still_playing(player) && ssn ≥ i ? she.hand_rank==mvhr : false) || is_largest_pot_investment(player, players)
+        #         push!(eligible_pidxs, perm[ssn])
+        #     end
+        # end
         # TODO: distribute remaining more uniformly / with less variance
-        lucky_pidx = isempty(eligible_pidxs) ? -1 : rand(eligible_pidxs)
-        @cdebug logger "eligible_pidxs = $eligible_pidxs"
-        @cdebug logger "lucky_pidx = $lucky_pidx"
-        @cdebug logger "remainder = $remainder"
+        # lucky_pidx = isempty(eligible_pidxs) ? -1 : rand(eligible_pidxs)
+        # @cdebug logger "eligible_pidxs = $eligible_pidxs"
+        # @cdebug logger "lucky_pidx = $lucky_pidx"
+        # @cdebug logger "remainder = $remainder"
 
         for (ssn, she) in enumerate(sorted_hand_evals)
             player = players[perm[ssn]]
@@ -368,9 +369,13 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards, logg
             @cdebug logger "winning pidx = $(tm.perm[winner_id])"
             win_seat = seat_number(players[tm.perm[winner_id]])
             # we do a coin flip to see who gets the remaining chips:
-            @cdebug logger "ssn, lucky_pidx: $ssn, $lucky_pidx"
-            amt = perm[ssn] == lucky_pidx ? amt_base + remainder : amt_base
-            tm.side_pot_winnings[win_seat][i] = amt
+            # @cdebug logger "ssn, lucky_pidx: $ssn, $lucky_pidx"
+            # amt = perm[ssn] == lucky_pidx ? amt_base + remainder : amt_base
+            amt_total = sidepot_winnings(tm, i)
+            amt_base = div(amt_total, n_winners)
+            remainder = rem(amt_total, n_winners) # ∈ 1:(amt_base-1)
+            amt_chips = Chips(amt_base, Rational(remainder,n_winners))
+            tm.side_pot_winnings[win_seat][i] = amt_chips
         end
         for j in 1:i
             tm.side_pots[j].amt = 0 # empty out distributed winnings

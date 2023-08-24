@@ -11,12 +11,20 @@ play!
 tournament!
 ```
 
-## Player type
+## Chips
+
+```@docs
+Chips
+```
+
+## Player type and methods
 ```@docs
 AbstractStrategy
 Human
 Bot5050
 Player
+bank_roll
+round_bank_roll
 ```
 
 ## Player actions

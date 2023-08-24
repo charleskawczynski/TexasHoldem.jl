@@ -75,7 +75,7 @@ end
     fold!(game, players[3])
 
     # Round 2
-    raise_to!(game, players[1], players[1].bank_roll)
+    raise_to!(game, players[1], TH.bank_roll(players[1]))
     @test TH.checked(players[1]) == false
     call!(game, players[2])
 

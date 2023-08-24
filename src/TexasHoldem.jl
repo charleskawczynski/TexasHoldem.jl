@@ -19,6 +19,7 @@ using PokerHandEvaluator
 using Printf
 
 export AbstractRound, PreFlop, Flop, Turn, River
+export Chips
 
 include("custom_logger.jl")
 
@@ -28,6 +29,7 @@ struct Flop <: AbstractRound end
 struct Turn <: AbstractRound end
 struct River <: AbstractRound end
 
+include("chips.jl")
 include("goto_player_option.jl")
 include("player_type.jl")
 include("players.jl")

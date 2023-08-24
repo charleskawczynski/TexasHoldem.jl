@@ -1,5 +1,8 @@
 using SafeTestsets
 
+@safetestset "chips" begin
+    Δt = @elapsed include("chips.jl"); @info "Completed tests for chips in $Δt seconds"
+end
 @safetestset "players" begin
     Δt = @elapsed include("players.jl"); @info "Completed tests for players in $Δt seconds"
 end

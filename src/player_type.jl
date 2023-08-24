@@ -53,11 +53,11 @@ mutable struct Player{S #=<: AbstractStrategy=#}
     strategy::S
     seat_number::Int
     cards::Union{Nothing,Tuple{<:Card,<:Card}}
-    bank_roll::Int
-    game_profit::Int
+    bank_roll::Chips
+    game_profit::Chips
     action_required::Bool
     all_in::Bool
-    round_bank_roll::Int # bank roll at the beginning of the round
+    round_bank_roll::Chips # bank roll at the beginning of the round
     folded::Bool
     pot_investment::Int # accumulation of round_contribution
     checked::Bool
@@ -86,11 +86,11 @@ function Player(strategy, seat_number, cards = nothing; bank_roll = 200)
         strategy,
         seat_number,
         cards,
-        bank_roll,
-        game_profit,
+        Chips(bank_roll),
+        Chips(game_profit),
         action_required,
         all_in,
-        round_bank_roll,
+        Chips(round_bank_roll),
         folded,
         pot_investment,
         checked,
@@ -104,7 +104,32 @@ end
 name(s::AbstractStrategy) = nameof(typeof(s))
 name(player::Player) = "$(name(strategy(player)))[$(seat_number(player))]"
 cards(player::Player) = player.cards
-bank_roll(player::Player) = player.bank_roll
+
+"""
+    bank_roll(::Player)
+
+The player's instantaneous
+bank roll.
+
+We access the `Int` in Chips
+as the fractional chips are only
+handled by the TransactionManager.
+"""
+bank_roll(player::Player) = player.bank_roll.n
+bank_roll_chips(player::Player) = player.bank_roll
+
+"""
+    round_bank_roll(::Player)
+
+The player's bank roll at the
+beginning of the round
+
+We access the `Int` in Chips
+as the fractional chips are only
+handled by the TransactionManager.
+"""
+round_bank_roll(player::Player) = player.round_bank_roll.n
+
 seat_number(player::Player) = player.seat_number
 folded(player::Player) = player.folded
 zero_bank_roll(player::Player) = bank_roll(player) == 0
@@ -116,7 +141,6 @@ all_in(player::Player) = player.all_in
 action_required(player::Player) = player.action_required
 active(player::Player) = player.active
 inactive(player::Player) = !active(player)
-round_bank_roll(player::Player) = player.round_bank_roll
 pot_investment(player::Player) = player.pot_investment
 round_contribution(player::Player) = player.round_contribution
 strategy(player::Player) = player.strategy

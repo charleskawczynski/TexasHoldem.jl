@@ -266,7 +266,7 @@ function _deal_and_play!(game::Game, sf::StartFrom)
     if sf.game_point isa StartOfGame
         @cinfo logger "------ Playing game!"
         set_active_status!(table)
-        initial_∑brs = sum(x->bank_roll(x), players)
+        initial_∑brs = mapreduce(x->bank_roll_chips(x), +, players; init=Chips(0))
 
         @cinfo logger "Initial bank roll summary: $(bank_roll.(players))"
 
@@ -310,11 +310,11 @@ function _deal_and_play!(game::Game, sf::StartFrom)
 
     if sf.game_point isa StartOfGame
         if !(logger isa ByPassLogger)
-            if !(initial_∑brs == sum(x->bank_roll(x), players_at_table(table)))
-                @cinfo logger "initial_∑brs=$initial_∑brs, brs=$(bank_roll.(players_at_table(table)))"
+            if !(initial_∑brs == mapreduce(x->bank_roll_chips(x), +, players; init=Chips(0)))
+                @cinfo logger "initial_∑brs=$initial_∑brs, brs=$(bank_roll_chips.(players_at_table(table)))"
             end
         end
-        @assert initial_∑brs == sum(x->bank_roll(x), players_at_table(table)) # eventual assertion
+        @assert initial_∑brs == mapreduce(x->bank_roll_chips(x), +, players; init=Chips(0))
     end
     @assert sum(sp->amount(sp), table.transactions.side_pots) == 0
 
@@ -359,9 +359,9 @@ function reset_game!(game::Game)
     for player in players
         player.cards = nothing
         player.pot_investment = 0
-        player.game_profit = 0
+        player.game_profit = Chips(0)
         player.all_in = false
-        player.round_bank_roll = bank_roll(player)
+        player.round_bank_roll = bank_roll_chips(player)
         player.checked = false
         player.last_to_raise = false
         player.round_contribution = 0

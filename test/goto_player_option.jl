@@ -28,7 +28,8 @@ function TH.player_option(game::Game, player::Player{RiverDreamer}, round::River
         vrr = TH.valid_raise_range(game.table, player)
         raises = sort(map(x->rand(vrr), 1:10))
         actions = (Check(), map(x->Raise(x), raises)..., Fold())
-        @show actions
+        @test TH.Action(:raise, 5) in actions
+        @test TH.Action(:raise, 14) in actions
         rewards = map(actions) do action
             rgame = TH.recreate_game(game, player)
             sf = TH.StartFrom(TH.PlayerOption(player, round, action))
@@ -38,7 +39,7 @@ function TH.player_option(game::Game, player::Player{RiverDreamer}, round::River
             end
             rgame.table.players[pidx].game_profit
         end
-        @show rewards
+        # @show rewards
         return Check()
     end
 end
