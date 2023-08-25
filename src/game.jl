@@ -248,6 +248,9 @@ function deal_and_play!(game::Game, sf::StartFrom = StartFrom(StartOfGame()))
     end
 end
 
+∑bank_rolls(players) =
+    mapreduce(x->bank_roll_chips(x), +, players; init=Chips(0))
+
 function _deal_and_play!(game::Game, sf::StartFrom)
     logger = game.table.logger
     table = game.table
@@ -266,7 +269,7 @@ function _deal_and_play!(game::Game, sf::StartFrom)
     if sf.game_point isa StartOfGame
         @cinfo logger "------ Playing game!"
         set_active_status!(table)
-        initial_∑brs = mapreduce(x->bank_roll_chips(x), +, players; init=Chips(0))
+        initial_∑brs = ∑bank_rolls(players)
 
         @cinfo logger "Initial bank roll summary: $(bank_roll.(players))"
 
@@ -304,17 +307,17 @@ function _deal_and_play!(game::Game, sf::StartFrom)
 
     @cdebug logger "amount.(table.transactions.side_pots) = $(amount.(table.transactions.side_pots))"
     @cdebug logger "initial_∑brs = $(initial_∑brs)"
-    @cdebug logger "sum(bank_roll.(players_at_table(table))) = $(sum(bank_roll.(players_at_table(table))))"
+    @cdebug logger "sum(bank_roll.(players)) = $(sum(bank_roll.(players)))"
     @cdebug logger "initial_brs = $(initial_brs)"
-    @cdebug logger "bank_roll.(players_at_table(table)) = $(bank_roll.(players_at_table(table)))"
+    @cdebug logger "bank_roll.(players) = $(bank_roll.(players))"
 
     if sf.game_point isa StartOfGame
         if !(logger isa ByPassLogger)
-            if !(initial_∑brs == mapreduce(x->bank_roll_chips(x), +, players; init=Chips(0)))
-                @cinfo logger "initial_∑brs=$initial_∑brs, brs=$(bank_roll_chips.(players_at_table(table)))"
+            if initial_∑brs ≠ ∑bank_rolls(players)
+                @cinfo logger "initial_∑brs=$initial_∑brs, brs=$(bank_roll_chips.(players))"
             end
         end
-        @assert initial_∑brs == mapreduce(x->bank_roll_chips(x), +, players; init=Chips(0))
+        @assert initial_∑brs == ∑bank_rolls(players) "initial_∑brs = $(initial_∑brs), ∑bank_rolls = $(∑bank_rolls(players))"
     end
     @assert sum(sp->amount(sp), table.transactions.side_pots) == 0
 

@@ -374,7 +374,7 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards, logg
             amt_total = sidepot_winnings(tm, i)
             amt_base = div(amt_total, n_winners)
             remainder = rem(amt_total, n_winners) # ∈ 1:(amt_base-1)
-            amt_chips = Chips(amt_base, Rational(remainder,n_winners))
+            amt_chips = Chips(amt_base, SimpleRatio(remainder,n_winners))
             tm.side_pot_winnings[win_seat][i] = amt_chips
         end
         for j in 1:i
