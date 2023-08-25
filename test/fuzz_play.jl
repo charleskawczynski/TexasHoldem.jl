@@ -1,6 +1,5 @@
 #=
-using Revise;
-include("test/fuzz_utils.jl")
+using Revise; include("test/fuzz_utils.jl")
 
 to debug cases, use (for example):
 fuzz_debug(;fun=tournament!,n_players=10,bank_roll=30,n_games=3788)

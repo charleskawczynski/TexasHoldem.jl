@@ -3,6 +3,7 @@ using PlayingCards
 using TexasHoldem
 import TexasHoldem
 const TH = TexasHoldem
+import Random
 
 include("tester_bots.jl")
 QuietGame(args...; kwargs...) = Game(args...; kwargs..., logger=TH.ByPassLogger())
@@ -61,8 +62,8 @@ end
     @test_throws AssertionError("a.name in (:call, :fold)") play!(game)
 end
 
+Random.seed!(1234)
 @testset "Player limps all in" begin
-    # Note that the order of the players seems to be important here.
     game = QuietGame((Player(BotCheckCall(), 2; bank_roll = 11), Player(BotLimpAllIn(), 1; bank_roll = 1)))
     play!(game)
 end
