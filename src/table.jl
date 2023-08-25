@@ -325,7 +325,7 @@ end
 function reset_round_bank_rolls!(table::Table)
     players = players_at_table(table)
     for player in players
-        player.round_bank_roll = bank_roll(player)
+        player.round_bank_roll = bank_roll_chips(player)
     end
 end
 

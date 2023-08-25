@@ -116,35 +116,35 @@ end
     table.initial_round_raise_amt = 20
     table.current_raise_amt = 20
     players[1].round_contribution = 200
-    players[1].round_bank_roll = 500 # oops
+    players[1].round_bank_roll = Chips(500) # oops
     @test TH.is_valid_raise_amount(table, players[1], 200) == (false, "Cannot contribute 0 to the pot.")
 
     players = (Player(Human(), 1), Player(Bot5050(), 2))
     table = QuietGame(players).table
     table.initial_round_raise_amt = 10
     table.current_raise_amt = 10
-    players[1].round_bank_roll = 20
+    players[1].round_bank_roll = Chips(20)
     @test TH.is_valid_raise_amount(table, players[1], 10) == (false, "Only allowable raise is 20 (all-in)")
 
     players = (Player(Human(), 1), Player(Bot5050(), 2))
     table = QuietGame(players).table
     table.initial_round_raise_amt = 10
     table.current_raise_amt = 10
-    players[1].round_bank_roll = 20
+    players[1].round_bank_roll = Chips(20)
     @test TH.is_valid_raise_amount(table, players[1], 20) == (true, "")
 
     players = (Player(Human(), 1), Player(Bot5050(), 2))
     table = QuietGame(players).table
     table.initial_round_raise_amt = 5
     table.current_raise_amt = 20
-    players[1].round_bank_roll = 30
+    players[1].round_bank_roll = Chips(30)
     @test TH.is_valid_raise_amount(table, players[1], 25) == (true, "")
 
     players = (Player(Human(), 1), Player(Bot5050(), 2))
     table = QuietGame(players).table
     table.initial_round_raise_amt = 5
     table.current_raise_amt = 20
-    players[1].round_bank_roll = 30
+    players[1].round_bank_roll = Chips(30)
     @test TH.is_valid_raise_amount(table, players[1], 22) == (false, "Cannot raise 22. Raise must be between [25, 30]")
 end
 
