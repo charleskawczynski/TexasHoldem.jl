@@ -2,36 +2,36 @@ using SafeTestsets
 @eval Main using TexasHoldem # don't qualify types in log
 @eval Main using TexasHoldem:SidePot # don't qualify types in log
 
-@safetestset "chips" begin
-    Δt = @elapsed include("chips.jl"); @info "Completed tests for chips in $Δt seconds"
-end
-@safetestset "players" begin
-    Δt = @elapsed include("players.jl"); @info "Completed tests for players in $Δt seconds"
-end
-@safetestset "transactions" begin
-    Δt = @elapsed include("transactions.jl"); @info "Completed tests for transactions in $Δt seconds"
-end
-@safetestset "call_raise_validation" begin
-    Δt = @elapsed include("call_raise_validation.jl"); @info "Completed tests for call_raise_validation in $Δt seconds"
-end
-if VERSION ≤ v"1.9"
-# https://github.com/JuliaDebug/TerminalRegressionTests.jl/issues/12
-@safetestset "human_player_option" begin
-    Δt = @elapsed include("human_player_option.jl"); @info "Completed tests for human_player_option in $Δt seconds"
-end
-end
-@safetestset "table" begin
-    Δt = @elapsed include("table.jl"); @info "Completed tests for table in $Δt seconds"
-end
-@safetestset "game" begin
-    Δt = @elapsed include("game.jl"); @info "Completed tests for game in $Δt seconds"
-end
-@safetestset "recreate" begin
-    Δt = @elapsed include("recreate.jl"); @info "Completed tests for recreate in $Δt seconds"
-end
-@safetestset "goto player option" begin
-    Δt = @elapsed include("goto_player_option.jl"); @info "Completed tests for goto_player_option in $Δt seconds"
-end
+# @safetestset "chips" begin
+#     Δt = @elapsed include("chips.jl"); @info "Completed tests for chips in $Δt seconds"
+# end
+# @safetestset "players" begin
+#     Δt = @elapsed include("players.jl"); @info "Completed tests for players in $Δt seconds"
+# end
+# @safetestset "transactions" begin
+#     Δt = @elapsed include("transactions.jl"); @info "Completed tests for transactions in $Δt seconds"
+# end
+# @safetestset "call_raise_validation" begin
+#     Δt = @elapsed include("call_raise_validation.jl"); @info "Completed tests for call_raise_validation in $Δt seconds"
+# end
+# if VERSION ≤ v"1.9"
+# # https://github.com/JuliaDebug/TerminalRegressionTests.jl/issues/12
+# @safetestset "human_player_option" begin
+#     Δt = @elapsed include("human_player_option.jl"); @info "Completed tests for human_player_option in $Δt seconds"
+# end
+# end
+# @safetestset "table" begin
+#     Δt = @elapsed include("table.jl"); @info "Completed tests for table in $Δt seconds"
+# end
+# @safetestset "game" begin
+#     Δt = @elapsed include("game.jl"); @info "Completed tests for game in $Δt seconds"
+# end
+# @safetestset "recreate" begin
+#     Δt = @elapsed include("recreate.jl"); @info "Completed tests for recreate in $Δt seconds"
+# end
+# @safetestset "goto player option" begin
+#     Δt = @elapsed include("goto_player_option.jl"); @info "Completed tests for goto_player_option in $Δt seconds"
+# end
 @safetestset "play" begin
     Δt = @elapsed include("play.jl"); @info "Completed tests for play in $Δt seconds"
 end

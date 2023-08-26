@@ -62,6 +62,7 @@ function end_of_actions(table::Table, player)
     @cdebug logger "     all_all_in_or_checked(table) = $(all_all_in_or_checked(table))"
     @cdebug logger "     all_all_in_except_bank_roll_leader(table) = $(all_all_in_except_bank_roll_leader(table))"
     @cdebug logger "     all_oppononents_all_in(table, player) = $(all_oppononents_all_in(table, player))"
+    @cdebug logger "     all_bets_were_called(table) = $(all_bets_were_called(table))"
 
     case_1 = last_to_raise(player)
     case_2 = all_playing_checked(table)
@@ -70,12 +71,14 @@ function end_of_actions(table::Table, player)
     case_5 = all_all_in_or_checked(table) # TODO: likely replaceable with case_6
     case_6 = !any(x->action_required(x), players)
     case_7 = all_oppononents_all_in(table, player) && paid_current_raise_amount(table, player)
+    # case_8 = all_oppononents_all_in(table, player) && all_bets_were_called(table)
+    case_8 = false
     @cdebug logger "     cases = $((case_1, case_2, case_3, case_4, case_5, case_6, case_7))"
 
-    return any((case_1, case_2, case_3, case_4, case_5, case_6, case_7))
+    return any((case_1, case_2, case_3, case_4, case_5, case_6, case_7, case_8))
 end
 
-function last_player_to_raise(players)
+function last_player_to_raise(players::Players)
     for player in players
         last_to_raise(player) && return player
     end

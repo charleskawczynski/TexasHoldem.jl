@@ -16,14 +16,14 @@ check!(t, p) = TH.update_given_valid_action!(t, p, Check())
 
 @testset "TransactionManagers - Lowest bank roll goes all-in and wins it all" begin
     table_cards = (A♢, K♢, Q♢, 2♠, 3♠)
-    logger = TH.InfoLogger()
+    logger = TH.ByPassLogger()
     players = (
         Player(Bot5050(), 1, (A♠, A♣); bank_roll = 1*100),
         Player(Bot5050(), 2, (K♠, K♣); bank_roll = 2*100),
         Player(Bot5050(), 3, (Q♠, Q♣); bank_roll = 3*100),
     )
     tm = TH.TransactionManager(players, logger)
-    table = Table(players;cards=table_cards,transactions=tm, logger=TH.ByPassLogger())
+    table = Table(players;cards=table_cards,transactions=tm, logger)
     @test TH.seat_number.(tm.side_pots) == [1,2,3]
 
     raise_to!(table, players[1], 100) # raise all-in
@@ -31,7 +31,7 @@ check!(t, p) = TH.update_given_valid_action!(t, p, Check())
     call!(table, players[3]) # call
 
     @test TH.amount.(tm.side_pots) == [300, 0, 0]
-    TH.distribute_winnings!(players, tm, table_cards, TH.ByPassLogger())
+    TH.distribute_winnings!(players, tm, table_cards, logger)
     @test TH.amount.(tm.side_pots) == [0, 0, 0]
 
     @test bank_roll(players[1]) == 300
@@ -41,21 +41,21 @@ end
 
 @testset "TransactionManagers - Highest bank roll goes all-in and wins it all" begin
     table_cards = (A♢, K♢, Q♢, 2♠, 3♠)
-    logger = TH.InfoLogger()
+    logger = TH.ByPassLogger()
     players = (
         Player(Bot5050(), 1, (A♠, A♣); bank_roll = 3*100),
         Player(Bot5050(), 2, (K♠, K♣); bank_roll = 2*100),
         Player(Bot5050(), 3, (Q♠, Q♣); bank_roll = 1*100),
     )
     tm = TH.TransactionManager(players, logger)
-    table = Table(players;cards=table_cards,transactions=tm, logger=TH.ByPassLogger())
+    table = Table(players;cards=table_cards,transactions=tm, logger)
 
     raise_to!(table, players[1], 100) # Raise
     call!(table, players[2]) # call
     call!(table, players[3]) # all-in
 
     @test TH.amount.(tm.side_pots) == [300, 0, 0]
-    TH.distribute_winnings!(players, tm, table_cards, TH.ByPassLogger())
+    TH.distribute_winnings!(players, tm, table_cards, logger)
     @test TH.amount.(tm.side_pots) == [0, 0, 0]
 
     @test bank_roll(players[1]) == 500
@@ -65,14 +65,14 @@ end
 
 @testset "TransactionManagers - Lowest bank roll goes all-in and wins a split pot" begin
     table_cards = (A♢, K♢, Q♢, 2♠, 3♠)
-    logger = TH.InfoLogger()
+    logger = TH.ByPassLogger()
     players = (
         Player(Bot5050(), 1, (A♠, A♣); bank_roll = 1*100),
         Player(Bot5050(), 2, (K♠, K♣); bank_roll = 2*100),
         Player(Bot5050(), 3, (Q♠, Q♣); bank_roll = 3*100),
     )
     tm = TH.TransactionManager(players, logger)
-    table = Table(players;cards=table_cards,transactions=tm, logger=TH.ByPassLogger())
+    table = Table(players;cards=table_cards,transactions=tm, logger)
 
     raise_to!(table, players[1], 100) # Raise all-in
     call!(table, players[2]) # call
@@ -88,7 +88,7 @@ end
     call!(table, players[3]) # call
 
     @test TH.amount.(tm.side_pots) == [300, 200, 0]
-    TH.distribute_winnings!(players, tm, table_cards, TH.ByPassLogger())
+    TH.distribute_winnings!(players, tm, table_cards, logger)
     @test TH.amount.(tm.side_pots) == [0, 0, 0]
 
     @test bank_roll(players[1]) == 300
@@ -98,14 +98,14 @@ end
 
 @testset "TransactionManagers - Highest bank roll goes all-in and wins it all" begin
     table_cards = (A♢, K♢, Q♢, 2♠, 3♠)
-    logger = TH.InfoLogger()
+    logger = TH.ByPassLogger()
     players = (
         Player(Bot5050(), 1, (A♠, A♣); bank_roll = 3*100),
         Player(Bot5050(), 2, (K♠, K♣); bank_roll = 2*100),
         Player(Bot5050(), 3, (Q♠, Q♣); bank_roll = 1*100),
     )
     tm = TH.TransactionManager(players, logger)
-    table = Table(players;cards=table_cards,transactions=tm, logger=TH.ByPassLogger())
+    table = Table(players;cards=table_cards,transactions=tm, logger)
 
     raise_to!(table, players[1], 100) # Raise
     call!(table, players[2]) # call
@@ -131,7 +131,7 @@ end
 
 @testset "TransactionManagers - Semi-complicated split pot (shared winners)" begin
     table_cards = (T♢, Q♢, A♠, 8♠, 9♠)
-    logger = TH.InfoLogger()
+    logger = TH.ByPassLogger()
     players = (
         Player(Bot5050(), 1, (4♠, 5♣); bank_roll = 1*100), # bust
         Player(Bot5050(), 2, (K♠, K♣); bank_roll = 2*100), # win, split with player 3
@@ -141,7 +141,7 @@ end
         Player(Bot5050(), 6, (2♠, 3♣); bank_roll = 6*100), # lose, but not bust
     )
     tm = TH.TransactionManager(players, logger)
-    table = Table(players;cards=table_cards,transactions=tm, logger=TH.ByPassLogger())
+    table = Table(players;cards=table_cards,transactions=tm, logger)
 
     raise_to!(table, players[1], 100) # raise all-in
     call!(table, players[2]) # call
@@ -195,7 +195,7 @@ end
 
 @testset "TransactionManagers - Semi-complicated split pot (shared winners) with fractional chips" begin
     table_cards = (T♢, Q♢, A♠, 8♠, 9♠)
-    logger = TH.InfoLogger()
+    logger = TH.ByPassLogger()
     players = (
         Player(Bot5050(), 1, (4♠, 5♣); bank_roll = 1*7), # bust
         Player(Bot5050(), 2, (K♠, K♣); bank_roll = 2*7), # win, split with player 3
@@ -205,7 +205,7 @@ end
         Player(Bot5050(), 6, (2♠, 3♣); bank_roll = 6*7), # lose, but not bust
     )
     tm = TH.TransactionManager(players, logger)
-    table = Table(players;cards=table_cards,transactions=tm, logger=TH.ByPassLogger())
+    table = Table(players;cards=table_cards,transactions=tm, logger)
 
     raise_to!(table, players[1], 7) # raise all-in
     call!(table, players[2]) # call
@@ -259,7 +259,7 @@ end
 
 @testset "TransactionManagers - Single round split pot (shared winners), with simple re-raises" begin
     table_cards = (T♢, Q♢, A♠, 8♠, 9♠)
-    logger = TH.InfoLogger()
+    logger = TH.ByPassLogger()
     players = (
         Player(Bot5050(), 1, (4♠, 5♣); bank_roll = 1*100), # bust
         Player(Bot5050(), 2, (K♠, K♣); bank_roll = 2*100), # win, split with player 3
@@ -269,7 +269,7 @@ end
         Player(Bot5050(), 6, (2♠, 3♣); bank_roll = 6*100), # lose, but not bust
     )
     tm = TH.TransactionManager(players, logger)
-    table = Table(players;cards=table_cards,transactions=tm, logger=TH.ByPassLogger())
+    table = Table(players;cards=table_cards,transactions=tm, logger)
     @test TH.amount.(tm.side_pots) == [0, 0, 0, 0, 0, 0]
 
     raise_to!(table, players[1], 100) # raise all-in
@@ -304,7 +304,7 @@ end
 
 @testset "TransactionManagers - Single round split pot (shared winners), with simple re-raises, reversed bank roll order" begin
     table_cards = (T♢, Q♢, A♠, 8♠, 9♠)
-    logger = TH.InfoLogger()
+    logger = TH.ByPassLogger()
     players = (
         Player(Bot5050(), 1, (2♠, 3♣); bank_roll = 6*100), # lose, but not bust
         Player(Bot5050(), 2, (7♠, 7♣); bank_roll = 5*100), # 2nd to players 2 and 3, win remaining pot
@@ -314,7 +314,7 @@ end
         Player(Bot5050(), 6, (4♠, 5♣); bank_roll = 1*100), # bust
     )
     tm = TH.TransactionManager(players, logger)
-    table = Table(players;cards=table_cards,transactions=tm, logger=TH.ByPassLogger())
+    table = Table(players;cards=table_cards,transactions=tm, logger)
     @test TH.amount.(tm.side_pots) == [0, 0, 0, 0, 0, 0]
 
     raise_to!(table, players[1], 500) # raise to 500

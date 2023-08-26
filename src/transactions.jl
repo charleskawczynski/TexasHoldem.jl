@@ -64,6 +64,7 @@ function TransactionManager(players::Players, logger)
             cap[i] = bank_roll(players[perm[i]]) - sum(cap[1:i-1])
         end
     end
+    @cdebug logger "initial caps = $(cap.(tm.side_pots))"
 
     unsorted_to_sorted_map = collect(map(players) do player
         findfirst(p -> seat_number(players[p]) == seat_number(player), perm)
@@ -111,6 +112,7 @@ function reset!(tm::TransactionManager, players::Players)
         tm.unsorted_to_sorted_map[i] = j
         tm.initial_brs[i] = bank_roll_chips(player)
     end
+    @cdebug tm.logger "post-reset caps = $(cap.(tm.side_pots))"
     @inbounds tm.pot_id[1] = 1
     return nothing
 end
@@ -119,6 +121,11 @@ function last_action_of_round(table, player, call)
     laor = all_oppononents_all_in(table, player) ||
         (count(x->action_required(x), players_at_table(table)) == 0 && call)
     logger = table.logger
+    players = players_at_table(table)
+    @cdebug logger "call = $(call)"
+    @cdebug logger "action_required.(players) = $(action_required.(players))"
+    @cdebug logger "count(x->action_required(x), players) = $(count(x->action_required(x), players_at_table(table)))"
+    @cdebug logger "all_oppononents_all_in = $(all_oppononents_all_in(table, player))"
     @cdebug logger "last_action_of_round = $laor"
     # @cdebug logger "    action_required.(players_at_table(table)) = $(action_required.(players_at_table(table)))"
     # @cdebug logger "    all_oppononents_all_in(table, player) = $(all_oppononents_all_in(table, player))"
@@ -185,6 +192,12 @@ function contribute!(table, player, amt, call=false)
         contributing = !side_pot_full(tm, i) && !(cap_i == 0)
         # This is a bit noisy:
         # @cdebug logger "$(name(player)) potentially contributing $amt_contrib to side-pot $(i) ($cond). cap_i=$cap_i, amt_remaining=$amt_remaining"
+        @cdebug logger "----------- side-pot $i"
+        @cdebug logger "cond = $(cond)"
+        @cdebug logger "amt_remaining = $(amt_remaining)"
+        @cdebug logger "cap_i = $(cap_i)"
+        @cdebug logger "side_pot_full(tm, $i) = $(side_pot_full(tm, i))"
+        @cdebug logger "is_side_pot_full = $(is_side_pot_full(tm, table, player, call))"
         @cdebug logger "contributing, amt_contrib = $contributing, $amt_contrib"
         contributing || continue
         @assert !(amt_contrib == 0)
@@ -213,6 +226,9 @@ function is_side_pot_full(tm::TransactionManager, table, player, call)
     # To switch from pot_id = 1 to pot_id = 2, then exactly 1 player  should be all-in:
     # To switch from pot_id = 2 to pot_id = 3, then exactly 2 players should be all-in:
     # ...
+    logger = tm.logger
+    @cdebug logger "count(x->all_in(x), players) = $(count(x->all_in(x), players))"
+    @cdebug logger "tm.pot_id[1] = $(tm.pot_id[1])"
     return @inbounds count(x->all_in(x), players) == tm.pot_id[1] && last_action_of_round(table, player, call)
 end
 
