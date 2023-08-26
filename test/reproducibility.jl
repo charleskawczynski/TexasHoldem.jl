@@ -2,7 +2,7 @@ using Test
 using TexasHoldem
 import Random
 
-function seeded_game(;fun,n_players, n_games, bank_roll=200)
+function seeded_game(; fun, n_players, n_games, bank_roll=200)
     Random.seed!(1234)
     players = ntuple(i->Player(Bot5050(), i; bank_roll=bank_roll), n_players)
     games = map(x->Game(deepcopy(players);logger=TexasHoldem.ByPassLogger()), 1:n_games)

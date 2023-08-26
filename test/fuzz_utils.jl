@@ -7,6 +7,16 @@ import Logging
 metafmt(level, _module, group, id, file, line) =
     Logging.default_metafmt(level, nothing, group, id, nothing, nothing)
 
+function seeded_game(; fun, n_games, players)
+    Random.seed!(1234)
+    games = map(x->Game(deepcopy(players);logger=TexasHoldem.ByPassLogger()), 1:n_games)
+    for n in 1:length(games)
+        game = games[n]
+        fun(game)
+    end
+    return games
+end
+
 #=
 Make a collection of games, run them,
 and if any fail, return the indices of

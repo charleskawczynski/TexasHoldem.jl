@@ -294,7 +294,7 @@ function _deal_and_play!(game::Game, sf::StartFrom)
         set_active_status!(table)
         initial_∑brs = ∑bank_rolls(players)
 
-        @cinfo logger "Initial bank roll summary: $initial_brs"
+        @cinfo logger "Initial bank roll summary: $(bank_roll.(players))"
 
         did = dealer_pidx(table)
         sb = seat_number(small_blind(table))
