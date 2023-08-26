@@ -75,24 +75,22 @@ function end_of_actions(table::Table, player)
     return any((case_1, case_2, case_3, case_4, case_5, case_6, case_7))
 end
 
-function last_player_to_raise(table::Table)
-    for player in players_at_table(table)
+function last_player_to_raise(players)
+    for player in players
         last_to_raise(player) && return player
     end
     return nothing
 end
 
 function all_bets_were_called(table::Table)
-    lptr = last_player_to_raise(table)
+    players = players_at_table(table)
+    lptr = last_player_to_raise(players)
     lptr===nothing && return true
     logger = table.logger
 
-    players = players_at_table(table)
     @assert count(x->last_to_raise(x), players) == 1
-    players_who_called = []
     @cdebug logger "Checking if all bets were called"
     @cdebug logger "     table.winners.declared = $(table.winners.declared)"
-    arwc = false
     @cdebug logger begin
         conds_debug = map(players) do player
             sn = seat_number(player)

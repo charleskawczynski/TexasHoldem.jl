@@ -34,7 +34,8 @@ end
 Handle pots and side pots
 among multiple players.
 """
-struct TransactionManager
+struct TransactionManager{L}
+  logger::L
   perm::Vector{Int}
   bank_rolls::Vector{Chips} # cache
   initial_brs::Vector{Chips}
@@ -50,8 +51,8 @@ function Base.show(io::IO, tm::TransactionManager, include_type = true)
     println(io, "Pot(s)           = $(tm.side_pots)")
 end
 
-TransactionManager(players) = TransactionManager(Players(players))
-function TransactionManager(players::Players)
+TransactionManager(players, logger) = TransactionManager(Players(players), logger)
+function TransactionManager(players::Players, logger)
     perm = collect(sortperm(players))
     bank_rolls = collect(map(x->bank_roll_chips(x), players))
 
@@ -68,13 +69,15 @@ function TransactionManager(players::Players)
         findfirst(p -> seat_number(players[p]) == seat_number(player), perm)
     end)
     side_pots = [SidePot(seat_number(players[p]), 0, cap_i) for (cap_i, p) in zip(cap, perm)]
+    @cdebug logger "initial caps = $(cap.(side_pots))"
 
     initial_brs = deepcopy(collect(bank_roll_chips.(players)))
     sorted_hand_evals = map(x->HandEval(), 1:length(players))
     pot_id = Int[1]
     FT = eltype(initial_brs)
     side_pot_winnings = collect(map(x->collect(map(x->FT(0), players)), players))
-    TransactionManager(
+    TransactionManager{typeof(logger)}(
+        logger,
         perm,
         bank_rolls,
         initial_brs,
@@ -192,7 +195,7 @@ function contribute!(table, player, amt, call=false)
     end
     @assert amt_remaining == 0 # pots better be emptied
 
-    if bank_roll(player) == 0 # went all-in, set exactly.
+    if bank_roll(player) == 0 # went all-in.
         player.all_in = true
         player.action_required = false
     end

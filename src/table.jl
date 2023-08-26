@@ -106,10 +106,10 @@ function Table(players::Players;
     dealer_pidx = default_dealer_pidx(),
     current_raise_amt = 0,
     initial_round_raise_amt = blinds.small,
-    transactions = TransactionManager(players),
+    logger = InfoLogger(),
+    transactions = TransactionManager(players, logger),
     winners = Winners(),
     play_out_game = false,
-    logger = InfoLogger(),
 )
     P = typeof(players)
     buttons = Buttons(players, dealer_pidx)
