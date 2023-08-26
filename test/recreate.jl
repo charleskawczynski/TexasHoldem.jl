@@ -13,7 +13,7 @@ sort_cards(cards) =
 
 @testset "Recreate game" begin
     players = TH.Players(ntuple(i->Player(BotCheckCall(), i), 3))
-    game = Game(players)
+    game = Game(players; logger=TH.ByPassLogger())
     TH.deal!(game.table, TH.blinds(game.table))
     player = players[1]
     rgame = TH.recreate_game(game, player)
