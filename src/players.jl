@@ -23,10 +23,27 @@ Since players are allowed to have different
 composition, we provide iterators over the
 players index, rather than the players
 themselves, for type-stability.
+
+The player index is considered internal, and
+the seat number is considered external.
+
+We internally sort the players by the seat number
+so that, when we iterate through the table, both
+coincide.
 """
 struct Players{PS<:Union{Tuple,AbstractArray}}
     players::PS
+    function Players(players)
+        @assert allunique(map(x->seat_number(x), players))
+        spbsn = sortperm_by_seat_number(players)
+        splayers = map(sp->players[sp], spbsn)
+        @assert issorted(map(x->seat_number(x), splayers))
+        return new{typeof(splayers)}(splayers)
+    end
 end
+
+sortperm_by_seat_number(players::Tuple) = TupleTools.sortperm(map(x->seat_number(x), players))
+sortperm_by_seat_number(players) = Base.sortperm(map(x->seat_number(x), players))
 
 """
     cyclic_player_index(::Players, pidx)

@@ -40,3 +40,21 @@ end
     @test isempty(fuzz(;fun=tournament!,n_players=10,bank_roll=30,n_games=3788))
 end
 
+
+@testset "Fuzz for seat number player index orthogonality" begin
+    # seat number should not affect games?
+    n_games = 1000
+    n_players = 10
+    br = 30
+    rperm = Random.randperm(n_players)
+    games1 = seeded_game(;fun=play!, n_games, players =
+            ntuple(i->Player(Bot5050(), i; bank_roll=br), n_players))
+    games2 = seeded_game(;fun=play!, n_games, players =
+            ntuple(i->Player(Bot5050(), rperm[i]; bank_roll=br), n_players))
+
+    for (g1, g2) in zip(games1, games2)
+        for (p1, p2) in zip(g1.table.players, g2.table.players)
+            @test bank_roll(p1) == bank_roll(p2)
+        end
+    end
+end

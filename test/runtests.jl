@@ -1,4 +1,6 @@
 using SafeTestsets
+@eval Main using TexasHoldem # don't qualify types in log
+@eval Main using TexasHoldem:SidePot # don't qualify types in log
 
 @safetestset "chips" begin
     Δt = @elapsed include("chips.jl"); @info "Completed tests for chips in $Δt seconds"
