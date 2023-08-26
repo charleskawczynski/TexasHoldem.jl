@@ -345,13 +345,12 @@ function _deal_and_play!(game::Game, sf::StartFrom)
         mpp = max_possible_profit(player, players, initial_brs)
         prof = bank_roll_chips(player) - initial_br
         br = map(x->bank_roll_chips(x), players)
-        # TODO: this is broken due to https://github.com/charleskawczynski/TexasHoldem.jl/issues/200
-        # @assert prof ≤ mpp string("Over-winning occurred:\n",
-        #       "    Player $(name(player))\n",
-        #       "    Initial BRs $(initial_brs)\n",
-        #       "    BRs $br\n",
-        #       "    profit $prof\n",
-        #       "    max possible profit $mpp")
+        @assert prof ≤ mpp string("Over-winning occurred:\n",
+              "    Player $(name(player))\n",
+              "    Initial BRs $(initial_brs)\n",
+              "    BRs $br\n",
+              "    profit $prof\n",
+              "    max possible profit $mpp")
     end
 
     @cinfo logger "Final bank roll summary: $(bank_roll.(players))"
