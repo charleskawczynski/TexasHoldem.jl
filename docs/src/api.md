@@ -24,6 +24,7 @@ Human
 Bot5050
 Player
 bank_roll
+bank_roll_chips
 round_bank_roll
 ```
 

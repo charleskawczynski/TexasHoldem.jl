@@ -4,7 +4,7 @@
 
 export AbstractStrategy, Human, Bot5050
 export Player
-export bank_roll, round_bank_roll
+export bank_roll, round_bank_roll, bank_roll_chips
 
 """
     AbstractStrategy
@@ -116,6 +116,14 @@ as the fractional chips are only
 handled by the TransactionManager.
 """
 bank_roll(player::Player) = player.bank_roll.n
+
+"""
+    bank_roll_chips(::Player)
+
+The player's instantaneous
+bank roll in Chips (includes
+fractional chips).
+"""
 bank_roll_chips(player::Player) = player.bank_roll
 
 """
