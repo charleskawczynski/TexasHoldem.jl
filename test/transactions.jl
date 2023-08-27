@@ -3,6 +3,7 @@ using PlayingCards
 using TexasHoldem
 using TexasHoldem: Player, Bot5050, TransactionManager, dealer_pidx, Table
 const TH = TexasHoldem
+all_zero(side_pots) = all(x-> all(y->y==0, x), side_pots)
 
 include("tester_bots.jl")
 #=
@@ -25,15 +26,14 @@ check!(t, p) = TH.update_given_valid_action!(t, p, Check())
     )
     tm = TH.TransactionManager(players, logger)
     table = Table(players;cards=table_cards,transactions=tm, logger=TH.ByPassLogger())
-    @test TH.seat_number.(tm.side_pots) == [1,2,3]
 
     raise_to!(table, players[1], 100) # raise all-in
     call!(table, players[2]) # call
     call!(table, players[3]) # call
 
-    @test TH.amount.(tm.side_pots) == [300, 0, 0]
+    @test TH.amounts.(tm.side_pots) == [[100, 100, 100], [0, 0, 0], [0, 0, 0]]
     TH.distribute_winnings!(players, tm, table_cards, TH.ByPassLogger())
-    @test TH.amount.(tm.side_pots) == [0, 0, 0]
+    @test all_zero(TH.amounts.(tm.side_pots))
 
     @test bank_roll(players[1]) == 300
     @test bank_roll(players[2]) == 100
@@ -55,9 +55,9 @@ end
     call!(table, players[2]) # call
     call!(table, players[3]) # all-in
 
-    @test TH.amount.(tm.side_pots) == [300, 0, 0]
+    @test TH.amounts.(tm.side_pots) == [[100, 100, 100], [0, 0, 0], [0, 0, 0]]
     TH.distribute_winnings!(players, tm, table_cards, TH.ByPassLogger())
-    @test TH.amount.(tm.side_pots) == [0, 0, 0]
+    @test all_zero(TH.amounts.(tm.side_pots))
 
     @test bank_roll(players[1]) == 500
     @test bank_roll(players[2]) == 100
@@ -79,7 +79,7 @@ end
     call!(table, players[2]) # call
     call!(table, players[3]) # call
 
-    @test TH.amount.(tm.side_pots) == [300, 0, 0]
+    @test TH.amounts.(tm.side_pots) == [[100, 100, 100], [0, 0, 0], [0, 0, 0]]
 
     @test_throws AssertionError call!(table, players[1]) # already all-in!
 
@@ -88,9 +88,9 @@ end
     raise_to!(table, players[2], 100) # Raise all-in
     call!(table, players[3]) # call
 
-    @test TH.amount.(tm.side_pots) == [300, 200, 0]
+    @test TH.amounts.(tm.side_pots) == [[100, 100, 100], [0, 100, 100], [0, 0, 0]]
     TH.distribute_winnings!(players, tm, table_cards, TH.ByPassLogger())
-    @test TH.amount.(tm.side_pots) == [0, 0, 0]
+    @test all_zero(TH.amounts.(tm.side_pots))
 
     @test bank_roll(players[1]) == 300
     @test bank_roll(players[2]) == 200
@@ -112,7 +112,7 @@ end
     call!(table, players[2]) # call
     call!(table, players[3]) # all-in
 
-    @test TH.amount.(tm.side_pots) == [300, 0, 0]
+    @test TH.amounts.(tm.side_pots) == [[100, 100, 100], [0, 0, 0], [0, 0, 0]]
 
     TH.reset_round!(table)
 
@@ -120,10 +120,10 @@ end
     call!(table, players[2]) # all-in
     @test_throws AssertionError call!(table, players[3]) # already all-in!
 
-    @test TH.amount.(tm.side_pots) == [300, 200, 0]
+    @test TH.amounts.(tm.side_pots) == [[100, 100, 100], [100, 100, 0], [0, 0, 0]]
 
     TH.distribute_winnings!(players, tm, table_cards, TH.ByPassLogger())
-    @test TH.amount.(tm.side_pots) == [0, 0, 0]
+    @test all_zero(TH.amounts.(tm.side_pots))
 
     @test bank_roll(players[1]) == 600
     @test bank_roll(players[2]) == 0
@@ -150,7 +150,8 @@ end
     call!(table, players[4]) # call
     call!(table, players[5]) # call
     call!(table, players[6]) # call
-    @test TH.amount.(tm.side_pots) == [600, 0, 0, 0, 0, 0]
+    z = [0, 0, 0, 0, 0, 0]
+    @test TH.amounts.(tm.side_pots) == [[100, 100, 100, 100, 100, 100], z, z, z, z, z]
 
     TH.reset_round!(table)
 
@@ -159,7 +160,7 @@ end
     call!(table, players[4]) # call
     call!(table, players[5]) # call
     call!(table, players[6]) # call
-    @test TH.amount.(tm.side_pots) == [600, 500, 0, 0, 0, 0]
+    @test TH.amounts.(tm.side_pots) == [[100, 100, 100, 100, 100, 100], [0, 100, 100, 100, 100, 100], z, z, z, z]
 
     TH.reset_round!(table)
 
@@ -167,23 +168,23 @@ end
     call!(table, players[4]) # call
     call!(table, players[5]) # call
     call!(table, players[6]) # call
-    @test TH.amount.(tm.side_pots) == [600, 500, 400, 0, 0, 0]
+    @test TH.amounts.(tm.side_pots) == [[100, 100, 100, 100, 100, 100], [0, 100, 100, 100, 100, 100], [0, 0, 100, 100, 100, 100], z, z, z]
 
     TH.reset_round!(table)
 
     raise_to!(table, players[4], 100) # raise all-in
     call!(table, players[5]) # call
     call!(table, players[6]) # call
-    @test TH.amount.(tm.side_pots) == [600, 500, 400, 300, 0, 0]
+    @test TH.amounts.(tm.side_pots) == [[100, 100, 100, 100, 100, 100], [0, 100, 100, 100, 100, 100], [0, 0, 100, 100, 100, 100], [0, 0, 0, 100, 100, 100], z, z]
 
     TH.reset_round!(table)
 
     raise_to!(table, players[5], 100) # raise all-in
     call!(table, players[6]) # call
-    @test TH.amount.(tm.side_pots) == [600, 500, 400, 300, 200, 0]
+    @test TH.amounts.(tm.side_pots) == [[100, 100, 100, 100, 100, 100], [0, 100, 100, 100, 100, 100], [0, 0, 100, 100, 100, 100], [0, 0, 0, 100, 100, 100], [0, 0, 0, 0, 100, 100], z]
 
     TH.distribute_winnings!(players, tm, table_cards, TH.ByPassLogger())
-    @test TH.amount.(tm.side_pots) == [0, 0, 0, 0, 0, 0]
+    @test all_zero(TH.amounts.(tm.side_pots))
 
     @test bank_roll(players[1]) == 0 # bust
     @test bank_roll(players[2]) == 550 # = 600/2+500/2
@@ -214,7 +215,8 @@ end
     call!(table, players[4]) # call
     call!(table, players[5]) # call
     call!(table, players[6]) # call
-    @test TH.amount.(tm.side_pots) == [42, 0, 0, 0, 0, 0]
+    z = [0, 0, 0, 0, 0, 0]
+    @test TH.amounts.(tm.side_pots) == [[7, 7, 7, 7, 7, 7], z, z, z, z, z]
 
     TH.reset_round!(table)
 
@@ -223,7 +225,7 @@ end
     call!(table, players[4]) # call
     call!(table, players[5]) # call
     call!(table, players[6]) # call
-    @test TH.amount.(tm.side_pots) == [42, 35, 0, 0, 0, 0]
+    @test TH.amounts.(tm.side_pots) == [[7, 7, 7, 7, 7, 7], [0, 7, 7, 7, 7, 7], z, z, z, z]
 
     TH.reset_round!(table)
 
@@ -231,23 +233,23 @@ end
     call!(table, players[4]) # call
     call!(table, players[5]) # call
     call!(table, players[6]) # call
-    @test TH.amount.(tm.side_pots) == [42, 35, 28, 0, 0, 0]
+    @test TH.amounts.(tm.side_pots) == [[7, 7, 7, 7, 7, 7], [0, 7, 7, 7, 7, 7], [0, 0, 7, 7, 7, 7], z, z, z]
 
     TH.reset_round!(table)
 
     raise_to!(table, players[4], 7) # raise all-in
     call!(table, players[5]) # call
     call!(table, players[6]) # call
-    @test TH.amount.(tm.side_pots) == [42, 35, 28, 21, 0, 0]
+    @test TH.amounts.(tm.side_pots) == [[7, 7, 7, 7, 7, 7], [0, 7, 7, 7, 7, 7], [0, 0, 7, 7, 7, 7], [0, 0, 0, 7, 7, 7], z, z]
 
     TH.reset_round!(table)
 
     raise_to!(table, players[5], 7) # raise all-in
     call!(table, players[6]) # call
-    @test TH.amount.(tm.side_pots) == [42, 35, 28, 21, 14, 0]
+    @test TH.amounts.(tm.side_pots) == [[7, 7, 7, 7, 7, 7], [0, 7, 7, 7, 7, 7], [0, 0, 7, 7, 7, 7], [0, 0, 0, 7, 7, 7], [0, 0, 0, 0, 7, 7], z]
 
     TH.distribute_winnings!(players, tm, table_cards, TH.ByPassLogger())
-    @test TH.amount.(tm.side_pots) == [0, 0, 0, 0, 0, 0]
+    @test all_zero(TH.amounts.(tm.side_pots))
 
     @test bank_roll_chips(players[1]) == Chips(0) # bust
     @test bank_roll_chips(players[2]) == Chips(38, SimpleRatio(1,2)) # = 42/2+35/2 = 38.5
@@ -271,28 +273,29 @@ end
     )
     tm = TH.TransactionManager(players, logger)
     table = Table(players;cards=table_cards,transactions=tm, logger=TH.ByPassLogger())
-    @test TH.amount.(tm.side_pots) == [0, 0, 0, 0, 0, 0]
+    @test all_zero(TH.amounts.(tm.side_pots))
+    z = [0, 0, 0, 0, 0, 0]
 
     raise_to!(table, players[1], 100) # raise all-in
-    @test TH.amount.(tm.side_pots) == [100, 0, 0, 0, 0, 0]
+    @test TH.amounts.(tm.side_pots) == [[100, 0, 0, 0, 0, 0], z, z, z, z, z]
 
     raise_to!(table, players[2], 200) # raise all-in
-    @test TH.amount.(tm.side_pots) == [200, 100, 0, 0, 0, 0]
+    @test TH.amounts.(tm.side_pots) == [[100, 100, 0, 0, 0, 0], [0, 100, 0, 0, 0, 0], z, z, z, z]
 
     raise_to!(table, players[3], 300) # raise all-in
-    @test TH.amount.(tm.side_pots) == [300, 200, 100, 0, 0, 0]
+    @test TH.amounts.(tm.side_pots) == [[100, 100, 100, 0, 0, 0], [0, 100, 100, 0, 0, 0], [0, 0, 100, 0, 0, 0], z, z, z]
 
     raise_to!(table, players[4], 400) # raise all-in
-    @test TH.amount.(tm.side_pots) == [400, 300, 200, 100, 0, 0]
+    @test TH.amounts.(tm.side_pots) == [[100, 100, 100, 100, 0, 0], [0, 100, 100, 100, 0, 0], [0, 0, 100, 100, 0, 0], [0, 0, 0, 100, 0, 0], z, z]
 
     raise_to!(table, players[5], 500) # raise all-in
-    @test TH.amount.(tm.side_pots) == [500, 400, 300, 200, 100, 0]
+    @test TH.amounts.(tm.side_pots) == [[100, 100, 100, 100, 100, 0], [0, 100, 100, 100, 100, 0], [0, 0, 100, 100, 100, 0], [0, 0, 0, 100, 100, 0], [0, 0, 0, 0, 100, 0], z]
 
     call!(table, players[6]) # call
-    @test TH.amount.(tm.side_pots) == [600, 500, 400, 300, 200, 0]
+    @test TH.amounts.(tm.side_pots) == [[100, 100, 100, 100, 100, 100], [0, 100, 100, 100, 100, 100], [0, 0, 100, 100, 100, 100], [0, 0, 0, 100, 100, 100], [0, 0, 0, 0, 100, 100], z]
 
     TH.distribute_winnings!(players, tm, table_cards, TH.ByPassLogger())
-    @test TH.amount.(tm.side_pots) == [0, 0, 0, 0, 0, 0]
+    @test all_zero(TH.amounts.(tm.side_pots))
 
     @test bank_roll(players[1]) == 0 # bust
     @test bank_roll(players[2]) == 550 # = 600/2+500/2
@@ -316,28 +319,29 @@ end
     )
     tm = TH.TransactionManager(players, logger)
     table = Table(players;cards=table_cards,transactions=tm, logger=TH.ByPassLogger())
-    @test TH.amount.(tm.side_pots) == [0, 0, 0, 0, 0, 0]
+    @test all_zero(TH.amounts.(tm.side_pots))
+    z = [0, 0, 0, 0, 0, 0]
 
     raise_to!(table, players[1], 500) # raise to 500
-    @test TH.amount.(tm.side_pots) == [100, 100, 100, 100, 100, 0]
+    @test TH.amounts.(tm.side_pots) == [[100, 0, 0, 0, 0, 0], [100, 0, 0, 0, 0, 0], [100, 0, 0, 0, 0, 0], [100, 0, 0, 0, 0, 0], [100, 0, 0, 0, 0, 0], z]
 
     call!(table, players[2]) # call
-    @test TH.amount.(tm.side_pots) == [200, 200, 200, 200, 200, 0]
+    @test TH.amounts.(tm.side_pots) == [[100, 100, 0, 0, 0, 0], [100, 100, 0, 0, 0, 0], [100, 100, 0, 0, 0, 0], [100, 100, 0, 0, 0, 0], [100, 100, 0, 0, 0, 0], z]
 
     call!(table, players[3]) # call
-    @test TH.amount.(tm.side_pots) == [300, 300, 300, 300, 200, 0]
+    @test TH.amounts.(tm.side_pots) == [[100, 100, 100, 0, 0, 0], [100, 100, 100, 0, 0, 0], [100, 100, 100, 0, 0, 0], [100, 100, 100, 0, 0, 0], [100, 100, 0, 0, 0, 0], z]
 
     call!(table, players[4]) # call
-    @test TH.amount.(tm.side_pots) == [400, 400, 400, 300, 200, 0]
+    @test TH.amounts.(tm.side_pots) == [[100, 100, 100, 100, 0, 0], [100, 100, 100, 100, 0, 0], [100, 100, 100, 100, 0, 0], [100, 100, 100, 0, 0, 0], [100, 100, 0, 0, 0, 0], z]
 
     call!(table, players[5]) # call
-    @test TH.amount.(tm.side_pots) == [500, 500, 400, 300, 200, 0]
+    @test TH.amounts.(tm.side_pots) == [[100, 100, 100, 100, 100, 0], [100, 100, 100, 100, 100, 0], [100, 100, 100, 100, 0, 0], [100, 100, 100, 0, 0, 0], [100, 100, 0, 0, 0, 0], z]
 
     call!(table, players[6]) # call
-    @test TH.amount.(tm.side_pots) == [600, 500, 400, 300, 200, 0]
+    @test TH.amounts.(tm.side_pots) == [[100, 100, 100, 100, 100, 100], [100, 100, 100, 100, 100, 0], [100, 100, 100, 100, 0, 0], [100, 100, 100, 0, 0, 0], [100, 100, 0, 0, 0, 0], z]
 
     TH.distribute_winnings!(players, tm, table_cards, TH.ByPassLogger())
-    @test TH.amount.(tm.side_pots) == [0, 0, 0, 0, 0, 0]
+    @test all_zero(TH.amounts.(tm.side_pots))
 
     @test bank_roll(players[1]) == 100 # lost (but not all-in)
     @test bank_roll(players[2]) == 500 # all contributions after 3rd all-in (3*100+2*100)
@@ -360,15 +364,15 @@ end
     table = Table(players;cards=table_cards,transactions=tm, logger=TH.ByPassLogger())
     TH.contribute!(table, players[2], 1, true) # small blind
     TH.contribute!(table, players[3], 2, true) # big blind
-    @test TH.amount.(tm.side_pots) == [3, 0, 0]
+    @test TH.amounts.(tm.side_pots) == [[0, 1, 2], [0, 0, 0], [0, 0, 0]]
 
     raise_to!(table, players[1], 5) # raise to 5
-    @test TH.amount.(tm.side_pots) == [7, 1, 0]
+    @test TH.amounts.(tm.side_pots) == [[4, 1, 2], [1, 0, 0], [0, 0, 0]]
 
     call!(table, players[2]) # call
-    @test_broken TH.amount.(tm.side_pots) == [10, 2, 0]
+    @test_broken TH.amounts.(tm.side_pots) == [10, 2, 0]
 
     call!(table, players[3]) # call
-    @test_broken TH.amount.(tm.side_pots) == [12, 2, 0]
+    @test_broken TH.amounts.(tm.side_pots) == [12, 2, 0]
     @test_broken TH.side_pot_full(tm, 1) == true
 end

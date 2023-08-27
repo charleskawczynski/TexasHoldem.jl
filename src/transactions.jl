@@ -8,16 +8,13 @@ const PHE = PokerHandEvaluator
 """
     SidePot
 
-A side-pot for player `seat_number`,
-who has gone all-in with amount `amt`.
+A side-pot for each player.
 """
 mutable struct SidePot
-  seat_number::Int
-  amt::Int
+  amts::Vector{Int} # amount contributed per player
   cap::Int # total amount any individual player can contribute to this side-pot
 end
-seat_number(sp::SidePot) = sp.seat_number
-amount(sp::SidePot) = sp.amt
+amounts(sp::SidePot) = sp.amts
 cap(sp::SidePot) = sp.cap
 
 const joker = Card(0, 1)
@@ -68,7 +65,8 @@ function TransactionManager(players::Players, logger)
     unsorted_to_sorted_map = collect(map(players) do player
         findfirst(p -> seat_number(players[p]) == seat_number(player), perm)
     end)
-    side_pots = [SidePot(seat_number(players[p]), 0, cap_i) for (cap_i, p) in zip(cap, perm)]
+    amts = zeros(Int, length(players))
+    side_pots = [SidePot(deepcopy(amts), cap_i) for cap_i in cap]
     @cdebug logger "initial caps = $(cap.(side_pots))"
 
     initial_brs = deepcopy(collect(bank_roll_chips.(players)))
@@ -100,9 +98,7 @@ function reset!(tm::TransactionManager, players::Players)
         player = players[i]
         br = bank_roll(sp)
         cap_i = i == 1 ? br : br - bank_roll(players[perm[i-1]])
-        ssn = seat_number(sp)::Int
-        tm.side_pots[i].seat_number = ssn
-        tm.side_pots[i].amt = 0
+        tm.side_pots[i].amts .= 0
         tm.side_pots[i].cap = cap_i
         for k in 1:length(players)
             tm.side_pot_winnings[i][k] = Chips(0)
@@ -188,7 +184,7 @@ function contribute!(table, player, amt, call=false)
         @cdebug logger "contributing, amt_contrib = $contributing, $amt_contrib"
         contributing || continue
         @assert !(amt_contrib == 0)
-        tm.side_pots[i].amt += amt_contrib
+        tm.side_pots[i].amts[seat_number(player)] += amt_contrib
         player.bank_roll -= amt_contrib
         amt_remaining -= amt_contrib
         amt_remaining == 0 && break
@@ -201,7 +197,7 @@ function contribute!(table, player, amt, call=false)
     end
 
     if is_side_pot_full(tm, table, player, call)
-        set_side_pot_full!(tm)
+        increment_pot_id!(tm)
     end
     @cdebug logger "$(name(player))'s bank roll (post-contribute) = $(bank_roll(player))"
     @cdebug logger "all_in($(name(player))) = $(all_in(player))"
@@ -216,11 +212,11 @@ function is_side_pot_full(tm::TransactionManager, table, player, call)
     return @inbounds count(x->all_in(x), players) == tm.pot_id[1] && last_action_of_round(table, player, call)
 end
 
-set_side_pot_full!(tm::TransactionManager) = (tm.pot_id[1]+=1)
+increment_pot_id!(tm::TransactionManager) = (tm.pot_id[1]+=1)
 side_pot_full(tm::TransactionManager, i) = i < tm.pot_id[1]
 
 Base.@propagate_inbounds function sidepot_winnings(tm::TransactionManager, id::Int)
-    mapreduce(i->tm.side_pots[i].amt, +, 1:id; init=0)
+    mapreduce(i->sum(tm.side_pots[i].amts), +, 1:id; init=0)
 end
 
 function profit(player, tm)
@@ -255,7 +251,7 @@ is_largest_pot_investment(player, players) =
 
 function distribute_winnings!(players, tm::TransactionManager, table_cards, logger=InfoLogger())
     @cdebug logger "--- Distributing winnings..."
-    @cdebug logger "Pot amounts = $(amount.(tm.side_pots))"
+    @cdebug logger "Pot amounts = $(amounts.(tm.side_pots))"
     perm = tm.perm
     sorted_hand_evals = tm.sorted_hand_evals
     @inbounds for (ssn, p) in enumerate(perm)
@@ -330,7 +326,7 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards, logg
             tm.side_pot_winnings[win_seat][i] = amt_chips
         end
         for j in 1:i
-            tm.side_pots[j].amt = 0 # empty out distributed winnings
+            tm.side_pots[j].amts .= 0 # empty out distributed winnings
         end
     end
 
