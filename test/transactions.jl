@@ -370,9 +370,12 @@ end
     @test TH.amounts.(tm.side_pots) == [[4, 1, 2], [1, 0, 0], [0, 0, 0]]
 
     call!(table, players[2]) # call
-    @test_broken TH.amounts.(tm.side_pots) == [10, 2, 0]
+    @test TH.amounts.(tm.side_pots) == [[4, 4, 2], [1, 1, 0], [0, 0, 0]]
 
     call!(table, players[3]) # call
-    @test_broken TH.amounts.(tm.side_pots) == [12, 2, 0]
-    @test_broken TH.side_pot_full(tm, 1) == true
+    @test TH.amounts.(tm.side_pots) == [[4, 4, 4], [1, 1, 0], [0, 0, 0]]
+    @test TH.is_side_pot_full(tm, players, 1)
+    # TODO: all but one player is all-in, is it okay that this
+    #       side-pot is considered not full?
+    @test !TH.is_side_pot_full(tm, players, 2)
 end

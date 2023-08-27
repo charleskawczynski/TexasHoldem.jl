@@ -157,6 +157,7 @@ of the (sorted) players at the start of the game.
 function contribute!(table, player, amt, call=false)
     tm = table.transactions
     logger = table.logger
+    players = players_at_table(table)
     @cdebug logger "$(name(player))'s bank roll (pre-contribute) = $(bank_roll(player))"
     if !(0 ≤ amt ≤ bank_roll(player))
         msg1 = "$(name(player)) has insufficient bank"
@@ -175,16 +176,19 @@ function contribute!(table, player, amt, call=false)
 
     @inbounds for i in 1:length(tm.side_pots)
         @assert 0 ≤ amt_remaining
-        cap_i = cap(tm.side_pots[i])
-        cond = amt_remaining < cap_i
-        amt_contrib = cond ? amt_remaining : cap_i
-        contributing = !side_pot_full(tm, i) && !(cap_i == 0)
-        # This is a bit noisy:
-        # @cdebug logger "$(name(player)) potentially contributing $amt_contrib to side-pot $(i) ($cond). cap_i=$cap_i, amt_remaining=$amt_remaining"
-        @cdebug logger "contributing, amt_contrib = $contributing, $amt_contrib"
-        contributing || continue
-        @assert !(amt_contrib == 0)
-        tm.side_pots[i].amts[seat_number(player)] += amt_contrib
+        sp = tm.side_pots[i]
+        sn = seat_number(player)
+        if is_player_contribution_to_side_pot_full(sp, sn)
+            continue
+        end
+        @assert 0 < amt_remaining "amt_remaining: $amt_remaining"
+        amt_contrib = if contribution_fits_in_sidepot(sp, sn, amt_remaining)
+            amt_remaining
+        else
+            contribution_that_fits_in_sidepot(sp, sn)
+        end
+        @assert 0 < amt_contrib
+        sp.amts[sn] += amt_contrib
         player.bank_roll -= amt_contrib
         amt_remaining -= amt_contrib
         amt_remaining == 0 && break
@@ -196,7 +200,7 @@ function contribute!(table, player, amt, call=false)
         player.action_required = false
     end
 
-    if is_side_pot_full(tm, table, player, call)
+    if is_side_pot_full(tm, players)
         increment_pot_id!(tm)
     end
     @cdebug logger "$(name(player))'s bank roll (post-contribute) = $(bank_roll(player))"
@@ -204,16 +208,19 @@ function contribute!(table, player, amt, call=false)
     @cdebug logger "post-contribute side-pots: $(tm.side_pots)"
 end
 
-function is_side_pot_full(tm::TransactionManager, table, player, call)
-    players = players_at_table(table)
-    # To switch from pot_id = 1 to pot_id = 2, then exactly 1 player  should be all-in:
-    # To switch from pot_id = 2 to pot_id = 3, then exactly 2 players should be all-in:
-    # ...
-    return @inbounds count(x->all_in(x), players) == tm.pot_id[1] && last_action_of_round(table, player, call)
-end
-
 increment_pot_id!(tm::TransactionManager) = (tm.pot_id[1]+=1)
-side_pot_full(tm::TransactionManager, i) = i < tm.pot_id[1]
+function is_side_pot_full(tm, players, ith_sidepot = tm.pot_id[1])
+    sp = tm.side_pots[ith_sidepot]
+    all(x->is_player_contribution_to_side_pot_full(sp, seat_number(x)), players)
+end
+is_player_contribution_to_side_pot_full(side_pot, sn::Int) =
+    side_pot.amts[sn] == cap(side_pot)
+
+contribution_fits_in_sidepot(side_pot, sn::Int, contribution) =
+    side_pot.amts[sn] + contribution ≤ cap(side_pot)
+
+contribution_that_fits_in_sidepot(side_pot, sn::Int) =
+    cap(side_pot) - side_pot.amts[sn]
 
 Base.@propagate_inbounds function sidepot_winnings(tm::TransactionManager, id::Int)
     mapreduce(i->sum(tm.side_pots[i].amts), +, 1:id; init=0)
