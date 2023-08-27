@@ -28,6 +28,14 @@ Base.:(==)(x::SimpleRatio, y::SimpleRatio) = x.num*y.den == x.den*y.num
 Base.:(==)(x::SimpleRatio, y::Int) = x.num == x.den*y
 Base.:(==)(x::Int, y::SimpleRatio) = x*y.den == y.num
 
+function Base.show(io::IO, x::SimpleRatio)
+    if x.num == 0
+        print(io, x.num)
+    else
+        print(io, "$(x.num)//$(x.den)")
+    end
+end
+
 """
     Chips(n, frac)
 
@@ -76,6 +84,14 @@ Base.:(-)(a::Chips, b::Int) = Chips(a.n-b, a.frac)
 Base.:(==)(x::Chips, y::Chips) = x.n == y.n && x.frac == y.frac
 Base.:(==)(x::Chips, y::Int) = x.n == y && x.frac == 0
 Base.:(==)(x::Int, y::Chips) = x == y.n && 0 == y.frac
+
+function Base.show(io::IO, x::Chips)
+    if x.frac == 0
+        print(io, x.n)
+    else
+        print(io, "$(x.n)+$(x.frac)")
+    end
+end
 
 Base.zero(::Type{Chips}) = Chips(0)
 Base.zero(::Chips) = Chips(0)

@@ -292,7 +292,7 @@ function _deal_and_play!(game::Game, sf::StartFrom)
         set_active_status!(table)
         initial_∑brs = ∑bank_rolls(players)
 
-        @cinfo logger "Initial bank roll summary: $(bank_roll.(players))"
+        @cinfo logger "Initial bank roll summary: $(bank_roll_chips.(players))"
 
         did = dealer_pidx(table)
         sb = seat_number(small_blind(table))
@@ -354,7 +354,7 @@ function _deal_and_play!(game::Game, sf::StartFrom)
         #       "    max possible profit $mpp")
     end
 
-    @cinfo logger "Final bank roll summary: $(bank_roll.(players))"
+    @cinfo logger "Final bank roll summary: $(bank_roll_chips.(players))"
     @assert winners.declared
     for player in players
         notify_reward(player)
