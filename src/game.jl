@@ -328,9 +328,9 @@ function _deal_and_play!(game::Game, sf::StartFrom)
 
     @cdebug logger "amount.(table.transactions.side_pots) = $(amount.(table.transactions.side_pots))"
     @cdebug logger "initial_∑brs = $(initial_∑brs)"
-    @cdebug logger "sum(bank_roll.(players)) = $(sum(bank_roll.(players)))"
+    @cdebug logger "sum(bank_roll_chips.(players)) = $(sum(bank_roll_chips.(players)))"
     @cdebug logger "initial_brs = $(initial_brs)"
-    @cdebug logger "bank_roll.(players) = $(bank_roll.(players))"
+    @cdebug logger "bank_roll_chips.(players) = $(bank_roll_chips.(players))"
 
     if sf.game_point isa StartOfGame
         if !(logger isa ByPassLogger)
@@ -346,12 +346,12 @@ function _deal_and_play!(game::Game, sf::StartFrom)
         prof = bank_roll_chips(player) - initial_br
         br = map(x->bank_roll_chips(x), players)
         # TODO: this is broken due to https://github.com/charleskawczynski/TexasHoldem.jl/issues/200
-        # @assert prof ≤ mpp string("Over-winning occurred:\n",
-        #       "    Player $(name(player))\n",
-        #       "    Initial BRs $(initial_brs)\n",
-        #       "    BRs $br\n",
-        #       "    profit $prof\n",
-        #       "    max possible profit $mpp")
+        @assert prof ≤ mpp string("Over-winning occurred:\n",
+              "    Player $(name(player))\n",
+              "    Initial BRs $(initial_brs)\n",
+              "    BRs $br\n",
+              "    profit $prof\n",
+              "    max possible profit $mpp")
     end
 
     @cinfo logger "Final bank roll summary: $(bank_roll_chips.(players))"
