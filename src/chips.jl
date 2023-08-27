@@ -5,6 +5,11 @@ export SimpleRatio
 struct SimpleRatio
     num::Int
     den::Int
+    function SimpleRatio(num, den)
+        # https://github.com/charleskawczynski/TexasHoldem.jl/issues/223
+        _den = num == 0 ? 1 : den
+        return new(num, _den)
+    end
 end
 
 Base.:(+)(x::Int, y::SimpleRatio) = SimpleRatio(x*y.den + y.num, y.den)

@@ -1,5 +1,7 @@
 #=
 using Revise; include("test/fuzz_utils.jl")
+@eval Main using TexasHoldem # don't qualify types in log
+@eval Main using TexasHoldem:SidePot # don't qualify types in log
 
 to debug cases, use (for example):
 fuzz_debug(;fun=tournament!,n_players=10,bank_roll=30,n_games=3788)
@@ -12,6 +14,7 @@ players = (
     Player(Bot5050(), 3; bank_roll=4),
 )
 fuzz_given_players_debug(;fun=play!, players, n_games=138)
+fuzz_debug(; fun = tournament!, n_players = 10, bank_roll = 30, n_games = 1310)
 fuzz_debug(; fun = tournament!, n_players = 2, bank_roll = 6, n_games = 1)
 fuzz_debug(; fun = tournament!, n_players = 3, bank_roll = 6, n_games = 38)
 fuzz_debug(; fun = play!, n_players = 3, bank_roll = 200, n_games = 2373)
