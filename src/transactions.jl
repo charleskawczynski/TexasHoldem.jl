@@ -234,28 +234,6 @@ function profit(player, tm)
     end
 end
 
-function distribute_winnings_1_player_left!(players, tm::TransactionManager, table_cards, logger)
-    @assert count(x->still_playing(x), players) == 1
-    n = length(tm.side_pots)
-    for (player, initial_br) in zip(players, tm.initial_brs)
-        player.game_profit = profit(player, tm)
-    end
-    for (player, initial_br) in zip(players, tm.initial_brs)
-        ∑spw = sidepot_winnings(tm, n)
-        not_playing(player) && continue
-        amt_contributed = initial_br - bank_roll(player)
-        player.bank_roll += ∑spw
-        if !(∑spw == 0 && player.bank_roll == 0 && amt_contributed == 0)
-            @cinfo logger "$(name(player)) wins $(∑spw) ($(profit(player, tm)) profit) (all opponents folded)"
-        end
-        @inbounds for j in 1:n
-            tm.side_pots[j].amt = 0 # empty out distributed winnings
-        end
-        break
-    end
-    return nothing
-end
-
 function minimum_valid_hand_rank(sorted_hand_evals, players, perm, i)::Int
     min_hrs = typemax(Int)
     for (ssn, she) in enumerate(sorted_hand_evals)
@@ -285,14 +263,10 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards, logg
     @cdebug logger "--- Distributing winnings..."
     @cdebug logger "Pot amounts = $(amount.(tm.side_pots))"
     perm = tm.perm
-    if count(x->still_playing(x), players) == 1
-        @cdebug logger "Distributing to only remaining player"
-        return distribute_winnings_1_player_left!(players, tm, table_cards, logger)
-    end
     sorted_hand_evals = tm.sorted_hand_evals
     @inbounds for (ssn, p) in enumerate(tm.perm)
         player = players[p]
-        if inactive(player)
+        if inactive(player) || folded(player) || !still_playing(player)
             sorted_hand_evals[ssn].hand_rank = -1
             sorted_hand_evals[ssn].hand_type = :empty
             sorted_hand_evals[ssn].best_cards = ntuple(j->joker, 5)
@@ -347,23 +321,6 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards, logg
             (still_playing(player) && ssn ≥ i ? she.hand_rank==mvhr : false) || is_largest_pot_investment(player, players)
         end
 
-        # Compute the least winnings per player:
-        # amt_total = sidepot_winnings(tm, i)
-        # amt_base = div(amt_total, n_winners)
-        # remainder = rem(amt_total, n_winners) # ∈ 1:(amt_base-1)
-        # eligible_pidxs = Int[]
-        # for (ssn, she) in enumerate(sorted_hand_evals)
-        #     player = players[perm[ssn]]
-        #     if (still_playing(player) && ssn ≥ i ? she.hand_rank==mvhr : false) || is_largest_pot_investment(player, players)
-        #         push!(eligible_pidxs, perm[ssn])
-        #     end
-        # end
-        # TODO: distribute remaining more uniformly / with less variance
-        # lucky_pidx = isempty(eligible_pidxs) ? -1 : rand(eligible_pidxs)
-        # @cdebug logger "eligible_pidxs = $eligible_pidxs"
-        # @cdebug logger "lucky_pidx = $lucky_pidx"
-        # @cdebug logger "remainder = $remainder"
-
         for (ssn, she) in enumerate(sorted_hand_evals)
             player = players[perm[ssn]]
             is_winner = (still_playing(player) && ssn ≥ i ? she.hand_rank==mvhr : false) || is_largest_pot_investment(player, players)
@@ -371,9 +328,6 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards, logg
             winner_id = ssn
             @cdebug logger "winning pidx = $(tm.perm[winner_id])"
             win_seat = seat_number(players[tm.perm[winner_id]])
-            # we do a coin flip to see who gets the remaining chips:
-            # @cdebug logger "ssn, lucky_pidx: $ssn, $lucky_pidx"
-            # amt = perm[ssn] == lucky_pidx ? amt_base + remainder : amt_base
             amt_total = sidepot_winnings(tm, i)
             amt_base = div(amt_total, n_winners)
             remainder = rem(amt_total, n_winners) # ∈ 1:(amt_base-1)
