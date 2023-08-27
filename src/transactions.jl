@@ -201,7 +201,7 @@ function contribute!(table, player, amt, call=false)
     end
 
     if is_side_pot_full(tm, table, player, call)
-        set_side_pot_full!(tm)
+        increment_pot_id!(tm)
     end
     @cdebug logger "$(name(player))'s bank roll (post-contribute) = $(bank_roll(player))"
     @cdebug logger "all_in($(name(player))) = $(all_in(player))"
@@ -216,7 +216,7 @@ function is_side_pot_full(tm::TransactionManager, table, player, call)
     return @inbounds count(x->all_in(x), players) == tm.pot_id[1] && last_action_of_round(table, player, call)
 end
 
-set_side_pot_full!(tm::TransactionManager) = (tm.pot_id[1]+=1)
+increment_pot_id!(tm::TransactionManager) = (tm.pot_id[1]+=1)
 side_pot_full(tm::TransactionManager, i) = i < tm.pot_id[1]
 
 Base.@propagate_inbounds function sidepot_winnings(tm::TransactionManager, id::Int)
