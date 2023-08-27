@@ -4,6 +4,7 @@ using TexasHoldem
 using TexasHoldem: Player, Bot5050, TransactionManager, dealer_pidx, Table
 const TH = TexasHoldem
 
+include("tester_bots.jl")
 #=
 This reaches into internals
 (`update_given_valid_action!`)
@@ -345,4 +346,29 @@ end
     @test bank_roll(players[5]) == 550 # = 600/2+500/2
     @test bank_roll(players[6]) == 0 # bust
     @test sum(bank_roll.(players)) == 2100
+end
+
+@testset "TransactionManagers - side pots edge case 1" begin
+    table_cards = (T♢, Q♢, A♠, 8♠, 9♠)
+    logger = TH.InfoLogger()
+    players = (
+        Player(BotPreFlopRaise(5), 1, (2♠, 3♣); bank_roll = 9),
+        Player(Bot5050(), 2, (7♠, 7♣); bank_roll = 5),
+        Player(Bot5050(), 3, (2♡, 3♢); bank_roll = 4),
+    )
+    tm = TH.TransactionManager(players, logger)
+    table = Table(players;cards=table_cards,transactions=tm, logger=TH.ByPassLogger())
+    TH.contribute!(table, players[2], 1, true) # small blind
+    TH.contribute!(table, players[3], 2, true) # big blind
+    @test TH.amount.(tm.side_pots) == [3, 0, 0]
+
+    raise_to!(table, players[1], 5) # raise to 5
+    @test TH.amount.(tm.side_pots) == [7, 1, 0]
+
+    call!(table, players[2]) # call
+    @test_broken TH.amount.(tm.side_pots) == [10, 2, 0]
+
+    call!(table, players[3]) # call
+    @test_broken TH.amount.(tm.side_pots) == [12, 2, 0]
+    @test_broken TH.side_pot_full(tm, 1) == true
 end
