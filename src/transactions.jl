@@ -224,14 +224,8 @@ Base.@propagate_inbounds function sidepot_winnings(tm::TransactionManager, id::I
 end
 
 function profit(player, tm)
-    # TODO: this is wrong (but only used for log / game_profit)
-    if not_playing(player)
-        return Chips(-pot_investment(player))
-    else
-        n = length(tm.side_pots)
-        ∑spw = sidepot_winnings(tm, n)
-        return Chips(∑spw-pot_investment(player))
-    end
+    ∑spw = sum(tm.side_pot_winnings[seat_number(player)])
+    return Chips(∑spw-pot_investment(player))
 end
 
 function minimum_valid_hand_rank(sorted_hand_evals, players, perm, i)::Int
@@ -264,7 +258,7 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards, logg
     @cdebug logger "Pot amounts = $(amount.(tm.side_pots))"
     perm = tm.perm
     sorted_hand_evals = tm.sorted_hand_evals
-    @inbounds for (ssn, p) in enumerate(tm.perm)
+    @inbounds for (ssn, p) in enumerate(perm)
         player = players[p]
         if inactive(player) || folded(player) || !still_playing(player)
             sorted_hand_evals[ssn].hand_rank = -1
@@ -292,6 +286,7 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards, logg
         end
     end
 
+    # populate `side_pot_winnings` and empty out `side_pots`
     @inbounds for i in 1:length(tm.side_pots)
         sidepot_winnings(tm, length(players)) == 0 && continue # no money left to distribute
 
@@ -338,35 +333,63 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards, logg
             tm.side_pots[j].amt = 0 # empty out distributed winnings
         end
     end
+
+    # Adjust bank rolls:
     for (player, initial_br, player_winnings) in zip(players, tm.initial_brs, tm.side_pot_winnings)
         ∑spw = sum(player_winnings)
-        ssn = tm.unsorted_to_sorted_map[seat_number(player)]
         amt_contributed = initial_br - bank_roll(player)
         prof = profit(player, tm)
         player.game_profit = prof
-        if ∑spw == 0 && active(player)
-            @cinfo logger begin
-                she = sorted_hand_evals[ssn]
-                hand_name = she.hand_type
-                bc = she.best_cards
-                f_str = folded(player) ? " (folded)" : ""
-                "$(name(player)) loses$f_str $(pot_investment(player)) with $bc ($hand_name)!"
-            end
-        else
-            @cdebug logger "$(name(player))'s side-pot wins: $(player_winnings)!"
+        if !(∑spw == 0 && active(player))
             if amt_contributed == 0 && ∑spw == 0 && prof == 0 && !still_playing(player)
                 continue
-            end
-            @cinfo logger begin
-                she = sorted_hand_evals[ssn]
-                hand_name = she.hand_type
-                bc = she.best_cards
-                "$(name(player)) wins $∑spw ($prof profit) with $bc ($hand_name)!"
             end
             player.bank_roll += ∑spw
         end
     end
+    # Can the above be replaced with
+    #     for (player, initial_br, player_winnings) in zip(players, tm.initial_brs, tm.side_pot_winnings)
+    #         player.game_profit = profit(player, tm)
+    #         player.bank_roll += sum(player_winnings)
+    #     end
+    # ?
+
+
+    if !(logger isa ByPassLogger)
+        for (player, player_winnings) in zip(players, tm.side_pot_winnings)
+            log_player_winnings(player, player_winnings, tm)
+        end
+    end
 
     @cdebug logger "--- Finished distributing winnings..."
+    return nothing
+end
+
+function log_player_winnings(player, player_winnings, tm)
+    logger = tm.logger
+    sorted_hand_evals = tm.sorted_hand_evals
+    ∑spw = sum(player_winnings)
+    ssn = tm.unsorted_to_sorted_map[seat_number(player)]
+    prof = profit(player, tm)
+    winnings = ∑spw
+    contributed = ∑spw - prof # prof = ∑spw - contributed
+    net_winnings = prof
+    she = sorted_hand_evals[ssn]
+    hand_name = she.hand_type
+    bc = she.best_cards
+
+    f_str = folded(player) ? "folded, " : ""
+    i_str = inactive(player) ? "inactive " : ""
+    st_str = "$f_str$i_str"
+    if hand_name == :empty
+        @cinfo logger begin
+            "$(name(player)): folded / inactive."
+        end
+    else
+        @cdebug logger "$(name(player))'s side-pot wins: $(player_winnings)!"
+        @cinfo logger begin
+            "$(name(player)): winnings $(winnings.n), contributed $(contributed.n), net $(net_winnings.n) with $bc ($hand_name)."
+        end
+    end
     return nothing
 end
