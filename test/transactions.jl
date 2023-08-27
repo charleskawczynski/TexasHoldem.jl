@@ -193,6 +193,70 @@ end
     @test sum(bank_roll.(players)) == 2100
 end
 
+@testset "TransactionManagers - Semi-complicated split pot (shared winners) with fractional chips" begin
+    table_cards = (T♢, Q♢, A♠, 8♠, 9♠)
+    logger = TH.InfoLogger()
+    players = (
+        Player(Bot5050(), 1, (4♠, 5♣); bank_roll = 1*7), # bust
+        Player(Bot5050(), 2, (K♠, K♣); bank_roll = 2*7), # win, split with player 3
+        Player(Bot5050(), 3, (K♡,K♢); bank_roll = 3*7), # win, split with player 2
+        Player(Bot5050(), 4, (2♡, 3♢); bank_roll = 4*7), # bust
+        Player(Bot5050(), 5, (7♠, 7♣); bank_roll = 5*7), # 2nd to players 2 and 3, win remaining pot
+        Player(Bot5050(), 6, (2♠, 3♣); bank_roll = 6*7), # lose, but not bust
+    )
+    tm = TH.TransactionManager(players, logger)
+    table = Table(players;cards=table_cards,transactions=tm, logger=TH.ByPassLogger())
+
+    raise_to!(table, players[1], 7) # raise all-in
+    call!(table, players[2]) # call
+    call!(table, players[3]) # call
+    call!(table, players[4]) # call
+    call!(table, players[5]) # call
+    call!(table, players[6]) # call
+    @test TH.amount.(tm.side_pots) == [42, 0, 0, 0, 0, 0]
+
+    TH.reset_round!(table)
+
+    raise_to!(table, players[2], 7) # raise all-in
+    call!(table, players[3]) # call
+    call!(table, players[4]) # call
+    call!(table, players[5]) # call
+    call!(table, players[6]) # call
+    @test TH.amount.(tm.side_pots) == [42, 35, 0, 0, 0, 0]
+
+    TH.reset_round!(table)
+
+    raise_to!(table, players[3], 7) # raise all-in
+    call!(table, players[4]) # call
+    call!(table, players[5]) # call
+    call!(table, players[6]) # call
+    @test TH.amount.(tm.side_pots) == [42, 35, 28, 0, 0, 0]
+
+    TH.reset_round!(table)
+
+    raise_to!(table, players[4], 7) # raise all-in
+    call!(table, players[5]) # call
+    call!(table, players[6]) # call
+    @test TH.amount.(tm.side_pots) == [42, 35, 28, 21, 0, 0]
+
+    TH.reset_round!(table)
+
+    raise_to!(table, players[5], 7) # raise all-in
+    call!(table, players[6]) # call
+    @test TH.amount.(tm.side_pots) == [42, 35, 28, 21, 14, 0]
+
+    TH.distribute_winnings!(players, tm, table_cards, TH.ByPassLogger())
+    @test TH.amount.(tm.side_pots) == [0, 0, 0, 0, 0, 0]
+
+    @test bank_roll_chips(players[1]) == Chips(0) # bust
+    @test bank_roll_chips(players[2]) == Chips(38, SimpleRatio(1,2)) # = 42/2+35/2 = 38.5
+    @test bank_roll_chips(players[3]) == Chips(66, SimpleRatio(1, 2)) # = 42/2+35/2+28 = 66.5
+    @test bank_roll_chips(players[4]) == Chips(0) # bust
+    @test bank_roll_chips(players[5]) == Chips(35, SimpleRatio(0, 1)) # all contributions after 3rd all-in (3*7+2*7)
+    @test bank_roll_chips(players[6]) == Chips(7, SimpleRatio(0, 1)) # lost (but not all-in)
+    @test sum(bank_roll_chips.(players)) == Chips(147, SimpleRatio(0, 2))
+end
+
 @testset "TransactionManagers - Single round split pot (shared winners), with simple re-raises" begin
     table_cards = (T♢, Q♢, A♠, 8♠, 9♠)
     logger = TH.InfoLogger()
