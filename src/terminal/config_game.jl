@@ -64,7 +64,7 @@ function configure_basic_heads_up_game()
         Player(Human(), 1; bank_roll=bank_roll),
         Player(Bot5050(), 2; bank_roll=bank_roll)
     )
-    return Game(players; blinds=blinds)
+    return Game(players; blinds=blinds, gui=Terminal())
 end
 
 function configure_basic_1v4_game()
@@ -77,7 +77,7 @@ function configure_basic_1v4_game()
         Player(Bot5050(), 4; bank_roll=bank_roll),
         Player(Bot5050(), 5; bank_roll=bank_roll),
     )
-    return Game(players; blinds=blinds)
+    return Game(players; blinds=blinds, gui=Terminal())
 end
 
 function configure_basic_2_bots_game()
@@ -87,7 +87,7 @@ function configure_basic_2_bots_game()
         Player(Bot5050(), 1; bank_roll=bank_roll),
         Player(Bot5050(), 2; bank_roll=bank_roll),
     )
-    return Game(players; blinds=blinds)
+    return Game(players; blinds=blinds, gui=Terminal())
 end
 
 function configure_basic_4_bots_game()
@@ -99,7 +99,7 @@ function configure_basic_4_bots_game()
         Player(Bot5050(), 3; bank_roll=bank_roll),
         Player(Bot5050(), 4; bank_roll=bank_roll),
     )
-    return Game(players; blinds=blinds)
+    return Game(players; blinds=blinds, gui=Terminal())
 end
 
 function configure_human_players(n_players)
@@ -127,7 +127,7 @@ function configure_custom_game()
         end
     end
 
-    return Game(players; blinds=blinds)
+    return Game(players; blinds=blinds, gui=Terminal())
 end
 
 function configure_game()

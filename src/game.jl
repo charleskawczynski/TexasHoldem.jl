@@ -30,10 +30,15 @@ any_actions_required(game::Game) = any_actions_required(game.table)
 round(game::Game) = round(game.table)
 move_buttons!(game) = move_buttons!(game.table)
 
+function print_round(table, round)
+    table.gui isa Terminal && return nothing
+    print_round(table, round)
+end
+
 print_round(table, round::PreFlop) = @cinfo table.logger "Pre-flop!"
-print_round(table, round::Flop) =  @cinfo table.logger "Flop: $(repeat(" ", 44)) $(table.cards[1:3])"
-print_round(table, round::Turn) =  @cinfo table.logger "Turn: $(repeat(" ", 44)) $(table.cards[4])"
-print_round(table, round::River) = @cinfo table.logger "River: $(repeat(" ", 43)) $(table.cards[5])"
+print_round(table, round::Flop) =    @cinfo table.logger "Flop: $(repeat(" ", 44)) $(table.cards[1:3])"
+print_round(table, round::Turn) =    @cinfo table.logger "Turn: $(repeat(" ", 44)) $(table.cards[4])"
+print_round(table, round::River) =   @cinfo table.logger "River: $(repeat(" ", 43)) $(table.cards[5])"
 
 set_preflop_blind_raise!(table::Table, player, ::AbstractRound, i::Int) = nothing
 function set_preflop_blind_raise!(table::Table, player::Player, ::PreFlop, i::Int)
@@ -141,6 +146,7 @@ function act_generic!(game::Game, round::AbstractRound, sf::StartFrom)
     @assert sf.game_point isa StartOfGame || sf.game_point isa PlayerOption
     if sf.game_point isa StartOfGame
         set_round!(table, round)
+        update_gui(table)
         print_round(table, round)
         reset_round_bank_rolls!(game, round)
 
@@ -311,7 +317,7 @@ function _deal_and_play!(game::Game, sf::StartFrom)
 
     if sf.game_point isa StartOfGame
         reset!(table.transactions, players)
-        @assert all(p->cards(p) == nothing, players)
+        @assert all(p->cards(p) == (nothing,nothing), players)
         @assert cards(table) == nothing
         reset_round_bank_rolls!(table) # round bank-rolls must account for blinds
         deal!(table, blinds(table))
@@ -326,6 +332,7 @@ function _deal_and_play!(game::Game, sf::StartFrom)
     distribute_winnings!(players, table.transactions, cards(table), logger)
     winners.declared = true
 
+    update_gui(table)
     @cdebug logger "amounts.(table.transactions.side_pots) = $(amounts.(table.transactions.side_pots))"
     @cdebug logger "initial_∑brs = $(initial_∑brs)"
     @cdebug logger "sum(bank_roll.(players)) = $(sum(bank_roll.(players)))"
@@ -363,7 +370,7 @@ function _deal_and_play!(game::Game, sf::StartFrom)
     end
 
     @cinfo logger "------ Finished game!"
-    return winners
+    return any(x->quit_game(game, x), players)
 end
 
 function set_active_status!(table::Table)
@@ -390,12 +397,13 @@ function reset_game!(game::Game)
         dealer_pidx=dealer_pidx(table),
         blinds=table.blinds,
         logger=logger,
+        gui=table.gui,
     )
     PlayingCards.reset!(game.table.deck)
     table = game.table
     players = players_at_table(table)
     for player in players
-        player.cards = nothing
+        player.cards = (nothing,nothing)
         player.pot_investment = 0
         player.game_profit = Chips(0)
         player.all_in = false
@@ -422,7 +430,8 @@ function tournament!(game::Game)
     table = game.table
     players = players_at_table(table)
     while length(players) > 1
-        play!(game)
+        quit = play!(game)
+        quit && break
         n_players_remaining = count(x->!(bank_roll(x) == 0), players)
         if n_players_remaining ≤ 1
             @cinfo logger "Victor emerges!"

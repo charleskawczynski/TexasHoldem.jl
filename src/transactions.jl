@@ -222,6 +222,12 @@ contribution_fits_in_sidepot(side_pot, sn::Int, contribution) =
 contribution_that_fits_in_sidepot(side_pot, sn::Int) =
     cap(side_pot) - side_pot.amts[sn]
 
+# TODO: should we have a pot/sidepot that persists through `distribute_winnings!`?
+function pot(tm::TransactionManager)
+    sp = sidepot_winnings(tm, length(tm.side_pots))
+    return sp == 0 ? sum(spw->sum(spw), tm.side_pot_winnings) : sp
+end
+
 Base.@propagate_inbounds function sidepot_winnings(tm::TransactionManager, id::Int)
     mapreduce(i->sum(tm.side_pots[i].amts), +, 1:id; init=0)
 end
@@ -263,7 +269,7 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards, logg
     sorted_hand_evals = tm.sorted_hand_evals
     @inbounds for (ssn, p) in enumerate(perm)
         player = players[p]
-        if inactive(player) || folded(player) || !still_playing(player)
+        if !pot_eligible(player)
             sorted_hand_evals[ssn].hand_rank = -1
             sorted_hand_evals[ssn].hand_type = :empty
             sorted_hand_evals[ssn].best_cards = ntuple(j->joker, 5)
@@ -338,8 +344,8 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards, logg
     end
 
     # Adjust bank rolls:
-    for (player, initial_br, player_winnings) in zip(players, tm.initial_brs, tm.side_pot_winnings)
-        ∑spw = sum(player_winnings)
+    for (player, initial_br, player_sp_winnings) in zip(players, tm.initial_brs, tm.side_pot_winnings)
+        ∑spw = sum(player_sp_winnings)
         amt_contributed = initial_br - bank_roll(player)
         prof = profit(player, tm)
         player.game_profit = prof
@@ -351,16 +357,16 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards, logg
         end
     end
     # Can the above be replaced with
-    #     for (player, initial_br, player_winnings) in zip(players, tm.initial_brs, tm.side_pot_winnings)
+    #     for (player, initial_br, player_sp_winnings) in zip(players, tm.initial_brs, tm.side_pot_winnings)
     #         player.game_profit = profit(player, tm)
-    #         player.bank_roll += sum(player_winnings)
+    #         player.bank_roll += sum(player_sp_winnings)
     #     end
     # ?
 
 
     if !(logger isa ByPassLogger)
-        for (player, player_winnings) in zip(players, tm.side_pot_winnings)
-            log_player_winnings(player, player_winnings, tm)
+        for (player, player_sp_winnings) in zip(players, tm.side_pot_winnings)
+            log_player_winnings(player, player_sp_winnings, tm)
         end
     end
 
@@ -368,10 +374,10 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards, logg
     return nothing
 end
 
-function log_player_winnings(player, player_winnings, tm)
+function log_player_winnings(player, player_sp_winnings, tm)
     logger = tm.logger
     sorted_hand_evals = tm.sorted_hand_evals
-    ∑spw = sum(player_winnings)
+    ∑spw = sum(player_sp_winnings)
     ssn = tm.unsorted_to_sorted_map[seat_number(player)]
     prof = profit(player, tm)
     winnings = ∑spw
@@ -389,7 +395,7 @@ function log_player_winnings(player, player_winnings, tm)
             "$(name(player)): folded / inactive."
         end
     else
-        @cdebug logger "$(name(player))'s side-pot wins: $(player_winnings)!"
+        @cdebug logger "$(name(player))'s side-pot wins: $(player_sp_winnings)!"
         @cinfo logger begin
             "$(name(player)): winnings $(winnings.n), contributed $(contributed.n), net $(net_winnings.n) with $bc ($hand_name)."
         end

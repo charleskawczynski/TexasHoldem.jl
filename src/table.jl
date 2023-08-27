@@ -50,7 +50,7 @@ buttons(b::Buttons) = (
     b.first_to_act,
 )
 
-mutable struct Table{P<:Players, L, TM, B <: Blinds, D <: PlayingCards.AbstractDeck}
+mutable struct Table{P<:Players, L, TM, B <: Blinds, D <: PlayingCards.AbstractDeck, G}
     deck::D
     players::P
     cards::Union{Nothing,Tuple{<:Card,<:Card,<:Card,<:Card,<:Card}}
@@ -65,6 +65,7 @@ mutable struct Table{P<:Players, L, TM, B <: Blinds, D <: PlayingCards.AbstractD
     play_out_game::Bool
     n_max_actions::Int
     logger::L
+    gui::G
 end
 
 buttons(table::Table) = table.buttons
@@ -100,6 +101,8 @@ Table(players; kwargs...) = Table(Players(players); kwargs...)
 function Table(players::Players;
     deck = PlayingCards.MaskedDeck(),
     cards = nothing,
+    gui = PlainLogger(), # good for test/debugging, but not very fun
+    # gui = Terminal(), # fun, but not good for tests/debugging
     blinds = Blinds(),
     pot = 0,
     round = PreFlop(),
@@ -119,7 +122,7 @@ function Table(players::Players;
     L = typeof(logger)
     TM = typeof(transactions)
     B = typeof(blinds)
-    return Table{P, L, TM, B, typeof(deck)}(deck,
+    return Table{P, L, TM, B, typeof(deck), typeof(gui)}(deck,
         players,
         cards,
         blinds,
@@ -132,7 +135,8 @@ function Table(players::Players;
         winners,
         play_out_game,
         n_max_actions,
-        logger)
+        logger,
+        gui)
 end
 
 function Buttons(players::Players, dealer_pidx)
@@ -179,6 +183,12 @@ observed_cards(table::Table, ::PreFlop) = ()
 observed_cards(table::Table, ::Flop) = table.cards[1:3]
 observed_cards(table::Table, ::Turn) = table.cards[1:4]
 observed_cards(table::Table, ::River) = table.cards
+
+observed_cards_all(table::Table) = observed_cards_all(table, round(table))
+observed_cards_all(table::Table, ::PreFlop) = ntuple(_->nothing, 5)
+observed_cards_all(table::Table, ::Flop) = (table.cards[1:3]..., nothing, nothing)
+observed_cards_all(table::Table, ::Turn) = (table.cards[1:4]..., nothing)
+observed_cards_all(table::Table, ::River) = table.cards
 
 # for testing
 unobserved_cards(table::Table) = unobserved_cards(table, round(table))
