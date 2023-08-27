@@ -326,7 +326,7 @@ function _deal_and_play!(game::Game, sf::StartFrom)
     distribute_winnings!(players, table.transactions, cards(table), logger)
     winners.declared = true
 
-    @cdebug logger "amount.(table.transactions.side_pots) = $(amount.(table.transactions.side_pots))"
+    @cdebug logger "amounts.(table.transactions.side_pots) = $(amounts.(table.transactions.side_pots))"
     @cdebug logger "initial_∑brs = $(initial_∑brs)"
     @cdebug logger "sum(bank_roll.(players)) = $(sum(bank_roll.(players)))"
     @cdebug logger "initial_brs = $(initial_brs)"
@@ -340,7 +340,7 @@ function _deal_and_play!(game::Game, sf::StartFrom)
         end
         @assert initial_∑brs == ∑bank_rolls(players) "initial_∑brs = $(initial_∑brs), ∑bank_rolls = $(∑bank_rolls(players))"
     end
-    @assert sum(sp->amount(sp), table.transactions.side_pots) == 0
+    @assert sum(sp->sum(amounts(sp)), table.transactions.side_pots) == 0
     for (player, initial_br) in zip(players, initial_brs)
         mpp = max_possible_profit(player, players, initial_brs)
         prof = bank_roll_chips(player) - initial_br
