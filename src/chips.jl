@@ -14,10 +14,15 @@ end
 
 Base.:(+)(x::Int, y::SimpleRatio) = SimpleRatio(x*y.den + y.num, y.den)
 Base.:(-)(x::Int, y::SimpleRatio) = SimpleRatio(x*y.den - y.num, y.den)
+Base.:(+)(x::SimpleRatio, y::Int) = SimpleRatio(y*x.den + x.num, x.den)
+Base.:(-)(x::SimpleRatio, y::Int) = SimpleRatio(y*x.den - x.num, x.den)
+Base.:(+)(x::SimpleRatio) = x
+Base.:(-)(x::SimpleRatio) = SimpleRatio(-x.num, x.den)
 Base.:(+)(x::SimpleRatio, y::SimpleRatio) =
     x.den == y.den ? SimpleRatio(x.num + y.num, x.den) :
     SimpleRatio(x.num*y.den + x.den*y.num, x.den*y.den)
 
+Base.abs(x::SimpleRatio) = SimpleRatio(Base.abs(x.num), Base.abs(x.den))
 Base.:(-)(x::SimpleRatio, y::SimpleRatio) =
     x.den == y.den ? SimpleRatio(x.num - y.num, x.den) :
     SimpleRatio(x.num*y.den - x.den*y.num, x.den*y.den)
@@ -85,6 +90,11 @@ Base.:(+)(a::Chips, b::Chips) = Chips(a.n+b.n, a.frac+b.frac)
 Base.:(-)(a::Chips, b::Chips) = Chips(a.n-b.n, a.frac-b.frac)
 Base.:(+)(a::Chips, b::Int) = Chips(a.n+b, a.frac)
 Base.:(-)(a::Chips, b::Int) = Chips(a.n-b, a.frac)
+Base.:(+)(a::Int, b::Chips) = Chips(a+b.n, b.frac)
+Base.:(-)(a::Int, b::Chips) = Chips(a-b.n, -b.frac)
+Base.:(+)(a::Chips) = a
+Base.:(-)(a::Chips) = Chips(-a.n, -a.frac)
+Base.abs(a::Chips) = Chips(abs(a.n), abs(a.frac))
 
 Base.:(==)(x::Chips, y::Chips) = x.n == y.n && x.frac == y.frac
 Base.:(==)(x::Chips, y::Int) = x.n == y && x.frac == 0
