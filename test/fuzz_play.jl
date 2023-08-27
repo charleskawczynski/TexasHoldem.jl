@@ -6,6 +6,12 @@ fuzz_debug(;fun=tournament!,n_players=10,bank_roll=30,n_games=3788)
 where `3788` was found from 
 fuzz(;fun=tournament!,n_players=10,bank_roll=30,n_games=10000)
 
+players = (
+    Player(Bot5050(), 1; bank_roll=9),
+    Player(Bot5050(), 2; bank_roll=5),
+    Player(Bot5050(), 3; bank_roll=4),
+)
+fuzz_given_players_debug(;fun=play!, players, n_games=138)
 fuzz_debug(; fun = tournament!, n_players = 2, bank_roll = 6, n_games = 1)
 fuzz_debug(; fun = tournament!, n_players = 3, bank_roll = 6, n_games = 38)
 fuzz_debug(; fun = play!, n_players = 3, bank_roll = 200, n_games = 2373)
