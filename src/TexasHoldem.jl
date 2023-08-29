@@ -38,7 +38,8 @@ include("table.jl")
 include("game.jl")
 include("player_actions.jl")
 include("player_options.jl")
-include("config_game.jl")
+include(joinpath("terminal", "human_player_options.jl"))
+include(joinpath("terminal", "config_game.jl"))
 include("recreate.jl")
 
 end # module
