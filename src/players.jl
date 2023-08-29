@@ -34,10 +34,17 @@ coincide.
 struct Players{PS<:Union{Tuple,AbstractArray}}
     players::PS
     function Players(players)
+        n = length(players)
+        if all(x->seat_number(x)==-1, players)
+            for i in 1:n
+                players[i].seat_number = i
+            end
+        end
         @assert allunique(map(x->seat_number(x), players))
         spbsn = sortperm_by_seat_number(players)
         splayers = map(sp->players[sp], spbsn)
         @assert issorted(map(x->seat_number(x), splayers))
+        @assert seat_number(splayers[n]) ≤ n
         return new{typeof(splayers)}(splayers)
     end
 end

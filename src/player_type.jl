@@ -70,7 +70,7 @@ function Base.show(io::IO, player::Player)
     print(io, "$(name(player)): $(player.cards)")
 end
 
-function Player(strategy, seat_number, cards = nothing; bank_roll = 200)
+function Player(strategy, seat_number = -1, cards = nothing; bank_roll = 200)
     action_required = true
     all_in = false
     round_bank_roll = bank_roll
