@@ -53,7 +53,7 @@ buttons(b::Buttons) = (
 mutable struct Table{P<:Players, L, TM, B <: Blinds, D <: PlayingCards.AbstractDeck, G}
     deck::D
     players::P
-    cards::Union{Nothing,Tuple{<:Card,<:Card,<:Card,<:Card,<:Card}}
+    cards::Vector{Card}
     blinds::B
     pot::Int
     round::AbstractRound
@@ -100,7 +100,7 @@ n_raises(i, n_players) = Int(floor(i/n_players))
 Table(players; kwargs...) = Table(Players(players); kwargs...)
 function Table(players::Players;
     deck = PlayingCards.MaskedDeck(),
-    cards = nothing,
+    cards = Card[joker, joker, joker, joker, joker],
     gui = PlainLogger(), # good for test/debugging, but not very fun
     # gui = Terminal(), # fun, but not good for tests/debugging
     blinds = Blinds(),
@@ -124,7 +124,7 @@ function Table(players::Players;
     B = typeof(blinds)
     return Table{P, L, TM, B, typeof(deck), typeof(gui)}(deck,
         players,
-        cards,
+        Card[cards[1],cards[2],cards[3],cards[4],cards[5]],
         blinds,
         pot,
         round,
@@ -175,27 +175,26 @@ function Base.show(io::IO, table::Table, include_type = true)
     println(io, "Observed cards   = $(observed_cards(table))")
 end
 
-get_table_cards!(deck::PlayingCards.MaskedDeck) = ntuple(_->SB.sample!(deck), Val(5))::Tuple{Card, Card, Card, Card, Card}
 cards(table::Table) = table.cards
 
 observed_cards(table::Table) = observed_cards(table, round(table))
-observed_cards(table::Table, ::PreFlop) = ()
+observed_cards(table::Table, ::PreFlop) = Card[]
 observed_cards(table::Table, ::Flop) = table.cards[1:3]
 observed_cards(table::Table, ::Turn) = table.cards[1:4]
 observed_cards(table::Table, ::River) = table.cards
 
 observed_cards_all(table::Table) = observed_cards_all(table, round(table))
-observed_cards_all(table::Table, ::PreFlop) = ntuple(_->nothing, 5)
-observed_cards_all(table::Table, ::Flop) = (table.cards[1:3]..., nothing, nothing)
-observed_cards_all(table::Table, ::Turn) = (table.cards[1:4]..., nothing)
+observed_cards_all(table::Table, ::PreFlop) = Card[joker,joker,joker,joker,joker]
+observed_cards_all(table::Table, ::Flop) = Card[table.cards[1:3]..., joker, joker]
+observed_cards_all(table::Table, ::Turn) = Card[table.cards[1:4]..., joker]
 observed_cards_all(table::Table, ::River) = table.cards
 
 # for testing
 unobserved_cards(table::Table) = unobserved_cards(table, round(table))
 unobserved_cards(table::Table, ::PreFlop) = table.cards
 unobserved_cards(table::Table, ::Flop) = table.cards[4:5]
-unobserved_cards(table::Table, ::Turn) = (table.cards[5],)
-unobserved_cards(table::Table, ::River) = ()
+unobserved_cards(table::Table, ::Turn) = Card[table.cards[5]]
+unobserved_cards(table::Table, ::River) = Card[]
 
 current_raise_amt(table::Table) = table.current_raise_amt
 initial_round_raise_amt(table::Table) = table.initial_round_raise_amt
@@ -480,7 +479,9 @@ function deal!(table::Table, blinds::Blinds)
 
         not_playing(player) && continue
 
-        player.cards = ntuple(_->SB.sample!(table.deck), 2)::Tuple{Card, Card}
+        for j in 1:2
+            player.cards[j] = SB.sample!(table.deck)
+        end
 
         if is_small_blind(table, player) && bank_roll(player) ≤ blinds.small
             contribute!(table, player, bank_roll(player), call_blinds)
@@ -501,7 +502,9 @@ function deal!(table::Table, blinds::Blinds)
         end
     end
 
-    table.cards = get_table_cards!(table.deck)::Tuple{Card,Card,Card,Card,Card}
+    @inbounds for j in 1:5
+        table.cards[j] = SB.sample!(table.deck)
+    end
     @cinfo logger "Table cards dealt (face-down)."
     @cdebug logger "Post-blinds bank roll summary: $(bank_roll.(players))"
 end

@@ -8,7 +8,7 @@ using PlayingCards
 ASCII cards.
 """
 # ascii_card(cards...; kwargs...) = ascii_card(cards; kwargs...)
-function ascii_card(cards::NTuple;to_string=true, rbuffer="  ")
+function ascii_card(cards; to_string=true, rbuffer="  ")
     lines = map(enumerate(cards)) do (i, c)
         _rbuffer = iseven(i) ? rbuffer : ""
         if c isa Card
@@ -50,8 +50,13 @@ cards of type `card::Nothing`.
 """
 function ascii_card_dealer(cards; to_string=true)
     all_lines = map(_->"", 1:9)
+    kwargs = (;to_string=false, rbuffer="")
     for card in cards
-        card_lines = ascii_card((card,); to_string=false, rbuffer="")
+        if card == joker
+            card_lines = ascii_card((nothing,); kwargs...)
+        else
+            card_lines = ascii_card((card,); kwargs...)
+        end
         all_lines = [x * y for (x, y) in zip(all_lines, card_lines)]
     end
     card_str = to_string ? join(all_lines, "\n") : all_lines

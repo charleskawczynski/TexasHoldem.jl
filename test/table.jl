@@ -1,6 +1,8 @@
 using Test
 using PlayingCards
 import Logging
+import StatsBase
+const SB = StatsBase
 using TexasHoldem
 using TexasHoldem: seat_number
 const TH = TexasHoldem
@@ -11,22 +13,23 @@ const TH = TexasHoldem
     # we use StatsBase.sample! for efficiency, but shuffle! is convenient
     shuffle!(deck)
     blinds = TH.Blinds(1,2)
-    cards = TH.get_table_cards!(deck)
+    cards = map(x->SB.sample!(deck), 1:5)
+
     table = TH.Table(players;deck=deck, cards=cards, logger=TH.ByPassLogger())
     TH.deal!(table, blinds)
 
     table.round = PreFlop()
-    @test TH.observed_cards(table) == ()
+    @test isempty(TH.observed_cards(table))
     @test TH.unobserved_cards(table) == table.cards
     table.round = Flop()
     @test TH.observed_cards(table) == table.cards[1:3]
     @test TH.unobserved_cards(table) == table.cards[4:5]
     table.round = Turn()
     @test TH.observed_cards(table) == table.cards[1:4]
-    @test TH.unobserved_cards(table) == (table.cards[5],)
+    @test TH.unobserved_cards(table) == [table.cards[5]]
     table.round = River()
     @test TH.observed_cards(table) == table.cards
-    @test TH.unobserved_cards(table) == ()
+    @test isempty(TH.unobserved_cards(table))
 end
 
 @testset "Table: Move button" begin

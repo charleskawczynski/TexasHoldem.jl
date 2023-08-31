@@ -291,7 +291,7 @@ function _deal_and_play!(game::Game, sf::StartFrom)
     end
 
     if sf.game_point isa StartOfGame
-        for (pidx, player) in enumerate(players)
+        @inbounds for (pidx, player) in enumerate(players)
             initial_brs[pidx] = bank_roll_chips(player)
         end
         @cinfo logger "------ Playing game!"
@@ -317,8 +317,8 @@ function _deal_and_play!(game::Game, sf::StartFrom)
 
     if sf.game_point isa StartOfGame
         reset!(table.transactions, players)
-        @assert all(p->cards(p) == (nothing,nothing), players)
-        @assert cards(table) == nothing
+        @assert all(p->!has_cards(p), players)
+        @assert all(c->c==joker, cards(table))
         reset_round_bank_rolls!(table) # round bank-rolls must account for blinds
         deal!(table, blinds(table))
         @assert cards(table) ≠ nothing
@@ -351,12 +351,11 @@ function _deal_and_play!(game::Game, sf::StartFrom)
     for (player, initial_br) in zip(players, initial_brs)
         mpp = max_possible_profit(player, players, initial_brs)
         prof = bank_roll_chips(player) - initial_br
-        br = map(x->bank_roll_chips(x), players)
         # TODO: this is broken due to https://github.com/charleskawczynski/TexasHoldem.jl/issues/200
         @assert prof ≤ mpp string("Over-winning occurred:\n",
               "    Player $(name(player))\n",
               "    Initial BRs $(initial_brs)\n",
-              "    BRs $br\n",
+              "    BRs $(map(x->bank_roll_chips(x), players))\n",
               "    profit $prof\n",
               "    profit.n $(prof.n)\n",
               "    cond $(prof.n ≤ mpp.n)\n",
@@ -403,7 +402,9 @@ function reset_game!(game::Game)
     table = game.table
     players = players_at_table(table)
     for player in players
-        player.cards = (nothing,nothing)
+        @inbounds for j in 1:2
+            player.cards[j] = joker
+        end
         player.pot_investment = 0
         player.game_profit = Chips(0)
         player.all_in = false

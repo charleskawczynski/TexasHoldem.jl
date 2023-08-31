@@ -49,7 +49,7 @@ function update_gui(io::IO, table::Table, ::Terminal, pov_player)
 
     visible_player_cards = map(players) do player
         if hide_card(table.winners, pov_player, player)
-            (nothing, nothing)
+            [nothing, nothing]
         else
             cards(player)
         end
