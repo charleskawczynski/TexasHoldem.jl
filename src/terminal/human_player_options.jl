@@ -2,19 +2,21 @@
 ##### Human player options (ask via prompts)
 #####
 
-function player_option(game::Game, player::Player{Human}, ::CheckRaiseFold, io::IO=stdin)
+function player_option(game::Game, player::Player{Human}, ::CheckRaiseFold, ioin::IO=stdin)
     table = game.table
+    update_gui(stdout, table, player)
     vrr = valid_raise_range(table, player)
     options = ["Check", "Raise [$(first(vrr)), $(last(vrr))]", "Fold"]
     menu = RadioMenu(options, pagesize=4)
     choice = request("$(name(player))'s turn to act:", menu)
     choice == -1 && error("Uncaught case")
     choice == 1 && return Check()
-    choice == 2 && return Raise(input_raise_amt(table, player, io))
+    choice == 2 && return Raise(input_raise_amt(table, player, ioin))
     choice == 3 && return Fold()
 end
-function player_option(game::Game, player::Player{Human}, ::CallRaiseFold, io::IO=stdin)
+function player_option(game::Game, player::Player{Human}, ::CallRaiseFold, ioin::IO=stdin)
     table = game.table
+    update_gui(stdout, table, player)
     vrr = valid_raise_range(table, player)
     call_amt = call_amount(table, player)
     blind_str = is_blind_call(table, player) ? " (blind)" : ""
@@ -23,11 +25,12 @@ function player_option(game::Game, player::Player{Human}, ::CallRaiseFold, io::I
     choice = request("$(name(player))'s turn to act:", menu)
     choice == -1 && error("Uncaught case")
     choice == 1 && return Call(table, player)
-    choice == 2 && return Raise(input_raise_amt(table, player, io))
+    choice == 2 && return Raise(input_raise_amt(table, player, ioin))
     choice == 3 && return Fold()
 end
-function player_option(game::Game, player::Player{Human}, ::CallAllInFold)
+function player_option(game::Game, player::Player{Human}, ::CallAllInFold, ioin::IO=stdin)
     table = game.table
+    update_gui(stdout, table, player)
     call_amt = call_amount(table, player)
     all_in_amt = round_bank_roll(player)
     blind_str = is_blind_call(table, player) ? " (blind)" : ""
@@ -41,6 +44,7 @@ function player_option(game::Game, player::Player{Human}, ::CallAllInFold)
 end
 function player_option(game::Game, player::Player{Human}, ::CallFold)
     table = game.table
+    update_gui(stdout, table, player)
     call_amt = call_amount(table, player)
     blind_str = is_blind_call(table, player) ? " (blind)" : ""
     options = ["Call $(call_amt)$blind_str", "Fold"]
@@ -49,6 +53,19 @@ function player_option(game::Game, player::Player{Human}, ::CallFold)
     choice == -1 && error("Uncaught case")
     choice == 1 && return Call(table, player)
     choice == 2 && return Fold()
+end
+
+quit_game(game::Game, player::Player, ioin::IO=stdin) = false
+
+function quit_game(game::Game, player::Player{Human}, ioin::IO=stdin)
+    table = game.table
+    update_gui(stdout, table, player)
+    options = ["Continue playing", "Quite game"]
+    menu = RadioMenu(options, pagesize=4)
+    choice = request("Continue or quit?", menu)
+    choice == -1 && error("Uncaught case")
+    choice == 1 && return false
+    choice == 2 && return true
 end
 
 # io only works for tests, but does not for user input

@@ -23,6 +23,10 @@ export Chips
 
 include("custom_logger.jl")
 
+abstract type AbstractGUI end
+struct PlainLogger <: AbstractGUI end # no gui
+struct Terminal <: AbstractGUI end
+
 abstract type AbstractRound end
 struct PreFlop <: AbstractRound end
 struct Flop <: AbstractRound end
@@ -40,6 +44,9 @@ include("player_actions.jl")
 include("player_options.jl")
 include(joinpath("terminal", "human_player_options.jl"))
 include(joinpath("terminal", "config_game.jl"))
+include(joinpath("terminal", "ascii_card.jl"))
+include(joinpath("terminal", "ascii_player.jl"))
+include(joinpath("terminal", "ui.jl"))
 include("recreate.jl")
 
 end # module
