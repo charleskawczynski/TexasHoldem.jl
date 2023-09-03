@@ -22,7 +22,7 @@ const joker = Card(0, 1)
 Base.@kwdef mutable struct HandEval
     hand_rank::Int = 1
     hand_type::Symbol = :empty
-    best_cards::NTuple{5,Card} = ntuple(_->joker, 5)
+    best_cards::Vector{Card} = Card[joker,joker,joker,joker,joker]
 end
 
 """
@@ -272,19 +272,22 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards, logg
         if !pot_eligible(player)
             sorted_hand_evals[ssn].hand_rank = -1
             sorted_hand_evals[ssn].hand_type = :empty
-            sorted_hand_evals[ssn].best_cards = ntuple(j->joker, 5)
+            @inbounds for i in 1:5
+                sorted_hand_evals[ssn].best_cards[i] = joker
+            end
         else
-            pc = player.cards::Tuple{Card,Card}
-            tc = table_cards::Tuple{Card,Card,Card,Card,Card}
+            pc = player.cards
+            tc = table_cards
+            @inbounds all_cards = (pc[1], pc[2], tc[1], tc[2], tc[3], tc[4], tc[5])
             if logger isa ByPassLogger
-                he = PHE.CompactHandEval((pc..., tc...))
+                he = PHE.CompactHandEval(all_cards)
                 sorted_hand_evals[ssn].hand_rank = PHE.hand_rank(he)
                 sorted_hand_evals[ssn].hand_type = PHE.hand_type(he)
             else
-                he = PHE.FullHandEval((pc..., tc...))
+                he = PHE.FullHandEval(all_cards)
                 sorted_hand_evals[ssn].hand_rank = PHE.hand_rank(he)
                 sorted_hand_evals[ssn].hand_type = PHE.hand_type(he)
-                sorted_hand_evals[ssn].best_cards = PHE.best_cards(he)
+                sorted_hand_evals[ssn].best_cards .= Card[PHE.best_cards(he)...]
             end
         end
     end

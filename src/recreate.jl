@@ -3,35 +3,33 @@ function resample_unobserved_table_cards!(table::Table, round::PreFlop)
     for c in table.cards
         PlayingCards.restore!(table.deck, c)
     end
-    table.cards = ntuple(i->SB.sample!(table.deck), 5)
+    @inbounds for j in 1:5
+        table.cards[j] = SB.sample!(table.deck)
+    end
     return nothing
 end
 function resample_unobserved_table_cards!(table::Table, round::Flop)
     @inbounds PlayingCards.restore!(table.deck, table.cards[4])
     @inbounds PlayingCards.restore!(table.deck, table.cards[5])
-    @inbounds table.cards = (
-        table.cards[1:3]...,
-        SB.sample!(table.deck),
-        SB.sample!(table.deck),
-    )
+    @inbounds table.cards[4] = SB.sample!(table.deck)
+    @inbounds table.cards[5] = SB.sample!(table.deck)
     return nothing
 end
 function resample_unobserved_table_cards!(table::Table, round::Turn)
     @inbounds PlayingCards.restore!(table.deck, table.cards[5])
-    @inbounds table.cards = (
-        table.cards[1:4]...,
-        SB.sample!(table.deck),
-    )
+    @inbounds table.cards[5] = SB.sample!(table.deck)
     return nothing
 end
 resample_unobserved_table_cards!(table::Table, round::River) = nothing
 
 function resample_player_cards!(table::Table, player::Player)
-    @assert player.cards ≠ (nothing, nothing)
+    @assert has_cards(player)
     for c in player.cards
         PlayingCards.restore!(table.deck, c)
     end
-    player.cards = (SB.sample!(table.deck), SB.sample!(table.deck))
+    @inbounds for j in 1:2
+        player.cards[j] = SB.sample!(table.deck)
+    end
     return nothing
 end
 function resample_cards!(game::Game, player::Player)

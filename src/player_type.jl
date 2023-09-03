@@ -52,7 +52,7 @@ for flow control logic.
 mutable struct Player{S #=<: AbstractStrategy=#}
     strategy::S
     seat_number::Int
-    cards::NTuple{2,Union{Card,Nothing}}
+    cards::Vector{Card}
     bank_roll::Chips
     game_profit::Chips
     action_required::Bool
@@ -70,7 +70,7 @@ function Base.show(io::IO, player::Player)
     print(io, "$(name(player)): $(player.cards)")
 end
 
-function Player(strategy, seat_number = -1, cards = (nothing,nothing); bank_roll = 200)
+function Player(strategy, seat_number = -1, cards = Card[joker, joker]; bank_roll = 200)
     action_required = true
     all_in = false
     round_bank_roll = bank_roll
@@ -85,7 +85,7 @@ function Player(strategy, seat_number = -1, cards = (nothing,nothing); bank_roll
     args = (
         strategy,
         seat_number,
-        cards,
+        Card[cards[1], cards[2]],
         Chips(bank_roll),
         Chips(game_profit),
         action_required,
@@ -154,5 +154,9 @@ round_contribution(player::Player) = player.round_contribution
 strategy(player::Player) = player.strategy
 pot_eligible(player::Player) = !folded(player) && still_playing(player) && active(player)
 pot_eligible(player::Nothing) = false
+function has_cards(player::Player)
+    @assert length(cards(player)) == 2
+    return all(c->c == joker, cards(player)) ? false : true
+end
 
 notify_reward(player) = nothing

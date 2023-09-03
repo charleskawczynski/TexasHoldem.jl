@@ -35,6 +35,9 @@ end
 @safetestset "play" begin
     Δt = @elapsed include("play.jl"); @info "Completed tests for play in $Δt seconds"
 end
+@safetestset "tournament" begin
+    Δt = @elapsed include("tournament.jl"); @info "Completed tests for tournament in $Δt seconds"
+end
 @safetestset "fuzz_play" begin
     Δt = @elapsed include("fuzz_play.jl"); @info "Completed tests for fuzz_play in $Δt seconds"
 end
