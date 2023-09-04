@@ -1,44 +1,57 @@
+table_card_inds(::PreFlop) = ntuple(i->i, 5)
+table_card_inds(::Flop) = (4, 5)
+table_card_inds(::Turn) = (5,)
+table_card_inds(::River) = ()
 
-function resample_unobserved_table_cards!(table::Table, round::PreFlop)
-    for c in table.cards
+function restore_unobserved_table_cards!(table::Table, inds)
+    @inbounds for i in inds
+        PlayingCards.restore!(table.deck, table.cards[i])
+    end
+    return nothing
+end
+
+function resample_unobserved_table_cards!(table::Table, inds)
+    @inbounds for i in inds
+        table.cards[i] = SB.sample!(table.deck)
+    end
+    return nothing
+end
+
+function restore_player_cards!(table::Table, player::Player)
+    has_cards(player) || return false
+    for (i, c) in enumerate(player.cards)
         PlayingCards.restore!(table.deck, c)
+        player.cards[i] = joker
     end
-    @inbounds for j in 1:5
-        table.cards[j] = SB.sample!(table.deck)
-    end
-    return nothing
+    return true
 end
-function resample_unobserved_table_cards!(table::Table, round::Flop)
-    @inbounds PlayingCards.restore!(table.deck, table.cards[4])
-    @inbounds PlayingCards.restore!(table.deck, table.cards[5])
-    @inbounds table.cards[4] = SB.sample!(table.deck)
-    @inbounds table.cards[5] = SB.sample!(table.deck)
-    return nothing
-end
-function resample_unobserved_table_cards!(table::Table, round::Turn)
-    @inbounds PlayingCards.restore!(table.deck, table.cards[5])
-    @inbounds table.cards[5] = SB.sample!(table.deck)
-    return nothing
-end
-resample_unobserved_table_cards!(table::Table, round::River) = nothing
 
 function resample_player_cards!(table::Table, player::Player)
-    @assert has_cards(player)
-    for c in player.cards
-        PlayingCards.restore!(table.deck, c)
-    end
-    @inbounds for j in 1:2
-        player.cards[j] = SB.sample!(table.deck)
+    @assert !has_cards(player)
+    @inbounds for i in 1:2
+        player.cards[i] = SB.sample!(table.deck)
     end
     return nothing
 end
 function resample_cards!(game::Game, player::Player)
     table = game.table
-    for opponent in players_at_table(table)
-        seat_number(opponent) == seat_number(player) && continue
+    players = players_at_table(table)
+    tci = table_card_inds(table.round)
+    player_cards_to_resample = BitVector(ntuple(i->false, length(players)))
+    restore_unobserved_table_cards!(table, tci)
+    for opponent in players
+        sn = seat_number(opponent)
+        sn == seat_number(player) && continue
+        player_cards_to_resample[sn] = restore_player_cards!(table, opponent)
+    end
+
+    resample_unobserved_table_cards!(table, tci)
+    for opponent in players
+        sn = seat_number(opponent)
+        sn == seat_number(player) && continue
+        player_cards_to_resample[sn] || continue
         resample_player_cards!(table, opponent)
     end
-    resample_unobserved_table_cards!(table, table.round)
 end
 
 """
