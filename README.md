@@ -72,7 +72,7 @@ function player_option(game::Game, player::Player{MyBot}, ::CallFold)
     return Fold()
 end
 
-# Heads-up against the MyBot!
+# Heads-up against MyBot!
 tournament!(Game((Player(Human(), 1), Player(MyBot(), 2))))
 ```
 
