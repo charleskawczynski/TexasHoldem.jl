@@ -56,8 +56,8 @@ function TH.player_option(game::Game, player::Player{RiverDreamer}, round::River
     Call(game, player)
 end
 
-@testset "Game: Play (Bot5050 vs RiverDreamer)" begin
-    fuzz_bots = ntuple(i->Player(Bot5050(), i), 3)
+@testset "Game: Play (FuzzBot vs RiverDreamer)" begin
+    fuzz_bots = ntuple(i->Player(TH.FuzzBot(), i), 3)
     players = (fuzz_bots..., Player(RiverDreamer(false), length(fuzz_bots)+1))
     play!(QuietGame(players))
 end

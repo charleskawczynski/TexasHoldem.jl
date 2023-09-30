@@ -38,7 +38,7 @@ else
 end
 
 @testset "Test fold" begin
-    players = (Player(Human(), 1), Player(Bot5050(), 2))
+    players = (Player(Human(), 1), Player(TH.FuzzBot(), 2))
     game = Game(players)
     simulate_keystrokes(:down, :down, :enter, 'd')
     TH.player_option(game, players[1], CheckRaiseFold())
@@ -51,7 +51,7 @@ end
 end
 
 @testset "Test check" begin
-    players = (Player(Human(), 1), Player(Bot5050(), 2))
+    players = (Player(Human(), 1), Player(TH.FuzzBot(), 2))
     game = Game(players)
     simulate_keystrokes(:enter, 'd')
     TH.player_option(game, players[1], CheckRaiseFold())
@@ -59,21 +59,21 @@ end
 
 @testset "Test call" begin
     # No initial round contribution
-    players = (Player(Human(), 1), Player(Bot5050(), 2))
+    players = (Player(Human(), 1), Player(TH.FuzzBot(), 2))
     game = Game(players)
     game.table.current_raise_amt = 10
     simulate_keystrokes(:enter, 'd', 10)
     act = TH.player_option(game, players[1], CallRaiseFold())
     @test act == TH.Call(10)
 
-    players = (Player(Human(), 1), Player(Bot5050(), 2))
+    players = (Player(Human(), 1), Player(TH.FuzzBot(), 2))
     game = Game(players)
     game.table.current_raise_amt = 10
     simulate_keystrokes(:enter, 'd', 10)
     act = TH.player_option(game, players[1], CallAllInFold())
     @test act == TH.Call(10)
 
-    players = (Player(Human(), 1), Player(Bot5050(), 2))
+    players = (Player(Human(), 1), Player(TH.FuzzBot(), 2))
     game = Game(players)
     game.table.current_raise_amt = 10
     simulate_keystrokes(:enter, 'd', 10)
@@ -83,7 +83,7 @@ end
 
 @testset "Test All-in raise" begin
     # No initial round contribution
-    players = (Player(Human(), 1), Player(Bot5050(), 2))
+    players = (Player(Human(), 1), Player(TH.FuzzBot(), 2))
     game = Game(players)
     game.table.current_raise_amt = 10
     simulate_keystrokes(:down, :enter, 'd')
@@ -109,7 +109,7 @@ TH.use_input_io() = true
     TRT = TerminalRegressionTests
     path = "terminal_test_output"
 
-    players = (Player(Human(), 1), Player(Bot5050(), 2))
+    players = (Player(Human(), 1), Player(TH.FuzzBot(), 2))
     game = Game(players)
     table = game.table
     file = joinpath(path,"input_raise_amt.output")
@@ -119,7 +119,7 @@ TH.use_input_io() = true
         end
     end
 
-    players = (Player(Human(), 1), Player(Bot5050(), 2))
+    players = (Player(Human(), 1), Player(TH.FuzzBot(), 2))
     game = Game(players)
     table = game.table
     table.current_raise_amt = 0
@@ -131,7 +131,7 @@ TH.use_input_io() = true
         end
     end
 
-    players = (Player(Human(), 1), Player(Bot5050(), 2))
+    players = (Player(Human(), 1), Player(TH.FuzzBot(), 2))
     game = Game(players)
     table = game.table
     table.current_raise_amt = 10

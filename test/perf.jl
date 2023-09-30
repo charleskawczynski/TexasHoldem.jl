@@ -15,7 +15,7 @@ macro n_failures(ex)
     )
 end
 
-players() = ntuple(i->(Player(Bot5050(), i)), 4)
+players() = ntuple(i->(Player(TH.FuzzBot(), i)), 4)
 
 function do_work!(game)
     play!(game)

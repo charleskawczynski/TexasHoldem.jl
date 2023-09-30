@@ -7,7 +7,6 @@ format = Documenter.HTML(
 
 makedocs(
     sitename = "TexasHoldem.jl",
-    strict = true,
     format = format,
     checkdocs = :exports,
     clean = true,

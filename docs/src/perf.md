@@ -10,7 +10,7 @@ import Logging
 import Random
 Random.seed!(1234)
 
-players() = ntuple(i->(Player(Bot5050(), i)), 4)
+players() = ntuple(i->(Player(TH.FuzzBot(), i)), 4)
 
 function do_work!()
     play!(Game(players();logger=TH.ByPassLogger()))

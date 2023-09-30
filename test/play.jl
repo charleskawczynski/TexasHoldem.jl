@@ -10,8 +10,8 @@ include("tester_bots.jl")
 QuietGame(args...; kwargs...) = Game(args...; kwargs..., logger=TH.ByPassLogger())
 
 @testset "Game: Play (invalid number of players)" begin
-    @test_throws AssertionError("Invalid number of players") QuietGame(ntuple(i->Player(Bot5050(), i), 1))
-    @test_throws AssertionError("Invalid number of players") QuietGame(ntuple(i->Player(Bot5050(), i), 11))
+    @test_throws AssertionError("Invalid number of players") QuietGame(ntuple(i->Player(TH.FuzzBot(), i), 1))
+    @test_throws AssertionError("Invalid number of players") QuietGame(ntuple(i->Player(TH.FuzzBot(), i), 11))
 end
 
 @testset "Game: Play (BotCheckCall)" begin
