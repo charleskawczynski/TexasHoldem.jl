@@ -23,6 +23,19 @@ and not for simulating games.
 """
 struct Human <: AbstractStrategy end
 
+#=
+    FuzzBot
+
+`FuzzBot` is a stochastic strategy that
+chooses all of its actions based on a
+coin flip.
+
+This bot is used for fuzzing in the test
+suite and for quick-start game configurations
+for users.
+=#
+struct FuzzBot <: AbstractStrategy end
+
 """
     Bot5050
 
@@ -30,9 +43,8 @@ struct Human <: AbstractStrategy end
 chooses all of its actions based on a
 coin flip.
 
-This bot is used for fuzzing in the test
-suite and for quick-start game configurations
-for users.
+This bot is used for quick-start game
+configurations for users.
 """
 struct Bot5050 <: AbstractStrategy end
 

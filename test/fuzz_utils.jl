@@ -1,6 +1,7 @@
 using Test
 using PlayingCards
 using TexasHoldem
+const TH = TexasHoldem
 import Random
 import Logging
 
@@ -25,7 +26,7 @@ to enforce tests that work.
 =#
 function fuzz(;fun, n_players, n_games, bank_roll=200)
     Random.seed!(1234)
-    players = ntuple(i->Player(Bot5050(), i; bank_roll=bank_roll), n_players)
+    players = ntuple(i->Player(TH.FuzzBot(), i; bank_roll=bank_roll), n_players)
     return fuzz_given_players(;fun, n_games, players)
 end
 
@@ -57,7 +58,7 @@ swap the logger to debug level for the
 indices that fail.
 =#
 function fuzz_debug(;fun,n_players, n_games, bank_roll=200)
-    players = ntuple(i->Player(Bot5050(), i; bank_roll=bank_roll), n_players)
+    players = ntuple(i->Player(TH.FuzzBot(), i; bank_roll=bank_roll), n_players)
     fuzz_given_players_debug(;fun,n_games, players)
 end
 

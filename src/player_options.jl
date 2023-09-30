@@ -305,14 +305,35 @@ player_option(game::Game, player::Player, option) =
 ##### AbstractStrategy
 #####
 
-##### Bot5050
+##### FuzzBot
 
-function player_option(game::Game, player::Player{Bot5050}, ::CheckRaiseFold)
+function player_option(game::Game, player::Player{FuzzBot}, ::CheckRaiseFold)
     rand() < 0.5 && return Check()
     rand() < 0.5 && return Raise(rand(valid_raise_range(game.table, player)))
     # while we can check for free, this bot is used for fuzzing,
     # so we want to explore the most diverse set of possible cases.
     return Fold()
+end
+function player_option(game::Game, player::Player{FuzzBot}, ::CallRaiseFold)
+    rand() < 0.5 && return Call(game.table, player)
+    rand() < 0.5 && return Raise(rand(valid_raise_range(game.table, player))) # re-raise
+    return Fold()
+end
+function player_option(game::Game, player::Player{FuzzBot}, ::CallAllInFold)
+    rand() < 0.5 && return Call(game.table, player)
+    rand() < 0.5 && return AllIn(game.table, player) # re-raise
+    return Fold()
+end
+function player_option(game::Game, player::Player{FuzzBot}, ::CallFold)
+    rand() < 0.5 && return Call(game.table, player)
+    return Fold()
+end
+
+##### Bot5050
+
+function player_option(game::Game, player::Player{Bot5050}, ::CheckRaiseFold)
+    rand() < 0.5 && return Check()
+    return Raise(rand(valid_raise_range(game.table, player)))
 end
 function player_option(game::Game, player::Player{Bot5050}, ::CallRaiseFold)
     rand() < 0.5 && return Call(game.table, player)

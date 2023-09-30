@@ -1,7 +1,7 @@
 using Test
 using PlayingCards
 using TexasHoldem
-using TexasHoldem: Player, Bot5050, TransactionManager, dealer_pidx, Table
+using TexasHoldem: Player, FuzzBot, TransactionManager, dealer_pidx, Table
 const TH = TexasHoldem
 all_zero(side_pots) = all(x-> all(y->y==0, x), side_pots)
 
@@ -20,9 +20,9 @@ check!(t, p) = TH.update_given_valid_action!(t, p, Check())
     table_cards = (A♢, K♢, Q♢, 2♠, 3♠)
     logger = TH.InfoLogger()
     players = (
-        Player(Bot5050(), 1, (A♠, A♣); bank_roll = 1*100),
-        Player(Bot5050(), 2, (K♠, K♣); bank_roll = 2*100),
-        Player(Bot5050(), 3, (Q♠, Q♣); bank_roll = 3*100),
+        Player(TH.FuzzBot(), 1, (A♠, A♣); bank_roll = 1*100),
+        Player(TH.FuzzBot(), 2, (K♠, K♣); bank_roll = 2*100),
+        Player(TH.FuzzBot(), 3, (Q♠, Q♣); bank_roll = 3*100),
     )
     tm = TH.TransactionManager(players, logger)
     table = Table(players;cards=table_cards,transactions=tm, logger=TH.ByPassLogger())
@@ -44,9 +44,9 @@ end
     table_cards = (A♢, K♢, Q♢, 2♠, 3♠)
     logger = TH.InfoLogger()
     players = (
-        Player(Bot5050(), 1, (A♠, A♣); bank_roll = 3*100),
-        Player(Bot5050(), 2, (K♠, K♣); bank_roll = 2*100),
-        Player(Bot5050(), 3, (Q♠, Q♣); bank_roll = 1*100),
+        Player(TH.FuzzBot(), 1, (A♠, A♣); bank_roll = 3*100),
+        Player(TH.FuzzBot(), 2, (K♠, K♣); bank_roll = 2*100),
+        Player(TH.FuzzBot(), 3, (Q♠, Q♣); bank_roll = 1*100),
     )
     tm = TH.TransactionManager(players, logger)
     table = Table(players;cards=table_cards,transactions=tm, logger=TH.ByPassLogger())
@@ -68,9 +68,9 @@ end
     table_cards = (A♢, K♢, Q♢, 2♠, 3♠)
     logger = TH.InfoLogger()
     players = (
-        Player(Bot5050(), 1, (A♠, A♣); bank_roll = 1*100),
-        Player(Bot5050(), 2, (K♠, K♣); bank_roll = 2*100),
-        Player(Bot5050(), 3, (Q♠, Q♣); bank_roll = 3*100),
+        Player(TH.FuzzBot(), 1, (A♠, A♣); bank_roll = 1*100),
+        Player(TH.FuzzBot(), 2, (K♠, K♣); bank_roll = 2*100),
+        Player(TH.FuzzBot(), 3, (Q♠, Q♣); bank_roll = 3*100),
     )
     tm = TH.TransactionManager(players, logger)
     table = Table(players;cards=table_cards,transactions=tm, logger=TH.ByPassLogger())
@@ -101,9 +101,9 @@ end
     table_cards = (A♢, K♢, Q♢, 2♠, 3♠)
     logger = TH.InfoLogger()
     players = (
-        Player(Bot5050(), 1, (A♠, A♣); bank_roll = 3*100),
-        Player(Bot5050(), 2, (K♠, K♣); bank_roll = 2*100),
-        Player(Bot5050(), 3, (Q♠, Q♣); bank_roll = 1*100),
+        Player(TH.FuzzBot(), 1, (A♠, A♣); bank_roll = 3*100),
+        Player(TH.FuzzBot(), 2, (K♠, K♣); bank_roll = 2*100),
+        Player(TH.FuzzBot(), 3, (Q♠, Q♣); bank_roll = 1*100),
     )
     tm = TH.TransactionManager(players, logger)
     table = Table(players;cards=table_cards,transactions=tm, logger=TH.ByPassLogger())
@@ -134,12 +134,12 @@ end
     table_cards = (T♢, Q♢, A♠, 8♠, 9♠)
     logger = TH.InfoLogger()
     players = (
-        Player(Bot5050(), 1, (4♠, 5♣); bank_roll = 1*100), # bust
-        Player(Bot5050(), 2, (K♠, K♣); bank_roll = 2*100), # win, split with player 3
-        Player(Bot5050(), 3, (K♡,K♢); bank_roll = 3*100), # win, split with player 2
-        Player(Bot5050(), 4, (2♡, 3♢); bank_roll = 4*100), # bust
-        Player(Bot5050(), 5, (7♠, 7♣); bank_roll = 5*100), # 2nd to players 2 and 3, win remaining pot
-        Player(Bot5050(), 6, (2♠, 3♣); bank_roll = 6*100), # lose, but not bust
+        Player(TH.FuzzBot(), 1, (4♠, 5♣); bank_roll = 1*100), # bust
+        Player(TH.FuzzBot(), 2, (K♠, K♣); bank_roll = 2*100), # win, split with player 3
+        Player(TH.FuzzBot(), 3, (K♡,K♢); bank_roll = 3*100), # win, split with player 2
+        Player(TH.FuzzBot(), 4, (2♡, 3♢); bank_roll = 4*100), # bust
+        Player(TH.FuzzBot(), 5, (7♠, 7♣); bank_roll = 5*100), # 2nd to players 2 and 3, win remaining pot
+        Player(TH.FuzzBot(), 6, (2♠, 3♣); bank_roll = 6*100), # lose, but not bust
     )
     tm = TH.TransactionManager(players, logger)
     table = Table(players;cards=table_cards,transactions=tm, logger=TH.ByPassLogger())
@@ -199,12 +199,12 @@ end
     table_cards = (T♢, Q♢, A♠, 8♠, 9♠)
     logger = TH.InfoLogger()
     players = (
-        Player(Bot5050(), 1, (4♠, 5♣); bank_roll = 1*7), # bust
-        Player(Bot5050(), 2, (K♠, K♣); bank_roll = 2*7), # win, split with player 3
-        Player(Bot5050(), 3, (K♡,K♢); bank_roll = 3*7), # win, split with player 2
-        Player(Bot5050(), 4, (2♡, 3♢); bank_roll = 4*7), # bust
-        Player(Bot5050(), 5, (7♠, 7♣); bank_roll = 5*7), # 2nd to players 2 and 3, win remaining pot
-        Player(Bot5050(), 6, (2♠, 3♣); bank_roll = 6*7), # lose, but not bust
+        Player(TH.FuzzBot(), 1, (4♠, 5♣); bank_roll = 1*7), # bust
+        Player(TH.FuzzBot(), 2, (K♠, K♣); bank_roll = 2*7), # win, split with player 3
+        Player(TH.FuzzBot(), 3, (K♡,K♢); bank_roll = 3*7), # win, split with player 2
+        Player(TH.FuzzBot(), 4, (2♡, 3♢); bank_roll = 4*7), # bust
+        Player(TH.FuzzBot(), 5, (7♠, 7♣); bank_roll = 5*7), # 2nd to players 2 and 3, win remaining pot
+        Player(TH.FuzzBot(), 6, (2♠, 3♣); bank_roll = 6*7), # lose, but not bust
     )
     tm = TH.TransactionManager(players, logger)
     table = Table(players;cards=table_cards,transactions=tm, logger=TH.ByPassLogger())
@@ -264,12 +264,12 @@ end
     table_cards = (T♢, Q♢, A♠, 8♠, 9♠)
     logger = TH.InfoLogger()
     players = (
-        Player(Bot5050(), 1, (4♠, 5♣); bank_roll = 1*100), # bust
-        Player(Bot5050(), 2, (K♠, K♣); bank_roll = 2*100), # win, split with player 3
-        Player(Bot5050(), 3, (K♡,K♢); bank_roll = 3*100), # win, split with player 2
-        Player(Bot5050(), 4, (2♡, 3♢); bank_roll = 4*100), # bust
-        Player(Bot5050(), 5, (7♠, 7♣); bank_roll = 5*100), # 2nd to players 2 and 3, win remaining pot
-        Player(Bot5050(), 6, (2♠, 3♣); bank_roll = 6*100), # lose, but not bust
+        Player(TH.FuzzBot(), 1, (4♠, 5♣); bank_roll = 1*100), # bust
+        Player(TH.FuzzBot(), 2, (K♠, K♣); bank_roll = 2*100), # win, split with player 3
+        Player(TH.FuzzBot(), 3, (K♡,K♢); bank_roll = 3*100), # win, split with player 2
+        Player(TH.FuzzBot(), 4, (2♡, 3♢); bank_roll = 4*100), # bust
+        Player(TH.FuzzBot(), 5, (7♠, 7♣); bank_roll = 5*100), # 2nd to players 2 and 3, win remaining pot
+        Player(TH.FuzzBot(), 6, (2♠, 3♣); bank_roll = 6*100), # lose, but not bust
     )
     tm = TH.TransactionManager(players, logger)
     table = Table(players;cards=table_cards,transactions=tm, logger=TH.ByPassLogger())
@@ -310,12 +310,12 @@ end
     table_cards = (T♢, Q♢, A♠, 8♠, 9♠)
     logger = TH.InfoLogger()
     players = (
-        Player(Bot5050(), 1, (2♠, 3♣); bank_roll = 6*100), # lose, but not bust
-        Player(Bot5050(), 2, (7♠, 7♣); bank_roll = 5*100), # 2nd to players 2 and 3, win remaining pot
-        Player(Bot5050(), 3, (2♡, 3♢); bank_roll = 4*100), # bust
-        Player(Bot5050(), 4, (K♡,K♢); bank_roll = 3*100), # win, split with player 2
-        Player(Bot5050(), 5, (K♠, K♣); bank_roll = 2*100), # win, split with player 3
-        Player(Bot5050(), 6, (4♠, 5♣); bank_roll = 1*100), # bust
+        Player(TH.FuzzBot(), 1, (2♠, 3♣); bank_roll = 6*100), # lose, but not bust
+        Player(TH.FuzzBot(), 2, (7♠, 7♣); bank_roll = 5*100), # 2nd to players 2 and 3, win remaining pot
+        Player(TH.FuzzBot(), 3, (2♡, 3♢); bank_roll = 4*100), # bust
+        Player(TH.FuzzBot(), 4, (K♡,K♢); bank_roll = 3*100), # win, split with player 2
+        Player(TH.FuzzBot(), 5, (K♠, K♣); bank_roll = 2*100), # win, split with player 3
+        Player(TH.FuzzBot(), 6, (4♠, 5♣); bank_roll = 1*100), # bust
     )
     tm = TH.TransactionManager(players, logger)
     table = Table(players;cards=table_cards,transactions=tm, logger=TH.ByPassLogger())
@@ -357,8 +357,8 @@ end
     logger = TH.InfoLogger()
     players = (
         Player(BotPreFlopRaise(5), 1, (2♠, 3♣); bank_roll = 9),
-        Player(Bot5050(), 2, (7♠, 7♣); bank_roll = 5),
-        Player(Bot5050(), 3, (2♡, 3♢); bank_roll = 4),
+        Player(TH.FuzzBot(), 2, (7♠, 7♣); bank_roll = 5),
+        Player(TH.FuzzBot(), 3, (2♡, 3♢); bank_roll = 4),
     )
     tm = TH.TransactionManager(players, logger)
     table = Table(players;cards=table_cards,transactions=tm, logger=TH.ByPassLogger())

@@ -17,7 +17,7 @@ QuietGame(args...; kwargs...) = Game(args...; kwargs..., logger=TH.ByPassLogger(
 
 @testset "Game: show" begin
     players = ntuple(2) do i
-        Player(Bot5050(), i)
+        Player(TH.FuzzBot(), i)
     end
     game = QuietGame(players)
     sprint(show, game)
@@ -31,14 +31,14 @@ end
     # we use StatsBase.sample! for efficiency, but shuffle! is convenient
     shuffle!(deck)
     players = ntuple(3) do i
-        Player(Bot5050(), i, pop!(deck, Val(2)))
+        Player(TH.FuzzBot(), i, pop!(deck, Val(2)))
     end
     game = QuietGame(players;deck=deck,cards=pop!(deck, Val(5)))
 end
 
 @testset "Game: contrived game" begin
     players = ntuple(3) do i
-        Player(Bot5050(), i)
+        Player(TH.FuzzBot(), i)
     end
     game = QuietGame(players)
     players = TH.players_at_table(game)
@@ -64,7 +64,7 @@ end
 
     # All-in cases
     players = ntuple(3) do i
-        Player(Bot5050(), i)
+        Player(TH.FuzzBot(), i)
     end
     game = QuietGame(players)
     players = TH.players_at_table(game)
