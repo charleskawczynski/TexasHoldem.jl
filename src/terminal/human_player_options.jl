@@ -60,7 +60,7 @@ quit_game(game::Game, player::Player, ioin::IO=stdin) = false
 function quit_game(game::Game, player::Player{Human}, ioin::IO=stdin)
     table = game.table
     update_gui(stdout, table, player)
-    options = ["Continue playing", "Quite game"]
+    options = ["Continue playing", "Quit game"]
     menu = RadioMenu(options, pagesize=4)
     choice = request("Continue or quit?", menu)
     choice == -1 && error("Uncaught case")
