@@ -5,7 +5,7 @@ format = Documenter.HTML(
     collapselevel = 1,
 )
 
-makedocs(
+makedocs(;
     sitename = "TexasHoldem.jl",
     format = format,
     checkdocs = :exports,

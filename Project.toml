@@ -13,8 +13,11 @@ StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 TupleTools = "9d95972d-f1c8-5527-a6e0-b4b365fa01f6"
 
 [compat]
+Logging = "1"
 PlayingCards = "0.4"
 PokerHandEvaluator = "0.2"
+Printf = "1"
+REPL = "1"
 StatsBase = "0.34"
 TupleTools = "1"
 julia = "1.5"

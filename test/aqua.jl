@@ -14,13 +14,8 @@ using Aqua
     @test length(ambs) == 0
 end
 
-@testset "Aqua tests (additional)" begin
-    Aqua.test_undefined_exports(TexasHoldem)
-    Aqua.test_stale_deps(TexasHoldem)
-    Aqua.test_deps_compat(TexasHoldem)
-    Aqua.test_project_extras(TexasHoldem)
-    Aqua.test_project_toml_formatting(TexasHoldem)
-    Aqua.test_piracy(TexasHoldem)
+@testset "Aqua tests" begin
+    Aqua.test_all(TexasHoldem)
 end
 
 nothing
