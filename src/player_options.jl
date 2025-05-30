@@ -108,6 +108,69 @@ function opponents_being_put_all_in(table::Table, player::Player, amt::Int)
     return name.(opponents)
 end
 
+function update_given_raise(table, player, amt)
+    logger = table.logger
+    @cdebug logger "update_given_raise:"
+    players = players_at_table(table)
+    pidx = pidx_from_seat_number(player, players)
+    @cdebug logger "$(name(player)) raising to $(amt)."
+    prc = round_contribution(player)
+    @cdebug logger "round_contribution = $prc"
+    @cdebug logger "contributing = $(amt - prc)"
+    @cdebug logger "bank_roll = $(bank_roll(player))"
+    table = contribute(table, player, amt - prc, false)
+    player = table.players[pidx]
+    @reset table.current_raise_amt = amt
+
+    if all(player -> !player.last_to_raise, players)
+        @reset table.initial_round_raise_amt = amt
+    end
+    @reset player.action_required = false
+    @reset player.last_to_raise = true
+    @reset player.checked = false
+    @reset table.players[pidx] = player
+    for opidx in 1:length(players)
+        opponent = table.players[opidx]
+        @cdebug logger "opponent: $(name(opponent))"
+        @cdebug logger "   opponent: seat_number(opponent) == seat_number(player): $(seat_number(opponent) == seat_number(player))"
+        @cdebug logger "   opponent: not_playing: $(not_playing(opponent))"
+        @cdebug logger "   opponent: active: $(active(opponent))"
+        @cdebug logger "   opponent: folded: $(folded(opponent))"
+        seat_number(opponent) == seat_number(player) && continue
+        @reset opponent.last_to_raise = false
+        @reset table.players[opidx] = opponent
+        not_playing(opponent) && continue
+        if !all_in(opponent)
+            @reset opponent.action_required = true
+        end
+        # @reset opponent.last_to_raise = false # Functional PR
+        # TODO: there's got to be a cleaner way
+        @reset opponent.checked = false # to avoid exiting on all_all_in_or_checked(table).
+        @reset table.players[opidx] = opponent
+    end
+    @cdebug logger "   last_to_raise.(players): $(last_to_raise.(table.players))"
+    @cdebug logger "   folded.(players): $(folded.(table.players))"
+    @assert count(x->last_to_raise(x), table.players) == 1 "ltr: $(last_to_raise.(table.players))"
+    @cinfo logger begin
+        player = table.players[pidx]
+        pbpai = opponents_being_put_all_in(table, player, amt)
+        if bank_roll(player) == 0
+            if isempty(pbpai)
+                "$(name(player)) raised to $(amt) (all-in)."
+            else
+                "$(name(player)) raised to $(amt). Puts player(s) $(join(pbpai, ", ")) all-in."
+            end
+        else
+            if isempty(pbpai)
+                "$(name(player)) raised to $(amt)."
+            else
+                "$(name(player)) raised to $(amt). Puts player(s) $(join(pbpai, ", ")) all-in."
+            end
+        end
+    end
+    return table
+end
+
 function call_valid_amount(table::Game, player::Player, amt::Int)
     logger = table.logger
     @cdebug logger "$(name(player)) calling $(amt)."
@@ -182,69 +245,6 @@ function update_given_valid_action(table::Table, player::Player, action::Action)
         @reset player.checked = true
         @reset table.players[pidx] = player
         @cinfo logger "$(name(player)) checked!"
-    end
-    return table
-end
-
-function update_given_raise(table, player, amt)
-    logger = table.logger
-    @cdebug logger "update_given_raise:"
-    players = players_at_table(table)
-    pidx = pidx_from_seat_number(player, players)
-    @cdebug logger "$(name(player)) raising to $(amt)."
-    prc = round_contribution(player)
-    @cdebug logger "round_contribution = $prc"
-    @cdebug logger "contributing = $(amt - prc)"
-    @cdebug logger "bank_roll = $(bank_roll(player))"
-    table = contribute(table, player, amt - prc, false)
-    player = table.players[pidx]
-    @reset table.current_raise_amt = amt
-
-    if all(player -> !player.last_to_raise, players)
-        @reset table.initial_round_raise_amt = amt
-    end
-    @reset player.action_required = false
-    @reset player.last_to_raise = true
-    @reset player.checked = false
-    @reset table.players[pidx] = player
-    for opidx in 1:length(players)
-        opponent = table.players[opidx]
-        @cdebug logger "opponent: $(name(opponent))"
-        @cdebug logger "   opponent: seat_number(opponent) == seat_number(player): $(seat_number(opponent) == seat_number(player))"
-        @cdebug logger "   opponent: not_playing: $(not_playing(opponent))"
-        @cdebug logger "   opponent: active: $(active(opponent))"
-        @cdebug logger "   opponent: folded: $(folded(opponent))"
-        seat_number(opponent) == seat_number(player) && continue
-        @reset opponent.last_to_raise = false
-        @reset table.players[opidx] = opponent
-        not_playing(opponent) && continue
-        if !all_in(opponent)
-            @reset opponent.action_required = true
-        end
-        # @reset opponent.last_to_raise = false # Functional PR
-        # TODO: there's got to be a cleaner way
-        @reset opponent.checked = false # to avoid exiting on all_all_in_or_checked(table).
-        @reset table.players[opidx] = opponent
-    end
-    @cdebug logger "   last_to_raise.(players): $(last_to_raise.(table.players))"
-    @cdebug logger "   folded.(players): $(folded.(table.players))"
-    @assert count(x->last_to_raise(x), table.players) == 1 "ltr: $(last_to_raise.(table.players))"
-    @cinfo logger begin
-        player = table.players[pidx]
-        pbpai = opponents_being_put_all_in(table, player, amt)
-        if bank_roll(player) == 0
-            if isempty(pbpai)
-                "$(name(player)) raised to $(amt) (all-in)."
-            else
-                "$(name(player)) raised to $(amt). Puts player(s) $(join(pbpai, ", ")) all-in."
-            end
-        else
-            if isempty(pbpai)
-                "$(name(player)) raised to $(amt)."
-            else
-                "$(name(player)) raised to $(amt). Puts player(s) $(join(pbpai, ", ")) all-in."
-            end
-        end
     end
     return table
 end
