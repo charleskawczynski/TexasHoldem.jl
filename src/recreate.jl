@@ -3,22 +3,28 @@ table_card_inds(::Flop) = (4, 5)
 table_card_inds(::Turn) = (5,)
 table_card_inds(::River) = ()
 
-function restore_unobserved_table_cards!(table::Table, inds)
+function restore_unobserved_table_cards(table::Table, inds)
+    (; cards, deck) = table
     @inbounds for i in inds
-        PlayingCards.restore!(table.deck, table.cards[i])
+        PlayingCards.restore!(deck, cards[i])
     end
-    return nothing
+    @reset table.cards = cards
+    @reset table.deck = deck
+    return table
 end
 
-function resample_unobserved_table_cards!(table::Table, inds)
+function resample_unobserved_table_cards(table::Table, inds)
+    (; cards, deck) = table
     @inbounds for i in inds
-        table.cards[i] = SB.sample!(table.deck)
+        cards[i] = SB.sample!(deck)
     end
-    return nothing
+    @reset table.cards = cards
+    @reset table.deck = deck
+    return table
 end
 
-function restore_player_cards!(table::Table, player::Player)
-    has_cards(player) || return false
+function restore_player_cards(table::Table, player::Player)
+    has_cards(player) || return (table, false)
     for (i, c) in enumerate(player.cards)
         PlayingCards.restore!(table.deck, c)
         player.cards[i] = joker
@@ -26,32 +32,40 @@ function restore_player_cards!(table::Table, player::Player)
     return true
 end
 
-function resample_player_cards!(table::Table, player::Player)
+function resample_player_cards(table::Table, player::Player)
     @assert !has_cards(player)
     @inbounds for i in 1:2
         player.cards[i] = SB.sample!(table.deck)
     end
-    return nothing
+    pidx = pidx_from_seat_number(player, players_at_table(table))
+    @reset table.players[pidx] = player
+    return table
 end
-function resample_cards!(game::Game, player::Player)
+function resample_cards(game::Game, player::Player)
     table = game.table
     players = players_at_table(table)
     tci = table_card_inds(table.round)
     player_cards_to_resample = BitVector(ntuple(i->false, length(players)))
-    restore_unobserved_table_cards!(table, tci)
-    for opponent in players
+    table = restore_unobserved_table_cards(table, tci)
+    for opidx in 1:length(players)
+        opponent = players[opidx]
         sn = seat_number(opponent)
         sn == seat_number(player) && continue
-        player_cards_to_resample[sn] = restore_player_cards!(table, opponent)
+        (table, player_cards_to_resample[sn]) = restore_player_cards(table, opponent)
+        @reset table.players[opidx] = opponent
     end
 
-    resample_unobserved_table_cards!(table, tci)
-    for opponent in players
+    table = resample_unobserved_table_cards(table, tci)
+    for opidx in 1:length(players)
+        opponent = players[opidx]
         sn = seat_number(opponent)
         sn == seat_number(player) && continue
         player_cards_to_resample[sn] || continue
-        resample_player_cards!(table, opponent)
+        table = resample_player_cards(table, opponent)
+        @reset table.players[opidx] = opponent
     end
+    @reset game.table = table
+    return game
 end
 
 """
@@ -70,6 +84,6 @@ this to reduce allocations.
 """
 function recreate_game(game, player)
     rgame = deepcopy(game)
-    resample_cards!(rgame, player)
+    rgame = resample_cards(rgame, player)
     return rgame
 end

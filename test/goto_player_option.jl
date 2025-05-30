@@ -11,7 +11,7 @@ QuietGame(args...; kwargs...) = Game(args...; kwargs..., logger=TH.ByPassLogger(
 include("tester_bots.jl")
 
 ##### RiverDreamer
-mutable struct RiverDreamer <: AbstractStrategy
+struct RiverDreamer <: AbstractStrategy
     fixed::Bool
 end
 
@@ -33,7 +33,7 @@ function TH.player_option(game::Game, player::Player{RiverDreamer}, round::River
         rewards = map(actions) do action
             rgame = TH.recreate_game(game, player)
             sf = TH.StartFrom(TH.PlayerOption(player, round, action))
-            play!(rgame, sf)
+            play(rgame, sf)
             pidx = findfirst(rgame.table.players) do p
                 TH.seat_number(p) == TH.seat_number(player)
             end
@@ -59,5 +59,5 @@ end
 @testset "Game: Play (FuzzBot vs RiverDreamer)" begin
     fuzz_bots = ntuple(i->Player(TH.FuzzBot(), i), 3)
     players = (fuzz_bots..., Player(RiverDreamer(false), length(fuzz_bots)+1))
-    play!(QuietGame(players))
+    play(QuietGame(players))
 end

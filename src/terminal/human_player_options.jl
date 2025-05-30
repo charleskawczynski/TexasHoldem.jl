@@ -4,7 +4,7 @@
 
 function player_option(game::Game, player::Player{Human}, ::CheckRaiseFold, ioin::IO=stdin)
     table = game.table
-    update_gui(stdout, table, player)
+    table = update_gui(stdout, table, player)
     vrr = valid_raise_range(table, player)
     options = ["Check", "Raise [$(first(vrr)), $(last(vrr))]", "Fold"]
     menu = RadioMenu(options, pagesize=4)
@@ -16,7 +16,7 @@ function player_option(game::Game, player::Player{Human}, ::CheckRaiseFold, ioin
 end
 function player_option(game::Game, player::Player{Human}, ::CallRaiseFold, ioin::IO=stdin)
     table = game.table
-    update_gui(stdout, table, player)
+    table = update_gui(stdout, table, player)
     vrr = valid_raise_range(table, player)
     call_amt = call_amount(table, player)
     blind_str = is_blind_call(table, player) ? " (blind)" : ""
@@ -30,7 +30,7 @@ function player_option(game::Game, player::Player{Human}, ::CallRaiseFold, ioin:
 end
 function player_option(game::Game, player::Player{Human}, ::CallAllInFold, ioin::IO=stdin)
     table = game.table
-    update_gui(stdout, table, player)
+    table = update_gui(stdout, table, player)
     call_amt = call_amount(table, player)
     all_in_amt = round_bank_roll(player)
     blind_str = is_blind_call(table, player) ? " (blind)" : ""
@@ -44,7 +44,7 @@ function player_option(game::Game, player::Player{Human}, ::CallAllInFold, ioin:
 end
 function player_option(game::Game, player::Player{Human}, ::CallFold)
     table = game.table
-    update_gui(stdout, table, player)
+    table = update_gui(stdout, table, player)
     call_amt = call_amount(table, player)
     blind_str = is_blind_call(table, player) ? " (blind)" : ""
     options = ["Call $(call_amt)$blind_str", "Fold"]
@@ -59,7 +59,7 @@ quit_game(game::Game, player::Player, ioin::IO=stdin) = false
 
 function quit_game(game::Game, player::Player{Human}, ioin::IO=stdin)
     table = game.table
-    update_gui(stdout, table, player)
+    table = update_gui(stdout, table, player)
     options = ["Continue playing", "Quit game"]
     menu = RadioMenu(options, pagesize=4)
     choice = request("Continue or quit?", menu)

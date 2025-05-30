@@ -14,11 +14,11 @@ function seeded_game(; fun, n_players, n_games, bank_roll=200)
     return games
 end
 
-@testset "Reproducibility for play!" begin
+@testset "Reproducibility for play" begin
     n_games = 1000
     n_players = 10
-    games1 = seeded_game(;fun=play!,n_players=n_players, n_games=n_games, bank_roll=200)
-    games2 = seeded_game(;fun=play!,n_players=n_players, n_games=n_games, bank_roll=200)
+    games1 = seeded_game(;fun=play,n_players=n_players, n_games=n_games, bank_roll=200)
+    games2 = seeded_game(;fun=play,n_players=n_players, n_games=n_games, bank_roll=200)
     for (g1, g2) in zip(games1, games2)
         for (p1, p2) in zip(g1.table.players, g2.table.players)
             @test bank_roll(p1) == bank_roll(p2)

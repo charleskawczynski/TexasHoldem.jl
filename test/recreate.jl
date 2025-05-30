@@ -1,5 +1,6 @@
 using Test
 using PlayingCards
+using Accessors
 using TexasHoldem
 import TexasHoldem
 const TH = TexasHoldem
@@ -14,8 +15,10 @@ sort_cards(cards) =
 @testset "Recreate game" begin
     players = TH.Players(ntuple(i->Player(BotCheckCall(), i), 3))
     game = Game(players; logger=TH.ByPassLogger())
-    TH.deal!(game.table, TH.blinds(game.table))
-    player = players[1]
+    (; table) = game
+    table = TH.deal(table, TH.blinds(game.table))
+    player = table.players[1]
+    @reset game.table = table
     rgame = TH.recreate_game(game, player)
 
     # deep copy, should be pointing to separate memory

@@ -37,7 +37,7 @@ struct Players{PS<:Union{Tuple,AbstractArray}}
         n = length(players)
         if all(x->seat_number(x)==-1, players)
             for i in 1:n
-                players[i].seat_number = i
+                @reset players[i].seat_number = i
             end
         end
         @assert allunique(map(x->seat_number(x), players))
@@ -68,6 +68,8 @@ Base.iterate(players::Players, ncpidx = 1) =
     Base.iterate(players.players, ncpidx)
 Base.@propagate_inbounds Base.getindex(players::Players, i::Int) =
     Base.getindex(players.players, i)
+Base.@propagate_inbounds Base.setindex(players::Players, v::Player, i::Int) =
+    Players(Base.setindex(players.players, v, i))
 Base.filter(fn, players::Players) = Base.filter(fn, players.players)
 Base.findfirst(fn::Function, players::Players) =
     Base.findfirst(fn, players.players)

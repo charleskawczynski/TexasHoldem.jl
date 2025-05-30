@@ -13,7 +13,7 @@ players() = ntuple(i->(Player(TH.FuzzBot(), i)), 4)
 
 function do_work!(games)
     for game in games
-        play!(game)
+        play(game)
     end
     return nothing
 end

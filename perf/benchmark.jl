@@ -16,7 +16,7 @@ players() = ntuple(i->(Player(TH.FuzzBot(), i)), 4)
 # of games. We previously did, and they're
 # very close in benchmark times.
 function do_work!()
-    play!(Game(players();logger=TH.ByPassLogger()))
+    play(Game(players();logger=TH.ByPassLogger()))
     return nothing
 end
 

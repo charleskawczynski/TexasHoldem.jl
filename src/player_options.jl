@@ -4,7 +4,6 @@ export AbstractPlayerOptions,
     CallAllInFold,
     CallFold
 
-
 """
     AbstractPlayerOptions
 
@@ -109,63 +108,19 @@ function opponents_being_put_all_in(table::Table, player::Player, amt::Int)
     return name.(opponents)
 end
 
-function update_given_raise!(table, player, amt)
-    logger = table.logger
-    @cdebug logger "$(name(player)) raising to $(amt)."
-    prc = round_contribution(player)
-    @cdebug logger "round_contribution = $prc"
-    @cdebug logger "contributing = $(amt - prc)"
-    @cdebug logger "bank_roll = $(bank_roll(player))"
-    contribute!(table, player, amt - prc, false)
-    table.current_raise_amt = amt
-
-    players = players_at_table(table)
-    if all(player -> !player.last_to_raise, players)
-        table.initial_round_raise_amt = amt
-    end
-    player.action_required = false
-    player.last_to_raise = true
-    player.checked = false
-    for opponent in players
-        seat_number(opponent) == seat_number(player) && continue
-        not_playing(opponent) && continue
-        if !all_in(opponent)
-            opponent.action_required = true
-        end
-        opponent.last_to_raise = false
-        # TODO: there's got to be a cleaner way
-        opponent.checked = false # to avoid exiting on all_all_in_or_checked(table).
-    end
-    @cinfo logger begin
-        pbpai = opponents_being_put_all_in(table, player, amt)
-        if bank_roll(player) == 0
-            if isempty(pbpai)
-                "$(name(player)) raised to $(amt) (all-in)."
-            else
-                "$(name(player)) raised to $(amt). Puts player(s) $(join(pbpai, ", ")) all-in."
-            end
-        else
-            if isempty(pbpai)
-                "$(name(player)) raised to $(amt)."
-            else
-                "$(name(player)) raised to $(amt). Puts player(s) $(join(pbpai, ", ")) all-in."
-            end
-        end
-    end
-end
-
-function call_valid_amount!(table::Table, player::Player, amt::Int)
+function call_valid_amount(table::Game, player::Player, amt::Int)
     logger = table.logger
     @cdebug logger "$(name(player)) calling $(amt)."
     player.action_required = false
     player.checked = false
     blind_str = is_blind_call(table, player, amt) ? " (blind)" : ""
-    contribute!(table, player, amt, true)
+    table = contribute(table, player, amt, true)
     if all_in(player)
         @cinfo logger "$(name(player)) called $(amt)$blind_str (now all-in)."
     else
         @cinfo logger "$(name(player)) called $(amt)$blind_str."
     end
+    return table
 end
 
 """
@@ -187,26 +142,32 @@ function an_opponent_can_call_a_raise(table::Table, player::Player)
     return occr
 end
 
-update_given_valid_action!(game::Game, player::Player, action::Action) =
-    update_given_valid_action!(game.table, player, action)
-function update_given_valid_action!(table::Table, player::Player, action::Action)
+function update_given_valid_action(table::Table, player::Player, action::Action)
     logger = table.logger
+    players = players_at_table(table)
+    pidx = pidx_from_seat_number(player, players)
     @assert action.name in (:fold, :raise, :call, :check, :all_in)
     if action.name == :fold
-        player.action_required = false
-        player.folded = true
-        check_for_and_declare_winner!(table)
+        @reset player.action_required = false
+        @reset player.folded = true
+        @reset table.players[pidx] = player
+        table = check_for_and_declare_winner(table)
+        player = table.players[pidx]
         @cinfo logger "$(name(player)) folded!"
     elseif action.name == :raise || action.name == :all_in
         amt = valid_raise_amount(table, player, action.amt) # asserts valid requested raise amount
-        update_given_raise!(table, player, amt)
+        table = update_given_raise(table, player, amt)
+        @cdebug logger "still_playing: $(still_playing.(table.players))"
+        player = table.players[pidx]
     elseif action.name == :call
         # call_valid_amount!(table, player, action.amt)
         amt = action.amt
         @cdebug logger "$(name(player)) calling $(amt)."
-        player.action_required = false
-        player.checked = false
-        contribute!(table, player, amt, true)
+        @reset player.action_required = false
+        @reset player.checked = false
+        @reset table.players[pidx] = player
+        table = contribute(table, player, amt, true)
+        player = table.players[pidx]
         @cinfo logger begin
             blind_str = is_blind_call(table, player, amt) ? " (blind)" : ""
             if all_in(player)
@@ -217,11 +178,75 @@ function update_given_valid_action!(table::Table, player::Player, action::Action
         end
 
     elseif action.name == :check
-        player.action_required = false
-        player.checked = true
+        @reset player.action_required = false
+        @reset player.checked = true
+        @reset table.players[pidx] = player
         @cinfo logger "$(name(player)) checked!"
     end
+    return table
+end
 
+function update_given_raise(table, player, amt)
+    logger = table.logger
+    @cdebug logger "update_given_raise:"
+    players = players_at_table(table)
+    pidx = pidx_from_seat_number(player, players)
+    @cdebug logger "$(name(player)) raising to $(amt)."
+    prc = round_contribution(player)
+    @cdebug logger "round_contribution = $prc"
+    @cdebug logger "contributing = $(amt - prc)"
+    @cdebug logger "bank_roll = $(bank_roll(player))"
+    table = contribute(table, player, amt - prc, false)
+    player = table.players[pidx]
+    @reset table.current_raise_amt = amt
+
+    if all(player -> !player.last_to_raise, players)
+        @reset table.initial_round_raise_amt = amt
+    end
+    @reset player.action_required = false
+    @reset player.last_to_raise = true
+    @reset player.checked = false
+    @reset table.players[pidx] = player
+    for opidx in 1:length(players)
+        opponent = table.players[opidx]
+        @cdebug logger "opponent: $(name(opponent))"
+        @cdebug logger "   opponent: seat_number(opponent) == seat_number(player): $(seat_number(opponent) == seat_number(player))"
+        @cdebug logger "   opponent: not_playing: $(not_playing(opponent))"
+        @cdebug logger "   opponent: active: $(active(opponent))"
+        @cdebug logger "   opponent: folded: $(folded(opponent))"
+        seat_number(opponent) == seat_number(player) && continue
+        @reset opponent.last_to_raise = false
+        @reset table.players[opidx] = opponent
+        not_playing(opponent) && continue
+        if !all_in(opponent)
+            @reset opponent.action_required = true
+        end
+        # @reset opponent.last_to_raise = false # Functional PR
+        # TODO: there's got to be a cleaner way
+        @reset opponent.checked = false # to avoid exiting on all_all_in_or_checked(table).
+        @reset table.players[opidx] = opponent
+    end
+    @cdebug logger "   last_to_raise.(players): $(last_to_raise.(table.players))"
+    @cdebug logger "   folded.(players): $(folded.(table.players))"
+    @assert count(x->last_to_raise(x), table.players) == 1 "ltr: $(last_to_raise.(table.players))"
+    @cinfo logger begin
+        player = table.players[pidx]
+        pbpai = opponents_being_put_all_in(table, player, amt)
+        if bank_roll(player) == 0
+            if isempty(pbpai)
+                "$(name(player)) raised to $(amt) (all-in)."
+            else
+                "$(name(player)) raised to $(amt). Puts player(s) $(join(pbpai, ", ")) all-in."
+            end
+        else
+            if isempty(pbpai)
+                "$(name(player)) raised to $(amt)."
+            else
+                "$(name(player)) raised to $(amt). Puts player(s) $(join(pbpai, ", ")) all-in."
+            end
+        end
+    end
+    return table
 end
 
 function predict_option(game, player)

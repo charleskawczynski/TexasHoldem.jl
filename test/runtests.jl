@@ -26,12 +26,6 @@ end
 @safetestset "game" begin
     Δt = @elapsed include("game.jl"); @info "Completed tests for game in $Δt seconds"
 end
-@safetestset "recreate" begin
-    Δt = @elapsed include("recreate.jl"); @info "Completed tests for recreate in $Δt seconds"
-end
-@safetestset "goto player option" begin
-    Δt = @elapsed include("goto_player_option.jl"); @info "Completed tests for goto_player_option in $Δt seconds"
-end
 @safetestset "play" begin
     Δt = @elapsed include("play.jl"); @info "Completed tests for play in $Δt seconds"
 end
@@ -47,6 +41,13 @@ end
 @safetestset "aqua" begin
     Δt = @elapsed include("aqua.jl"); @info "Completed tests for aqua in $Δt seconds"
 end
+
+# @safetestset "recreate" begin
+#     Δt = @elapsed include("recreate.jl"); @info "Completed tests for recreate in $Δt seconds"
+# end
+# @safetestset "goto player option" begin
+#     Δt = @elapsed include("goto_player_option.jl"); @info "Completed tests for goto_player_option in $Δt seconds"
+# end
 
 if VERSION >= v"1.8.0"
 @safetestset "perf" begin

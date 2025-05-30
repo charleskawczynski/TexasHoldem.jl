@@ -2,7 +2,7 @@
 update_gui(table::Table, pov_player=nothing) = update_gui(stdout, table, pov_player)
 update_gui(io::IO, table::Table, pov_player) = update_gui(io, table, table.gui, pov_player)
 
-update_gui(io::IO, table::Table, ::PlainLogger, pov_player) = nothing
+update_gui(io::IO, table::Table, ::PlainLogger, pov_player) = table
 
 clear_screen(io::IO) = print(io, "\33c\e[3J")
 
@@ -65,11 +65,11 @@ function update_gui(io::IO, table::Table, ::Terminal, pov_player)
     println(io)
 
     if table.winners.declared
-        tm = table.transactions
-        for (player, player_winnings) in zip(players, tm.side_pot_winnings)
-            log_player_winnings(player, player_winnings, tm)
+        tr = table.transactions
+        for (player, player_winnings) in zip(players, tr.side_pot_winnings)
+            log_player_winnings(player, player_winnings, tr)
         end
     end
-
+    return table
 end
 

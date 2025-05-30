@@ -1,17 +1,18 @@
 using Test
 using PlayingCards
+using Accessors
 using TexasHoldem
 const TH = TexasHoldem
 
 #=
 This reaches into internals
-(`update_given_valid_action!`)
+(`update_given_valid_action`)
 for the convenience of testing
 =#
-call!(t, p) = TH.update_given_valid_action!(t, p, Call(t, p))
-raise_to!(t, p, amt) = TH.update_given_valid_action!(t, p, Raise(amt))
-fold!(t, p) = TH.update_given_valid_action!(t, p, Fold())
-check!(t, p) = TH.update_given_valid_action!(t, p, Check())
+call(t, p) = TH.update_given_valid_action(t, p, Call(t, p))
+raise_to(t, p, amt) = TH.update_given_valid_action(t, p, Raise(amt))
+fold(t, p) = TH.update_given_valid_action(t, p, Fold())
+check(t, p) = TH.update_given_valid_action(t, p, Check())
 
 QuietGame(args...; kwargs...) = Game(args...; kwargs..., logger=TH.ByPassLogger())
 
@@ -22,7 +23,7 @@ QuietGame(args...; kwargs...) = Game(args...; kwargs..., logger=TH.ByPassLogger(
     game = QuietGame(players)
     sprint(show, game)
 
-    game.table.round = PreFlop()
+    @reset game.table.round = PreFlop()
     sprint(show, game)
 end
 
@@ -42,25 +43,25 @@ end
     end
     game = QuietGame(players)
     players = TH.players_at_table(game)
-    TH.deal!(game.table, TH.blinds(game.table))
+    table = TH.deal(game.table, TH.blinds(game.table))
     # Round 1
-    check!(game, players[1])
-    check!(game, players[2])
-    fold!(game, players[3])
+    table = check(table, players[1])
+    table = check(table, players[2])
+    table = fold(table, players[3])
 
     # Round 2
-    check!(game, players[1])
-    check!(game, players[2])
+    table = check(table, players[1])
+    table = check(table, players[2])
 
     # Round 3
-    raise_to!(game, players[1], 10)
+    table = raise_to(table, players[1], 10)
     @test TH.checked(players[1]) == false
-    call!(game, players[2])
+    table = call(table, players[2])
 
     # Round 4
-    raise_to!(game, players[1], 20)
+    table = raise_to(table, players[1], 20)
     @test TH.checked(players[1]) == false
-    fold!(game, players[2])
+    table = fold(table, players[2])
 
     # All-in cases
     players = ntuple(3) do i
@@ -68,17 +69,23 @@ end
     end
     game = QuietGame(players)
     players = TH.players_at_table(game)
-    TH.deal!(game.table, TH.blinds(game.table))
+    table = TH.deal(game.table, TH.blinds(game.table))
     # Round 1
-    check!(game, players[1])
-    check!(game, players[2])
-    fold!(game, players[3])
+    (; players) = table
+    table = check(table, players[1])
+    (; players) = table
+    table = check(table, players[2])
+    (; players) = table
+    table = fold(table, players[3])
+    (; players) = table
 
     # Round 2
-    raise_to!(game, players[1], TH.bank_roll(players[1]))
+    table = raise_to(table, players[1], TH.bank_roll(players[1]))
+    (; players) = table
     @test TH.checked(players[1]) == false
-    call!(game, players[2])
+    table = call(table, players[2])
+    (; players) = table
 
-    @test_throws AssertionError raise_to!(game, players[1], 10000) # raise exceeds bank roll!
+    @test_throws AssertionError raise_to(table, players[1], 10000) # raise exceeds bank roll!
 end
 
