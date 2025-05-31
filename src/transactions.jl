@@ -48,7 +48,7 @@ function Base.show(io::IO, tm::TransactionManager, include_type = true)
     println(io, "Pot(s)           = $(tm.side_pots)")
 end
 
-TransactionManager(players, logger) = TransactionManager(Players(players), logger)
+TransactionManager(players, logger) = TransactionManager(NewPlayers(players), logger)
 function TransactionManager(players::Players, logger)
     perm = collect(sortperm(players))
     bank_rolls = collect(map(x->bank_roll_chips(x), players))

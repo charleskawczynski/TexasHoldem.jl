@@ -24,7 +24,7 @@ function Base.show(io::IO, game::Game)
     println(io, "-----------------------")
 end
 
-Game(players; kwargs...) = Game(Players(players); kwargs...)
+Game(players; kwargs...) = Game(NewPlayers(players); kwargs...)
 function Game(players::Players; kwargs...)
     table = Table(players; kwargs...)
     os = first(enumerate(circle(table, FirstToAct())))
@@ -397,7 +397,7 @@ function _deal_and_play!(game::Game, sf::StartFrom)
     initial_brs = game.initial_brs
     if sf.game_point isa StartOfGame
         for (pidx, player) in enumerate(players)
-            initial_brs[pidx] = bank_roll(player)
+            initial_brs[pidx] = bank_roll_chips(player)
         end
     end
     _deal!(game, sf)
