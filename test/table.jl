@@ -4,6 +4,7 @@ import Logging
 import StatsBase
 const SB = StatsBase
 using TexasHoldem
+using Accessors
 using TexasHoldem: seat_number
 const TH = TexasHoldem
 
@@ -16,18 +17,19 @@ const TH = TexasHoldem
     cards = map(x->SB.sample!(deck), 1:5)
 
     table = TH.Table(players;deck=deck, cards=cards, logger=TH.ByPassLogger())
-    TH.deal!(table, blinds)
+    game = Game(table)
+    table = TH.deal(table, blinds)
 
-    table.round = PreFlop()
+    @reset table.round = PreFlop()
     @test isempty(TH.observed_cards(table))
     @test TH.unobserved_cards(table) == table.cards
-    table.round = Flop()
+    @reset table.round = Flop()
     @test TH.observed_cards(table) == table.cards[1:3]
     @test TH.unobserved_cards(table) == table.cards[4:5]
-    table.round = Turn()
+    @reset table.round = Turn()
     @test TH.observed_cards(table) == table.cards[1:4]
     @test TH.unobserved_cards(table) == [table.cards[5]]
-    table.round = River()
+    @reset table.round = River()
     @test TH.observed_cards(table) == table.cards
     @test isempty(TH.unobserved_cards(table))
 end
@@ -37,11 +39,11 @@ end
     players = ntuple(i-> Player(TH.FuzzBot(), i), 3)
     table = Table(players, logger=TH.ByPassLogger())
     @test TH.buttons(table.buttons) == (1, 2, 3, 1)
-    move_buttons!(table)
+    table = move_buttons(table)
     @test TH.buttons(table.buttons) == (2, 3, 1, 2)
-    move_buttons!(table)
+    table = move_buttons(table)
     @test TH.buttons(table.buttons) == (3, 1, 2, 3)
-    move_buttons!(table)
+    table = move_buttons(table)
     @test TH.buttons(table.buttons) == (1, 2, 3, 1)
 
     # Some players not playing
@@ -52,11 +54,11 @@ end
     )
     table = Table(players, logger=TH.ByPassLogger())
     @test TH.buttons(table.buttons) == (1, 3, 1, 3)
-    move_buttons!(table)
+    table = move_buttons(table)
     @test TH.buttons(table.buttons) == (3, 1, 3, 1)
-    move_buttons!(table)
+    table = move_buttons(table)
     @test TH.buttons(table.buttons) == (1, 3, 1, 3)
-    move_buttons!(table)
+    table = move_buttons(table)
     @test TH.buttons(table.buttons) == (3, 1, 3, 1)
 
     # Some players not playing
@@ -67,11 +69,11 @@ end
     )
     table = Table(players; dealer_pidx=2, logger=TH.ByPassLogger())
     @test TH.buttons(table.buttons) == (3, 1, 3, 1)
-    move_buttons!(table)
+    table = move_buttons(table)
     @test TH.buttons(table.buttons) == (1, 3, 1, 3)
-    move_buttons!(table)
+    table = move_buttons(table)
     @test TH.buttons(table.buttons) == (3, 1, 3, 1)
-    move_buttons!(table)
+    table = move_buttons(table)
     @test TH.buttons(table.buttons) == (1, 3, 1, 3)
 end
 
@@ -93,14 +95,16 @@ end
     # dealer_pidx = 1
     players = ntuple(i-> Player(TH.FuzzBot(), i), 5)
     table = Table(players, logger=TH.ByPassLogger())
-    TH.deal!(table, TH.blinds(table))
+    game = Game(table)
+    table = TH.deal(table, TH.blinds(table))
     ind = collect(TH.circle(table, Dealer(), length(players)))
     @test ind == [1, 2, 3, 4, 5]
 
     dealer_pidx = 2
     players = ntuple(i-> Player(TH.FuzzBot(), i), 5)
     table = Table(players; dealer_pidx = 2, logger=TH.ByPassLogger())
-    TH.deal!(table, TH.blinds(table))
+    game = Game(table)
+    table = TH.deal(table, TH.blinds(table))
     ind = collect(TH.circle(table, Dealer(), length(players)))
     @test ind == [2, 3, 4, 5, 1]
 end
@@ -109,14 +113,16 @@ end
     # dealer_pidx = 1
     players = ntuple(i-> Player(TH.FuzzBot(), i), 5)
     table = Table(players, logger=TH.ByPassLogger())
-    TH.deal!(table, TH.blinds(table))
+    game = Game(table)
+    table = TH.deal(table, TH.blinds(table))
     ind = collect(TH.circle(table, SmallBlind(), length(players)))
     @test ind == [2, 3, 4, 5, 1]
 
     # dealer_pidx = 2
     players = ntuple(i-> Player(TH.FuzzBot(), i), 5)
     table = Table(players; dealer_pidx = 2, logger=TH.ByPassLogger())
-    TH.deal!(table, TH.blinds(table))
+    game = Game(table)
+    table = TH.deal(table, TH.blinds(table))
     ind = collect(TH.circle(table, SmallBlind(), length(players)))
     @test ind == [3, 4, 5, 1, 2]
 end
@@ -125,14 +131,16 @@ end
     # dealer_pidx = 1
     players = ntuple(i-> Player(TH.FuzzBot(), i), 5)
     table = Table(players, logger=TH.ByPassLogger())
-    TH.deal!(table, TH.blinds(table))
+    game = Game(table)
+    table = TH.deal(table, TH.blinds(table))
     ind = collect(TH.circle(table, BigBlind(), length(players)))
     @test ind == [3, 4, 5, 1, 2]
 
     # dealer_pidx = 2
     players = ntuple(i-> Player(TH.FuzzBot(), i), 5)
     table = Table(players; dealer_pidx = 2, logger=TH.ByPassLogger())
-    TH.deal!(table, TH.blinds(table))
+    game = Game(table)
+    table = TH.deal(table, TH.blinds(table))
     ind = collect(TH.circle(table, BigBlind(), length(players)))
     @test ind == [4, 5, 1, 2, 3]
 end
@@ -141,14 +149,16 @@ end
     # dealer_pidx = 1
     players = ntuple(i-> Player(TH.FuzzBot(), i), 5)
     table = Table(players, logger=TH.ByPassLogger())
-    TH.deal!(table, TH.blinds(table))
+    game = Game(table)
+    table = TH.deal(table, TH.blinds(table))
     ind = collect(TH.circle(table, FirstToAct(), length(players)))
     @test ind == [4, 5, 1, 2, 3]
 
     # dealer_pidx = 2
     players = ntuple(i-> Player(TH.FuzzBot(), i), 5)
     table = Table(players; dealer_pidx = 2, logger=TH.ByPassLogger())
-    TH.deal!(table, TH.blinds(table))
+    game = Game(table)
+    table = TH.deal(table, TH.blinds(table))
     ind = collect(TH.circle(table, FirstToAct(), length(players)))
     @test ind == [5, 1, 2, 3, 4]
 end

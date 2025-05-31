@@ -6,9 +6,9 @@ import StatsBase
 const SB = StatsBase
 export Dealer, SmallBlind, BigBlind, FirstToAct
 export Table
-export move_buttons!
+export move_buttons
 
-Base.@kwdef mutable struct Winners
+Base.@kwdef struct Winners
     declared::Bool = false
 end
 
@@ -50,7 +50,7 @@ buttons(b::Buttons) = (
     b.first_to_act,
 )
 
-mutable struct Table{P<:Players, L, TM, B <: Blinds, D <: PlayingCards.AbstractDeck, G}
+struct Table{P<:Players, L, TM, B <: Blinds, D <: PlayingCards.AbstractDeck, G}
     deck::D
     players::P
     cards::Vector{Card}
@@ -97,11 +97,12 @@ function compute_n_max_actions(players::Players, bb)
 end
 n_raises(i, n_players) = Int(floor(i/n_players))
 
-Table(players; kwargs...) = Table(Players(players); kwargs...)
+Table(players; kwargs...) = Table(NewPlayers(players); kwargs...)
 function Table(players::Players;
     deck = PlayingCards.MaskedDeck(),
     cards = Card[joker, joker, joker, joker, joker],
-    gui = isinteractive() ? Terminal() : PlainLogger(), # PlainLogger() is better for testing
+    # gui = isinteractive() ? Terminal() : PlainLogger(), # PlainLogger() is better for testing
+    gui = false ? Terminal() : PlainLogger(), # PlainLogger() is better for testing
     blinds = Blinds(),
     pot = 0,
     round = PreFlop(),
@@ -109,11 +110,13 @@ function Table(players::Players;
     current_raise_amt = 0,
     initial_round_raise_amt = blinds.small,
     logger = InfoLogger(),
-    transactions = TransactionManager(players, logger),
+    transactions = Transactions(players, logger),
     winners = Winners(),
     play_out_game = false,
 )
     P = typeof(players)
+    @cdebug logger "still_playing: $(still_playing.(players))"
+    @cdebug logger "zero_bank_roll: $(zero_bank_roll.(players))"
     buttons = Buttons(players, dealer_pidx)
     @assert 2 ≤ length(players) ≤ 10 "Invalid number of players"
     n_max_actions = compute_n_max_actions(players, blinds.big)
@@ -296,21 +299,27 @@ function all_all_in_except_bank_roll_leader(table::Table)
 end
 
 # Note that this method is only valid before or after a round has ended.
-function set_play_out_game!(table::Table)
+function set_play_out_game(table::Table)
     br_leader, multiple_leaders = bank_roll_leader(table)
     players = players_at_table(table)
     if multiple_leaders
-        return all(player -> not_playing(player) || all_in(player), players)
+        # FunctionalRefactor TODO: This refactoring could be wrong:
+        # return all(player -> not_playing(player) || all_in(player), players)
+        play_out_game = all(player -> not_playing(player) || all_in(player), players)
+        @reset table.play_out_game = play_out_game
+        return table
     end
 
     @assert !multiple_leaders # We have a single bank roll leader
 
-    table.play_out_game = all(player -> begin
+    play_out_game = all(player -> begin
         cond1 = not_playing(player)
         cond2 = all_in(player)
         cond3 = seat_number(player) == seat_number(br_leader)
         any((cond1, cond2, cond3))
     end, players)
+    @reset table.play_out_game = play_out_game
+    return table
 end
 
 blinds(table::Table) = table.blinds
@@ -330,38 +339,45 @@ function is_blind_call(table::Table, player::Player, amt = call_amount(table, pl
     end
 end
 
-function reset_round_bank_rolls!(table::Table)
+function reset_round_bank_rolls(table::Table)
     players = players_at_table(table)
-    for player in players
-        player.round_bank_roll = bank_roll_chips(player)
+    for pidx in 1:length(players)
+        @reset players[pidx].round_bank_roll = bank_roll_chips(players[pidx])
     end
+    @reset table.players = players
+    return table
 end
 
-function reset_round!(table::Table)
+function reset_round(table::Table)
     players = players_at_table(table)
-    for player in players
+    for pidx in 1:length(players)
+        player = players[pidx]
         not_playing(player) && continue
         all_in(player) && continue
-        player.checked = false
-        player.action_required = true
-        player.last_to_raise = false
-        player.round_contribution = 0
+        @reset player.checked = false
+        @reset player.action_required = true
+        @reset player.last_to_raise = false
+        @reset player.round_contribution = 0
+        @reset players[pidx] = player
     end
-    table.initial_round_raise_amt = blinds(table).small
-    table.current_raise_amt = 0
+    @reset table.initial_round_raise_amt = blinds(table).small
+    @reset table.current_raise_amt = 0
+    @reset table.players = players
+    return table
 end
 
-function set_round!(table::Table, round::AbstractRound)
-    table.round = round
+function set_round(table::Table, round::AbstractRound)
+    @reset table.round = round
 end
 
 # Check for winner, in case when only a single player remains
 # playing
-function check_for_and_declare_winner!(table::Table)
+function check_for_and_declare_winner(table::Table)
     players = players_at_table(table)
     n_players = length(players)
-    table.winners.declared = count(x->not_playing(x), players) == n_players-1
-    return nothing
+    @reset table.winners.declared =
+        count(x->still_playing(x), players) == 1
+    return table
 end
 
 
@@ -370,7 +386,7 @@ end
 #####
 
 """
-    move_buttons!(table::Table)
+    table = move_buttons(table::Table)
 
 Move the dealer, small blind, big blind,
 and first-to-act buttons to the next set
@@ -378,14 +394,15 @@ of players.
 
 This is an internal method.
 """
-function move_buttons!(table::Table)
+function move_buttons(table::Table)
     players = players_at_table(table)
     dealer = table.buttons.dealer
     dealer       = this_or_next_valid_pidx(players, dealer      + 1)
     small_blind  = this_or_next_valid_pidx(players, dealer      + 1)
     big_blind    = this_or_next_valid_pidx(players, small_blind + 1)
     first_to_act = this_or_next_valid_pidx(players, big_blind   + 1)
-    table.buttons = Buttons(dealer, small_blind, big_blind, first_to_act)
+    @reset table.buttons = Buttons(dealer, small_blind, big_blind, first_to_act)
+    return table
 end
 
 any_actions_required(table::Table) = any(x->action_required(x), players_at_table(table))
@@ -467,10 +484,10 @@ show_cards(table::Table, player::Player{S}) where {S <: AbstractStrategy} = "(??
 ##### Deal
 #####
 
-function deal!(table::Table, blinds::Blinds)
+function deal(table, blinds::Blinds)
     players = players_at_table(table)
     call_blinds = true
-    logger = table.logger
+    (; logger) = table
     for (i, pidx) in enumerate(circle(table, SmallBlind()))
         player = players[pidx]
 
@@ -479,21 +496,22 @@ function deal!(table::Table, blinds::Blinds)
         not_playing(player) && continue
 
         for j in 1:2
-            player.cards[j] = SB.sample!(table.deck)
+            @reset player.cards[j] = SB.sample!(table.deck)
         end
+        @reset table.players[pidx] = player
 
         if is_small_blind(table, player) && bank_roll(player) ≤ blinds.small
-            contribute!(table, player, bank_roll(player), call_blinds)
+            table = contribute(table, player, bank_roll(player), call_blinds)
             @cinfo logger "$(name(player)) paid the small blind (all-in) and dealt cards: $(show_cards(table, player))"
         elseif is_big_blind(table, player) && bank_roll(player) ≤ blinds.big
-            contribute!(table, player, bank_roll(player), call_blinds)
+            table = contribute(table, player, bank_roll(player), call_blinds)
             @cinfo logger "$(name(player)) paid the  big  blind (all-in) and dealt cards: $(show_cards(table, player))"
         else
             if is_small_blind(table, player)
-                contribute!(table, player, blinds.small, call_blinds)
+                table = contribute(table, player, blinds.small, call_blinds)
                 @cinfo logger "$(name(player)) paid the small blind and dealt cards: $(show_cards(table, player))"
             elseif is_big_blind(table, player)
-                contribute!(table, player, blinds.big, call_blinds)
+                table = contribute(table, player, blinds.big, call_blinds)
                 @cinfo logger "$(name(player)) paid the  big  blind and dealt cards: $(show_cards(table, player))"
             else
                 @cinfo logger "$(name(player)) dealt (free) cards:                   $(show_cards(table, player))"
@@ -502,9 +520,11 @@ function deal!(table::Table, blinds::Blinds)
     end
 
     @inbounds for j in 1:5
-        table.cards[j] = SB.sample!(table.deck)
+        @reset table.cards[j] = SB.sample!(table.deck)
     end
     @cinfo logger "Table cards dealt (face-down)."
     @cdebug logger "Post-blinds bank roll summary: $(bank_roll.(players))"
+
+    return table
 end
 

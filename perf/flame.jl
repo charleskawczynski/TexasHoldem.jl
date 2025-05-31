@@ -13,7 +13,7 @@ players() = ntuple(i->(Player(TH.FuzzBot(), i)), 4)
 
 function do_work!(games)
     for game in games
-        play!(game)
+        play(game)
     end
     return nothing
 end
@@ -21,12 +21,12 @@ end
 import Profile
 import ProfileCanvas
 
-games = map(x->Game(players();logger=TH.ByPassLogger()), 1:100_000);
+games = map(x->Game(players();logger=TH.ByPassLogger()), 1:10_000);
 do_work!(games) # compile first
 
 Random.seed!(1234) # reset seed
 
-games = map(x->Game(players();logger=TH.ByPassLogger()), 1:100_000);
+games = map(x->Game(players();logger=TH.ByPassLogger()), 1:10_000);
 Profile.clear()
 prof = Profile.@profile begin
     do_work!(games)

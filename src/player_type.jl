@@ -61,7 +61,7 @@ TODO: some of these fields should be
 removed, since they're only needed
 for flow control logic.
 """
-mutable struct Player{S #=<: AbstractStrategy=#}
+struct Player{S #=<: AbstractStrategy=#}
     strategy::S
     seat_number::Int
     cards::Vector{Card}
@@ -125,7 +125,7 @@ bank roll.
 
 We access the `Int` in Chips
 as the fractional chips are only
-handled by the TransactionManager.
+handled by the Transactions.
 """
 bank_roll(player::Player) = player.bank_roll.n
 
@@ -146,7 +146,7 @@ beginning of the round
 
 We access the `Int` in Chips
 as the fractional chips are only
-handled by the TransactionManager.
+handled by the Transactions.
 """
 round_bank_roll(player::Player) = player.round_bank_roll.n
 

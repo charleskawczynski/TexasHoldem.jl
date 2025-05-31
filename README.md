@@ -27,7 +27,7 @@ A package for simulating no-limit Texas Holdem Poker. Install with
 
 # Playing
 
-A single game can be played with `play!` or a tournament-style game with `tournament!`:
+A single game can be played with `play` or a tournament-style game with `tournament!`:
 
 ```julia
 using TexasHoldem

@@ -2,6 +2,7 @@ using Test
 using REPL.TerminalMenus
 using PlayingCards
 using TexasHoldem
+using Accessors
 TH = TexasHoldem
 
 QuietGame(args...; kwargs...) = Game(args...; kwargs..., logger=TH.ByPassLogger())
@@ -51,49 +52,49 @@ end
     # Case 1
     table = QuietGame((Player(TH.FuzzBot(), 1; bank_roll=1), Player(TH.FuzzBot(), 2));blinds = TH.Blinds(2,4)).table
     players = TH.players_at_table(table)
-    table.current_raise_amt = 0
+    @reset table.current_raise_amt = 0
     @test valid_raise_range_simple(table, players[1]) == (TH.valid_raise_range(table, players[1]), 1)
 
     # Case 2
     table = QuietGame((Player(TH.FuzzBot(), 1), Player(TH.FuzzBot(), 2; bank_roll = 300))).table
     players = TH.players_at_table(table)
-    table.current_raise_amt = 0
+    @reset table.current_raise_amt = 0
     @test valid_raise_range_simple(table, players[1]) == (TH.valid_raise_range(table, players[1]), 2)
 
     # Case 3
     table = QuietGame((Player(TH.FuzzBot(), 1; bank_roll=2), Player(TH.FuzzBot(), 2; bank_roll = 1)); blinds=TH.Blinds(2,4)).table
     players = TH.players_at_table(table)
-    table.current_raise_amt = 0
+    @reset table.current_raise_amt = 0
     @test valid_raise_range_simple(table, players[1]) == (TH.valid_raise_range(table, players[1]), 3)
 
     # Case 4
     table = QuietGame((Player(TH.FuzzBot(), 1), Player(TH.FuzzBot(), 2; bank_roll = 50))).table
     players = TH.players_at_table(table)
-    table.current_raise_amt = 0
+    @reset table.current_raise_amt = 0
     @test valid_raise_range_simple(table, players[1]) == (TH.valid_raise_range(table, players[1]), 4)
 
     # Case 5
     table = QuietGame((Player(TH.FuzzBot(), 1; bank_roll=1), Player(TH.FuzzBot(), 2))).table
     players = TH.players_at_table(table)
-    table.current_raise_amt = 1
+    @reset table.current_raise_amt = 1
     @test valid_raise_range_simple(table, players[1]) == (TH.valid_raise_range(table, players[1]), 5)
 
     # Case 6
     table = QuietGame((Player(TH.FuzzBot(), 1), Player(TH.FuzzBot(), 2; bank_roll = 300))).table
     players = TH.players_at_table(table)
-    table.current_raise_amt = 1
+    @reset table.current_raise_amt = 1
     @test valid_raise_range_simple(table, players[1]) == (TH.valid_raise_range(table, players[1]), 6)
 
     # Case 7
     table = QuietGame((Player(TH.FuzzBot(), 1; bank_roll=2), Player(TH.FuzzBot(), 2; bank_roll = 1));blinds=TH.Blinds(2,4)).table
     players = TH.players_at_table(table)
-    table.current_raise_amt = 1
+    @reset table.current_raise_amt = 1
     @test valid_raise_range_simple(table, players[1]) == (TH.valid_raise_range(table, players[1]), 7)
 
     # Case 8
     table = QuietGame((Player(TH.FuzzBot(), 1), Player(TH.FuzzBot(), 2; bank_roll = 50))).table
     players = TH.players_at_table(table)
-    table.current_raise_amt = 1
+    @reset table.current_raise_amt = 1
     @test valid_raise_range_simple(table, players[1]) == (TH.valid_raise_range(table, players[1]), 8)
 end
 
@@ -113,83 +114,83 @@ end
 
     players = (Player(Human(), 1), Player(TH.FuzzBot(), 2))
     table = QuietGame(players).table
-    table.initial_round_raise_amt = 20
-    table.current_raise_amt = 20
-    players[1].round_contribution = 200
-    players[1].round_bank_roll = Chips(500) # oops
+    @reset table.initial_round_raise_amt = 20
+    @reset table.current_raise_amt = 20
+    @reset players[1].round_contribution = 200
+    @reset players[1].round_bank_roll = Chips(500) # oops
     @test TH.is_valid_raise_amount(table, players[1], 200) == (false, "Cannot contribute 0 to the pot.")
 
     players = (Player(Human(), 1), Player(TH.FuzzBot(), 2))
     table = QuietGame(players).table
-    table.initial_round_raise_amt = 10
-    table.current_raise_amt = 10
-    players[1].round_bank_roll = Chips(20)
+    @reset table.initial_round_raise_amt = 10
+    @reset table.current_raise_amt = 10
+    @reset players[1].round_bank_roll = Chips(20)
     @test TH.is_valid_raise_amount(table, players[1], 10) == (false, "Only allowable raise is 20 (all-in)")
 
     players = (Player(Human(), 1), Player(TH.FuzzBot(), 2))
     table = QuietGame(players).table
-    table.initial_round_raise_amt = 10
-    table.current_raise_amt = 10
-    players[1].round_bank_roll = Chips(20)
+    @reset table.initial_round_raise_amt = 10
+    @reset table.current_raise_amt = 10
+    @reset players[1].round_bank_roll = Chips(20)
     @test TH.is_valid_raise_amount(table, players[1], 20) == (true, "")
 
     players = (Player(Human(), 1), Player(TH.FuzzBot(), 2))
     table = QuietGame(players).table
-    table.initial_round_raise_amt = 5
-    table.current_raise_amt = 20
-    players[1].round_bank_roll = Chips(30)
+    @reset table.initial_round_raise_amt = 5
+    @reset table.current_raise_amt = 20
+    @reset players[1].round_bank_roll = Chips(30)
     @test TH.is_valid_raise_amount(table, players[1], 25) == (true, "")
 
     players = (Player(Human(), 1), Player(TH.FuzzBot(), 2))
     table = QuietGame(players).table
-    table.initial_round_raise_amt = 5
-    table.current_raise_amt = 20
-    players[1].round_bank_roll = Chips(30)
+    @reset table.initial_round_raise_amt = 5
+    @reset table.current_raise_amt = 20
+    @reset players[1].round_bank_roll = Chips(30)
     @test TH.is_valid_raise_amount(table, players[1], 22) == (false, "Cannot raise 22. Raise must be between [25, 30]")
 end
 
 @testset "call_amount" begin
     players = (Player(Human(), 1), Player(TH.FuzzBot(), 2))
     table = QuietGame(players).table
-    table.current_raise_amt = 20
-    players[1].round_contribution = 10
+    @reset table.current_raise_amt = 20
+    @reset players[1].round_contribution = 10
     @test call_amount(table, players[1]) == 10
 
     players = (Player(Human(), 1), Player(TH.FuzzBot(), 2))
     table = QuietGame(players).table
-    table.current_raise_amt = 10
-    players[1].round_contribution = 0
+    @reset table.current_raise_amt = 10
+    @reset players[1].round_contribution = 0
     @test call_amount(table, players[1]) == 10
 
     players = (Player(Human(), 1), Player(TH.FuzzBot(), 2))
     table = QuietGame(players).table
-    table.current_raise_amt = 0
-    players[1].round_contribution = 10
+    @reset table.current_raise_amt = 0
+    @reset players[1].round_contribution = 10
     @test_throws AssertionError("Round contribution must be zero if current raise is zero.") call_amount(table, players[1])
 
     players = (Player(Human(), 1), Player(TH.FuzzBot(), 2))
     table = QuietGame(players).table
-    table.round = Flop()
-    table.current_raise_amt = 10
-    players[1].round_contribution = 10
+    @reset table.round = Flop()
+    @reset table.current_raise_amt = 10
+    @reset players[1].round_contribution = 10
     @test call_amount(table, players[1]) == 0
 
     players = (Player(Human(), 1), Player(TH.FuzzBot(), 2))
     table = QuietGame(players).table
-    table.round = Flop()
-    table.current_raise_amt = 10
-    players[1].round_contribution = 20
+    @reset table.round = Flop()
+    @reset table.current_raise_amt = 10
+    @reset players[1].round_contribution = 20
     @test_throws AssertionError("Call amount cannot be negative") call_amount(table, players[1])
 
     players = (Player(Human(), 1), Player(TH.FuzzBot(), 2))
     table = QuietGame(players).table
-    table.current_raise_amt = TH.blinds(table).big
-    players[1].round_contribution = TH.blinds(table).big
+    @reset table.current_raise_amt = TH.blinds(table).big
+    @reset players[1].round_contribution = TH.blinds(table).big
     @test call_amount(table, players[1]) == 0 # action is back to big-blind pre-flop
 
     players = (Player(Human(), 1), Player(TH.FuzzBot(), 2))
     table = QuietGame(players).table
-    table.current_raise_amt = TH.blinds(table).big
-    players[1].round_contribution = TH.blinds(table).big
+    @reset table.current_raise_amt = TH.blinds(table).big
+    @reset players[1].round_contribution = TH.blinds(table).big
     @test call_amount(table, players[1]) == 0 # action is back to big-blind pre-flop
 end

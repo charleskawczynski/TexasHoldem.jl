@@ -104,7 +104,7 @@ function call_amount(table::Table, player::Player)
     prc = round_contribution(player)
     call_amt = cra - prc
     logger = table.logger
-    @cdebug logger "cra = $cra, prc = $prc, call_amt = $call_amt"
+    @cdebug logger "current_raise_amt = $cra, player_round_contribution = $prc, call_amt = $call_amt"
     if cra == 0
         @assert prc == 0 "Round contribution must be zero if current raise is zero."
     end
@@ -144,25 +144,24 @@ function valid_raise_range(table::Table, player::Player)
         check = amt_computed ≤ bank_roll(player)
         s = ""
         s*="determining valid_raise_range\n"
-        s*="   rbr = $rbr, max_orbr = $max_orbr\n"
-        s*="   cra == 0 = $(cra == 0)\n"
+        s*="   round_bank_roll = $rbr, max_opponent_round_bank_roll = $max_orbr\n"
+        s*="   current_raise_amt == 0 = $(cra == 0)\n"
         s*="   amt_computed = $amt_computed\n"
         s*="   check = $check\n"
-        s*="   max_orbr > rbr = $(max_orbr > rbr)\n"
-        s*="   irra = $irra\n"
-        s*="   cra = $cra\n"
-        s*="   Δbr = $Δbr\n"
-        s*="   (cra+irra) = $(cra+irra)\n"
-        s*="   br = $(bank_roll(player))\n"
-        s*="   br = $(bank_roll(player))\n"
-        s*="   rc = $(round_contribution(player))\n"
+        s*="   max_opponent_round_bank_roll > round_bank_roll = $(max_orbr > rbr)\n"
+        s*="   initial_round_raise_amt = $irra\n"
+        s*="   current_raise_amt = $cra\n"
+        s*="   (round_bank_roll - bank_roll) = $Δbr\n"
+        s*="   (current_raise_amt+initial_round_raise_amt) = $(cra+irra)\n"
+        s*="   bank_roll = $(bank_roll(player))\n"
+        s*="   round_contribution = $(round_contribution(player))\n"
         s
     end
     lim = cra == 0 ? mra : (cra+irra)
     @cdebug logger "   lim = $lim"
     br₀ = min(max_orbr, rbr)
     vrr = lim > br₀ ? (br₀, br₀) : (lim, br₀) # somewhat like clamp
-    @cdebug logger "   vrr = $vrr"
+    @cdebug logger "   (minraise, maxraise) = $vrr"
     minraise = first(vrr)
     maxraise = last(vrr)
     @assert maxraise ≥ minraise "Min valid raise bound must be ≤ max valid raise bound."

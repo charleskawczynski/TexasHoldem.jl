@@ -6,8 +6,8 @@ TexasHoldem
 
 ## Game-level functions
 ```@docs
-move_buttons!
-play!
+move_buttons
+play
 tournament!
 ```
 

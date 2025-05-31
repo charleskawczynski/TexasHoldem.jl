@@ -13,7 +13,7 @@ Random.seed!(1234)
 players() = ntuple(i->(Player(TH.FuzzBot(), i)), 4)
 
 function do_work!()
-    play!(Game(players(); gui = TH.PlainLogger(), logger=TH.ByPassLogger()))
+    play(Game(players(); gui = TH.PlainLogger(), logger=TH.ByPassLogger()))
     return nothing
 end
 

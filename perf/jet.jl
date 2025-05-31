@@ -9,7 +9,7 @@ using BenchmarkTools
 players() = ntuple(i->(Player(TH.FuzzBot(), i)), 4)
 
 function do_work!(game)
-    play!(game)
+    play(game)
     return nothing
 end
 
