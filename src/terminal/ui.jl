@@ -2,7 +2,7 @@
 update_gui(table::Table, pov_player=nothing) = update_gui(stdout, table, pov_player)
 update_gui(io::IO, table::Table, pov_player) = update_gui(io, table, table.gui, pov_player)
 
-update_gui(io::IO, table::Table, ::PlainLogger, pov_player) = nothing
+update_gui(io::IO, table::Table, ::NoGUI, pov_player) = nothing
 
 clear_screen(io::IO) = print(io, "\33c\e[3J")
 

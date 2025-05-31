@@ -24,7 +24,7 @@ export Chips
 include("custom_logger.jl")
 
 abstract type AbstractGUI end
-struct PlainLogger <: AbstractGUI end # no gui
+struct NoGUI <: AbstractGUI end
 struct Terminal <: AbstractGUI end
 
 abstract type AbstractRound end
