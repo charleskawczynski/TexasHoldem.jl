@@ -101,7 +101,7 @@ Table(players; kwargs...) = Table(Players(players); kwargs...)
 function Table(players::Players;
     deck = PlayingCards.MaskedDeck(),
     cards = Card[joker, joker, joker, joker, joker],
-    gui = isinteractive() ? Terminal() : PlainLogger(), # PlainLogger() is better for testing
+    gui = isinteractive() ? Terminal() : NoGUI(), # NoGUI() is better for testing
     blinds = Blinds(),
     pot = 0,
     round = PreFlop(),
