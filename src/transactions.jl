@@ -10,8 +10,8 @@ const PHE = PokerHandEvaluator
 
 A side-pot for each player.
 """
-struct SidePot
-  amts::Vector{Int} # amount contributed per player
+struct SidePot{N}
+  amts::NTuple{N, Int} # amount contributed per player
   cap::Int # total amount any individual player can contribute to this side-pot
 end
 amounts(sp::SidePot) = sp.amts
@@ -22,7 +22,7 @@ const joker = Card(0, 1)
 Base.@kwdef struct HandEval
     hand_rank::Int = 1
     hand_type::Symbol = :empty
-    best_cards::Vector{Card} = Card[joker,joker,joker,joker,joker]
+    best_cards::NTuple{5, Card} = (joker,joker,joker,joker,joker)
 end
 
 """
@@ -31,16 +31,15 @@ end
 Handle pots and side pots
 among multiple players.
 """
-struct Transactions{L}
-  logger::L
-  perm::Vector{Int}
-  bank_rolls::Vector{Chips} # cache
-  initial_brs::Vector{Chips}
-  pot_id::Vector{Int}
-  side_pots::Vector{SidePot}
-  side_pot_winnings::Vector{Vector{Chips}}
-  unsorted_to_sorted_map::Vector{Int}
-  sorted_hand_evals::Vector{HandEval}
+struct Transactions{N}
+  perm::NTuple{N, Int}
+  bank_rolls::NTuple{N, Chips} # cache
+  initial_brs::NTuple{N, Chips}
+  pot_id::Int
+  side_pots::NTuple{N, SidePot{N}}
+  side_pot_winnings::NTuple{N, NTuple{N, Chips}}
+  unsorted_to_sorted_map::NTuple{N, Int}
+  sorted_hand_evals::NTuple{N,HandEval}
 end
 
 function Base.show(io::IO, tr::Transactions, include_type = true)
@@ -48,35 +47,31 @@ function Base.show(io::IO, tr::Transactions, include_type = true)
     println(io, "Pot(s)           = $(tr.side_pots)")
 end
 
-Transactions(players, logger) = Transactions(Players(players), logger)
+Transactions(players, logger) = Transactions(NewPlayers(players), logger)
 function Transactions(players::Players, logger)
-    perm = collect(sortperm(players))
-    bank_rolls = collect(map(x->bank_roll_chips(x), players))
+    N = length(players)
+    perm = sortperm(players)
+    bank_rolls = map(x->bank_roll_chips(x), players)
 
-    caps = zeros(Int,length(players))
-    for i in 1:length(players)
-        if i == 1
-            caps[i] = bank_roll(players[perm[i]])
-        else
-            caps[i] = bank_roll(players[perm[i]]) - sum(caps[1:i-1])
-        end
+    brp = map(p->bank_roll(players[p]), perm)
+    caps = ntuple(N) do i
+        i==1 ? brp[1] : brp[i] - brp[i-1]
     end
 
-    unsorted_to_sorted_map = collect(map(players) do player
+    unsorted_to_sorted_map = map(players) do player
         findfirst(p -> seat_number(players[p]) == seat_number(player), perm)
-    end)
-    amts = zeros(Int, length(players))
-    side_pots = [SidePot(deepcopy(amts), c) for c in caps]
-    @assert length(players) > 0
+    end
+    amts = ntuple(_ -> 0, N)
+    side_pots = map(c->SidePot(amts, c), caps)
+    @assert N > 0
     @cdebug logger "initial caps = $(cap.(side_pots))"
 
-    initial_brs = deepcopy(collect(bank_roll_chips.(players)))
-    sorted_hand_evals = map(x->HandEval(), 1:length(players))
-    pot_id = Int[1]
+    initial_brs = map(x->bank_roll_chips(x), players)
+    sorted_hand_evals = ntuple(_->HandEval(), N)
+    pot_id = 1
     FT = eltype(initial_brs)
-    side_pot_winnings = collect(map(x->collect(map(x->FT(0), players)), players))
-    Transactions{typeof(logger)}(
-        logger,
+    side_pot_winnings = map(x->map(x->FT(0), players), players)
+    Transactions{N}(
         perm,
         bank_rolls,
         initial_brs,
@@ -89,32 +84,31 @@ function Transactions(players::Players, logger)
 end
 
 function reset(transactions::Transactions, players::Players)
-    (; perm,
-        bank_rolls,
+    N = length(players)
+    (; bank_rolls,
         side_pots,
         side_pot_winnings,
         pot_id,
         unsorted_to_sorted_map,
         initial_brs) = transactions
-    @inbounds for i in 1:length(players)
-        @reset bank_rolls[i] = bank_roll_chips(players[i])
-    end
-    sortperm!(perm, bank_rolls)
-    @inbounds for i in 1:length(players)
+    bank_rolls = ntuple(i->bank_roll_chips(players[i]), N)
+    # perm = sortperm(bank_rolls)
+    perm = TupleTools.sortperm(ntuple(i->bank_roll(players[i]), N))
+    @inbounds for i in 1:N
         sp = players[perm[i]]
         player = players[i]
         br = bank_roll(sp)
         cap_i = i == 1 ? br : br - bank_roll(players[perm[i-1]])
         @reset side_pots[i].amts .= 0
         @reset side_pots[i].cap = cap_i
-        for k in 1:length(players)
+        for k in 1:N
             @reset side_pot_winnings[i][k] = Chips(0)
         end
         j = findfirst(p->seat_number(players[p]) == seat_number(player), perm)::Int
         @reset unsorted_to_sorted_map[i] = j
         @reset initial_brs[i] = bank_roll_chips(player)
     end
-    @inbounds pot_id[1] = 1
+    pot_id = 1
     @reset transactions.perm = perm
     @reset transactions.bank_rolls = bank_rolls
     @reset transactions.side_pots = side_pots
@@ -222,7 +216,7 @@ function contribute(table, player, amt, call=false)
 
     @reset players.players[pidx] = player
     if is_side_pot_full(tr, players)
-        @reset tr.pot_id[1]+=1
+        @reset tr.pot_id += 1
     end
     @cdebug logger "     $(name(player)).bank_roll (post contrib): $(bank_roll(player))"
     @cdebug logger "     all_in($(name(player))) = $(all_in(player))"
@@ -232,7 +226,7 @@ function contribute(table, player, amt, call=false)
     return table
 end
 
-function is_side_pot_full(tr, players, ith_sidepot = tr.pot_id[1])
+function is_side_pot_full(tr, players, ith_sidepot = tr.pot_id)
     sp = tr.side_pots[ith_sidepot]
     all(x->is_player_contribution_to_side_pot_full(sp, seat_number(x)), players)
 end
@@ -287,6 +281,7 @@ is_largest_pot_investment(player, players) =
 
 function distribute_winnings(table, logger=InfoLogger())
     (; transactions, players) = table
+    N = length(players)
     tr = transactions
     table_cards = table.cards
     @cdebug logger "--- Distributing winnings..."
@@ -313,16 +308,14 @@ function distribute_winnings(table, logger=InfoLogger())
                 he = PHE.FullHandEval(all_cards)
                 @reset sorted_hand_evals[ssn].hand_rank = PHE.hand_rank(he)
                 @reset sorted_hand_evals[ssn].hand_type = PHE.hand_type(he)
-                @reset sorted_hand_evals[ssn].best_cards .= Card[PHE.best_cards(he)...]
+                bc = PHE.best_cards(he)
+                # @show bc
+                @reset sorted_hand_evals[ssn].best_cards = bc
             end
         end
     end
 
-    @inbounds for i in 1:length(players)
-        for k in 1:length(players)
-            @reset side_pot_winnings[i][k] = Chips(0)
-        end
-    end
+    side_pot_winnings = ntuple(i->ntuple(_->Chips(0), N), N)
 
     # populate `side_pot_winnings` and empty out `side_pots`
     @inbounds for i in 1:length(side_pots)
@@ -396,14 +389,14 @@ function distribute_winnings(table, logger=InfoLogger())
     @reset table.transactions = tr
     if !(logger isa ByPassLogger)
         for (player, player_sp_winnings) in zip(players, side_pot_winnings)
-            log_player_winnings(player, player_sp_winnings, tr)
+            log_player_winnings(player, player_sp_winnings, tr, logger)
         end
     end
     return table
 end
 
-function log_player_winnings(player, player_sp_winnings, tr)
-    (; side_pot_winnings, sorted_hand_evals, logger) = tr
+function log_player_winnings(player, player_sp_winnings, tr, logger)
+    (; side_pot_winnings, sorted_hand_evals) = tr
     ∑spw = sum(player_sp_winnings)
     ssn = tr.unsorted_to_sorted_map[seat_number(player)]
     prof = profit(player, side_pot_winnings)

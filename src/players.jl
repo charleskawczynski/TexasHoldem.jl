@@ -33,20 +33,21 @@ coincide.
 """
 struct Players{PS<:Union{Tuple,AbstractArray}}
     players::PS
-    function Players(players)
-        n = length(players)
-        if all(x->seat_number(x)==-1, players)
-            for i in 1:n
-                @reset players[i].seat_number = i
-            end
+end
+
+function NewPlayers(players)
+    n = length(players)
+    if all(x->seat_number(x)==-1, players)
+        for i in 1:n
+            @reset players[i].seat_number = i
         end
-        @assert allunique(map(x->seat_number(x), players))
-        spbsn = sortperm_by_seat_number(players)
-        splayers = map(sp->players[sp], spbsn)
-        @assert issorted(map(x->seat_number(x), splayers))
-        @assert seat_number(splayers[n]) ≤ n
-        return new{typeof(splayers)}(splayers)
     end
+    @assert allunique(map(x->seat_number(x), players))
+    spbsn = sortperm_by_seat_number(players)
+    splayers = map(sp->players[sp], spbsn)
+    @assert issorted(map(x->seat_number(x), splayers))
+    @assert seat_number(splayers[n]) ≤ n
+    return Players{typeof(splayers)}(splayers)
 end
 
 sortperm_by_seat_number(players::Tuple) = TupleTools.sortperm(map(x->seat_number(x), players))
@@ -64,6 +65,7 @@ cyclic_player_index(players::Players, i) =
 cyclic_player_index(n_players, i) = mod(i-1, n_players)+1
 
 Base.length(p::Players) = length(p.players)
+Base.map(f::F, p::Players) where {F} = Base.map(f, p.players)
 Base.iterate(players::Players, ncpidx = 1) =
     Base.iterate(players.players, ncpidx)
 Base.@propagate_inbounds Base.getindex(players::Players, i::Int) =

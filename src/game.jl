@@ -18,7 +18,7 @@ function Base.show(io::IO, game::Game)
     println(io, "-----------------------")
 end
 
-Game(players; kwargs...) = Game(Players(players); kwargs...)
+Game(players; kwargs...) = Game(NewPlayers(players); kwargs...)
 function Game(players::Players; kwargs...)
     table = Table(players; kwargs...)
     Game(table, deepcopy(bank_roll_chips.(players)))
@@ -335,11 +335,10 @@ function _deal_and_play(game::Game, sf::StartFrom)
     end
 
     if sf.game_point isa StartOfGame
-        @inbounds for (pidx, player) in enumerate(players)
-            initial_brs[pidx] = bank_roll_chips(player)
-        end
+        initial_brs = map(p->bank_roll_chips(p), players)
         @cinfo logger "------ Playing game!"
-        @reset table.players = set_active_status(table.players)
+        players = set_active_status(players)
+        @reset table.players = players
         initial_∑brs = ∑bank_rolls(players)
 
         @cinfo logger "Initial bank roll summary: $(bank_roll_chips.(players))"
@@ -432,8 +431,7 @@ function _deal_and_play(game::Game, sf::StartFrom)
 end
 
 function set_active_status(players)
-    for pidx in 1:length(players)
-        player = players[pidx]
+    players = Players(map(players) do player
         if zero_bank_roll(player)
             @reset player.active = false
             @reset player.folded = true
@@ -443,8 +441,8 @@ function set_active_status(players)
             @reset player.folded = false
             @reset player.action_required = true
         end
-        @reset players[pidx] = player
-    end
+        player
+    end)
     return players
 end
 

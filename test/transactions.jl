@@ -6,6 +6,8 @@ using TexasHoldem: Player, FuzzBot, Transactions, dealer_pidx, Table
 const TH = TexasHoldem
 all_zero(side_pots) = all(x-> all(y->y==0, x), side_pots)
 
+test_amounts(x) = collect(collect.(TH.amounts.(x)))
+
 include("tester_bots.jl")
 #=
 This reaches into internals
@@ -33,7 +35,7 @@ check(t, p) = TH.update_given_valid_action(t, p, Check())
     table = call(table, players[3]) # call
     (; players, transactions) = table
 
-    @test TH.amounts.(transactions.side_pots) == [[100, 100, 100], [0, 0, 0], [0, 0, 0]]
+    @test test_amounts(transactions.side_pots) == [[100, 100, 100], [0, 0, 0], [0, 0, 0]]
 
     table = TH.distribute_winnings(table, TH.DebugLogger())
 
@@ -62,7 +64,7 @@ end
     (; transactions) = table
     players = TH.players_at_table(table)
 
-    @test TH.amounts.(transactions.side_pots) == [[100, 100, 100], [0, 0, 0], [0, 0, 0]]
+    @test test_amounts(transactions.side_pots) == [[100, 100, 100], [0, 0, 0], [0, 0, 0]]
     table = TH.distribute_winnings(table, TH.ByPassLogger())
     (; players, transactions) = table
     @test all_zero(TH.amounts.(transactions.side_pots))
@@ -88,7 +90,7 @@ end
     table = call(table, players[3]) # call
     (; transactions, players) = table
 
-    @test TH.amounts.(transactions.side_pots) == [[100, 100, 100], [0, 0, 0], [0, 0, 0]]
+    @test test_amounts(transactions.side_pots) == [[100, 100, 100], [0, 0, 0], [0, 0, 0]]
 
     @test_throws AssertionError table = call(table, players[1]) # already all-in!
 
@@ -99,7 +101,7 @@ end
     table = call(table, players[3]) # call
     (; transactions) = table
 
-    @test TH.amounts.(transactions.side_pots) == [[100, 100, 100], [0, 100, 100], [0, 0, 0]]
+    @test test_amounts(transactions.side_pots) == [[100, 100, 100], [0, 100, 100], [0, 0, 0]]
     table = TH.distribute_winnings(table, TH.ByPassLogger())
     (; transactions) = table
     @test all_zero(TH.amounts.(transactions.side_pots))
@@ -125,7 +127,7 @@ end
     table = call(table, players[2]) # call
     table = call(table, players[3]) # all-in
     (; transactions, players) = table
-    @test TH.amounts.(transactions.side_pots) == [[100, 100, 100], [0, 0, 0], [0, 0, 0]]
+    @test test_amounts(transactions.side_pots) == [[100, 100, 100], [0, 0, 0], [0, 0, 0]]
 
     table = TH.reset_round(table)
     (; transactions, players) = table
@@ -135,7 +137,7 @@ end
     (; transactions, players) = table
     @test_throws AssertionError table = call(table, players[3]) # already all-in!
 
-    @test TH.amounts.(transactions.side_pots) == [[100, 100, 100], [100, 100, 0], [0, 0, 0]]
+    @test test_amounts(transactions.side_pots) == [[100, 100, 100], [100, 100, 0], [0, 0, 0]]
 
     table = TH.distribute_winnings(table, TH.ByPassLogger())
     (; transactions, players) = table
@@ -168,7 +170,7 @@ end
     table = call(table, players[6]) # call
     z = [0, 0, 0, 0, 0, 0]
     (; transactions, players) = table
-    @test TH.amounts.(transactions.side_pots) == [[100, 100, 100, 100, 100, 100], z, z, z, z, z]
+    @test test_amounts(transactions.side_pots) == [[100, 100, 100, 100, 100, 100], z, z, z, z, z]
 
     table = TH.reset_round(table)
     (; transactions, players) = table
@@ -180,7 +182,7 @@ end
     table = call(table, players[6]) # call
 
     (; transactions, players) = table
-    @test TH.amounts.(transactions.side_pots) == [[100, 100, 100, 100, 100, 100], [0, 100, 100, 100, 100, 100], z, z, z, z]
+    @test test_amounts(transactions.side_pots) == [[100, 100, 100, 100, 100, 100], [0, 100, 100, 100, 100, 100], z, z, z, z]
 
     table = TH.reset_round(table)
     (; transactions, players) = table
@@ -190,7 +192,7 @@ end
     table = call(table, players[5]) # call
     table = call(table, players[6]) # call
     (; transactions, players) = table
-    @test TH.amounts.(transactions.side_pots) == [[100, 100, 100, 100, 100, 100], [0, 100, 100, 100, 100, 100], [0, 0, 100, 100, 100, 100], z, z, z]
+    @test test_amounts(transactions.side_pots) == [[100, 100, 100, 100, 100, 100], [0, 100, 100, 100, 100, 100], [0, 0, 100, 100, 100, 100], z, z, z]
 
     table = TH.reset_round(table)
 
@@ -201,7 +203,7 @@ end
     table = call(table, players[6]) # call
 
     (; transactions, players) = table
-    @test TH.amounts.(transactions.side_pots) == [[100, 100, 100, 100, 100, 100], [0, 100, 100, 100, 100, 100], [0, 0, 100, 100, 100, 100], [0, 0, 0, 100, 100, 100], z, z]
+    @test test_amounts(transactions.side_pots) == [[100, 100, 100, 100, 100, 100], [0, 100, 100, 100, 100, 100], [0, 0, 100, 100, 100, 100], [0, 0, 0, 100, 100, 100], z, z]
 
     table = TH.reset_round(table)
 
@@ -209,7 +211,7 @@ end
     table = raise_to(table, players[5], 100) # raise all-in
     table = call(table, players[6]) # call
     (; transactions, players) = table
-    @test TH.amounts.(transactions.side_pots) == [[100, 100, 100, 100, 100, 100], [0, 100, 100, 100, 100, 100], [0, 0, 100, 100, 100, 100], [0, 0, 0, 100, 100, 100], [0, 0, 0, 0, 100, 100], z]
+    @test test_amounts(transactions.side_pots) == [[100, 100, 100, 100, 100, 100], [0, 100, 100, 100, 100, 100], [0, 0, 100, 100, 100, 100], [0, 0, 0, 100, 100, 100], [0, 0, 0, 0, 100, 100], z]
 
     table = TH.distribute_winnings(table, TH.ByPassLogger())
     (; transactions, players) = table
@@ -246,7 +248,7 @@ end
     table = call(table, players[6]) # call
     z = [0, 0, 0, 0, 0, 0]
     (; transactions, players) = table
-    @test TH.amounts.(transactions.side_pots) == [[7, 7, 7, 7, 7, 7], z, z, z, z, z]
+    @test test_amounts(transactions.side_pots) == [[7, 7, 7, 7, 7, 7], z, z, z, z, z]
 
     table = TH.reset_round(table)
     (; transactions, players) = table
@@ -257,7 +259,7 @@ end
     table = call(table, players[5]) # call
     table = call(table, players[6]) # call
     (; transactions, players) = table
-    @test TH.amounts.(transactions.side_pots) == [[7, 7, 7, 7, 7, 7], [0, 7, 7, 7, 7, 7], z, z, z, z]
+    @test test_amounts(transactions.side_pots) == [[7, 7, 7, 7, 7, 7], [0, 7, 7, 7, 7, 7], z, z, z, z]
 
     table = TH.reset_round(table)
     (; transactions, players) = table
@@ -266,7 +268,7 @@ end
     table = call(table, players[5]) # call
     table = call(table, players[6]) # call
     (; transactions, players) = table
-    @test TH.amounts.(transactions.side_pots) == [[7, 7, 7, 7, 7, 7], [0, 7, 7, 7, 7, 7], [0, 0, 7, 7, 7, 7], z, z, z]
+    @test test_amounts(transactions.side_pots) == [[7, 7, 7, 7, 7, 7], [0, 7, 7, 7, 7, 7], [0, 0, 7, 7, 7, 7], z, z, z]
 
     table = TH.reset_round(table)
 
@@ -275,7 +277,7 @@ end
     table = call(table, players[5]) # call
     table = call(table, players[6]) # call
     (; transactions, players) = table
-    @test TH.amounts.(transactions.side_pots) == [[7, 7, 7, 7, 7, 7], [0, 7, 7, 7, 7, 7], [0, 0, 7, 7, 7, 7], [0, 0, 0, 7, 7, 7], z, z]
+    @test test_amounts(transactions.side_pots) == [[7, 7, 7, 7, 7, 7], [0, 7, 7, 7, 7, 7], [0, 0, 7, 7, 7, 7], [0, 0, 0, 7, 7, 7], z, z]
 
     table = TH.reset_round(table)
 
@@ -283,7 +285,7 @@ end
     table = raise_to(table, players[5], 7) # raise all-in
     table = call(table, players[6]) # call
     (; transactions, players) = table
-    @test TH.amounts.(transactions.side_pots) == [[7, 7, 7, 7, 7, 7], [0, 7, 7, 7, 7, 7], [0, 0, 7, 7, 7, 7], [0, 0, 0, 7, 7, 7], [0, 0, 0, 0, 7, 7], z]
+    @test test_amounts(transactions.side_pots) == [[7, 7, 7, 7, 7, 7], [0, 7, 7, 7, 7, 7], [0, 0, 7, 7, 7, 7], [0, 0, 0, 7, 7, 7], [0, 0, 0, 0, 7, 7], z]
 
     table = TH.distribute_winnings(table, TH.ByPassLogger())
     (; transactions, players) = table
@@ -316,27 +318,27 @@ end
 
     table = raise_to(table, players[1], 100) # raise all-in
     (; transactions, players) = table
-    @test TH.amounts.(transactions.side_pots) == [[100, 0, 0, 0, 0, 0], z, z, z, z, z]
+    @test test_amounts(transactions.side_pots) == [[100, 0, 0, 0, 0, 0], z, z, z, z, z]
 
     table = raise_to(table, players[2], 200) # raise all-in
     (; transactions, players) = table
-    @test TH.amounts.(transactions.side_pots) == [[100, 100, 0, 0, 0, 0], [0, 100, 0, 0, 0, 0], z, z, z, z]
+    @test test_amounts(transactions.side_pots) == [[100, 100, 0, 0, 0, 0], [0, 100, 0, 0, 0, 0], z, z, z, z]
 
     table = raise_to(table, players[3], 300) # raise all-in
     (; transactions, players) = table
-    @test TH.amounts.(transactions.side_pots) == [[100, 100, 100, 0, 0, 0], [0, 100, 100, 0, 0, 0], [0, 0, 100, 0, 0, 0], z, z, z]
+    @test test_amounts(transactions.side_pots) == [[100, 100, 100, 0, 0, 0], [0, 100, 100, 0, 0, 0], [0, 0, 100, 0, 0, 0], z, z, z]
 
     table = raise_to(table, players[4], 400) # raise all-in
     (; transactions, players) = table
-    @test TH.amounts.(transactions.side_pots) == [[100, 100, 100, 100, 0, 0], [0, 100, 100, 100, 0, 0], [0, 0, 100, 100, 0, 0], [0, 0, 0, 100, 0, 0], z, z]
+    @test test_amounts(transactions.side_pots) == [[100, 100, 100, 100, 0, 0], [0, 100, 100, 100, 0, 0], [0, 0, 100, 100, 0, 0], [0, 0, 0, 100, 0, 0], z, z]
 
     table = raise_to(table, players[5], 500) # raise all-in
     (; transactions, players) = table
-    @test TH.amounts.(transactions.side_pots) == [[100, 100, 100, 100, 100, 0], [0, 100, 100, 100, 100, 0], [0, 0, 100, 100, 100, 0], [0, 0, 0, 100, 100, 0], [0, 0, 0, 0, 100, 0], z]
+    @test test_amounts(transactions.side_pots) == [[100, 100, 100, 100, 100, 0], [0, 100, 100, 100, 100, 0], [0, 0, 100, 100, 100, 0], [0, 0, 0, 100, 100, 0], [0, 0, 0, 0, 100, 0], z]
 
     table = call(table, players[6]) # call
     (; transactions, players) = table
-    @test TH.amounts.(transactions.side_pots) == [[100, 100, 100, 100, 100, 100], [0, 100, 100, 100, 100, 100], [0, 0, 100, 100, 100, 100], [0, 0, 0, 100, 100, 100], [0, 0, 0, 0, 100, 100], z]
+    @test test_amounts(transactions.side_pots) == [[100, 100, 100, 100, 100, 100], [0, 100, 100, 100, 100, 100], [0, 0, 100, 100, 100, 100], [0, 0, 0, 100, 100, 100], [0, 0, 0, 0, 100, 100], z]
 
     table = TH.distribute_winnings(table, TH.ByPassLogger())
     (; transactions, players) = table
@@ -370,27 +372,27 @@ end
 
     table = raise_to(table, players[1], 500) # raise to 500
     (; transactions, players) = table
-    @test TH.amounts.(transactions.side_pots) == [[100, 0, 0, 0, 0, 0], [100, 0, 0, 0, 0, 0], [100, 0, 0, 0, 0, 0], [100, 0, 0, 0, 0, 0], [100, 0, 0, 0, 0, 0], z]
+    @test test_amounts(transactions.side_pots) == [[100, 0, 0, 0, 0, 0], [100, 0, 0, 0, 0, 0], [100, 0, 0, 0, 0, 0], [100, 0, 0, 0, 0, 0], [100, 0, 0, 0, 0, 0], z]
 
     table = call(table, players[2]) # call
     (; transactions, players) = table
-    @test TH.amounts.(transactions.side_pots) == [[100, 100, 0, 0, 0, 0], [100, 100, 0, 0, 0, 0], [100, 100, 0, 0, 0, 0], [100, 100, 0, 0, 0, 0], [100, 100, 0, 0, 0, 0], z]
+    @test test_amounts(transactions.side_pots) == [[100, 100, 0, 0, 0, 0], [100, 100, 0, 0, 0, 0], [100, 100, 0, 0, 0, 0], [100, 100, 0, 0, 0, 0], [100, 100, 0, 0, 0, 0], z]
 
     table = call(table, players[3]) # call
     (; transactions, players) = table
-    @test TH.amounts.(transactions.side_pots) == [[100, 100, 100, 0, 0, 0], [100, 100, 100, 0, 0, 0], [100, 100, 100, 0, 0, 0], [100, 100, 100, 0, 0, 0], [100, 100, 0, 0, 0, 0], z]
+    @test test_amounts(transactions.side_pots) == [[100, 100, 100, 0, 0, 0], [100, 100, 100, 0, 0, 0], [100, 100, 100, 0, 0, 0], [100, 100, 100, 0, 0, 0], [100, 100, 0, 0, 0, 0], z]
 
     table = call(table, players[4]) # call
     (; transactions, players) = table
-    @test TH.amounts.(transactions.side_pots) == [[100, 100, 100, 100, 0, 0], [100, 100, 100, 100, 0, 0], [100, 100, 100, 100, 0, 0], [100, 100, 100, 0, 0, 0], [100, 100, 0, 0, 0, 0], z]
+    @test test_amounts(transactions.side_pots) == [[100, 100, 100, 100, 0, 0], [100, 100, 100, 100, 0, 0], [100, 100, 100, 100, 0, 0], [100, 100, 100, 0, 0, 0], [100, 100, 0, 0, 0, 0], z]
 
     table = call(table, players[5]) # call
     (; transactions, players) = table
-    @test TH.amounts.(transactions.side_pots) == [[100, 100, 100, 100, 100, 0], [100, 100, 100, 100, 100, 0], [100, 100, 100, 100, 0, 0], [100, 100, 100, 0, 0, 0], [100, 100, 0, 0, 0, 0], z]
+    @test test_amounts(transactions.side_pots) == [[100, 100, 100, 100, 100, 0], [100, 100, 100, 100, 100, 0], [100, 100, 100, 100, 0, 0], [100, 100, 100, 0, 0, 0], [100, 100, 0, 0, 0, 0], z]
 
     table = call(table, players[6]) # call
     (; transactions, players) = table
-    @test TH.amounts.(transactions.side_pots) == [[100, 100, 100, 100, 100, 100], [100, 100, 100, 100, 100, 0], [100, 100, 100, 100, 0, 0], [100, 100, 100, 0, 0, 0], [100, 100, 0, 0, 0, 0], z]
+    @test test_amounts(transactions.side_pots) == [[100, 100, 100, 100, 100, 100], [100, 100, 100, 100, 100, 0], [100, 100, 100, 100, 0, 0], [100, 100, 100, 0, 0, 0], [100, 100, 0, 0, 0, 0], z]
 
     table = TH.distribute_winnings(table, TH.ByPassLogger())
     (; transactions, players) = table
@@ -420,19 +422,19 @@ end
     table = TH.contribute(table, players[3], 2, true) # big blind
 
     transactions = table.transactions
-    @test TH.amounts.(transactions.side_pots) == [[0, 1, 2], [0, 0, 0], [0, 0, 0]]
+    @test test_amounts(transactions.side_pots) == [[0, 1, 2], [0, 0, 0], [0, 0, 0]]
 
     table = raise_to(table, players[1], 5) # raise to 5
     (; transactions, players) = table
-    @test TH.amounts.(transactions.side_pots) == [[4, 1, 2], [1, 0, 0], [0, 0, 0]]
+    @test test_amounts(transactions.side_pots) == [[4, 1, 2], [1, 0, 0], [0, 0, 0]]
 
     table = call(table, players[2]) # call
     (; transactions, players) = table
-    @test TH.amounts.(transactions.side_pots) == [[4, 4, 2], [1, 1, 0], [0, 0, 0]]
+    @test test_amounts(transactions.side_pots) == [[4, 4, 2], [1, 1, 0], [0, 0, 0]]
 
     table = call(table, players[3]) # call
     (; transactions, players) = table
-    @test TH.amounts.(transactions.side_pots) == [[4, 4, 4], [1, 1, 0], [0, 0, 0]]
+    @test test_amounts(transactions.side_pots) == [[4, 4, 4], [1, 1, 0], [0, 0, 0]]
     @test TH.is_side_pot_full(transactions, players, 1)
     # TODO: all but one player is all-in, is it okay that this
     #       side-pot is considered not full?

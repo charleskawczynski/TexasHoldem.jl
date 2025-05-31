@@ -97,7 +97,7 @@ function compute_n_max_actions(players::Players, bb)
 end
 n_raises(i, n_players) = Int(floor(i/n_players))
 
-Table(players; kwargs...) = Table(Players(players); kwargs...)
+Table(players; kwargs...) = Table(NewPlayers(players); kwargs...)
 function Table(players::Players;
     deck = PlayingCards.MaskedDeck(),
     cards = Card[joker, joker, joker, joker, joker],

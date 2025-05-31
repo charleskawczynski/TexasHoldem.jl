@@ -13,7 +13,7 @@ sort_cards(cards) =
     sort(sort(collect(cards); by=x->PlayingCards.rank(x));by=x->PlayingCards.suit(x).i)
 
 @testset "Recreate game" begin
-    players = TH.Players(ntuple(i->Player(BotCheckCall(), i), 3))
+    players = TH.NewPlayers(ntuple(i->Player(BotCheckCall(), i), 3))
     game = Game(players; logger=TH.ByPassLogger())
     (; table) = game
     table = TH.deal(table, TH.blinds(game.table))
