@@ -13,7 +13,7 @@ raise_to!(t, p, amt) = TH.update_given_valid_action!(t, p, Raise(amt))
 fold!(t, p) = TH.update_given_valid_action!(t, p, Fold())
 check!(t, p) = TH.update_given_valid_action!(t, p, Check())
 
-QuietGame(args...; kwargs...) = Game(args...; kwargs..., logger=TH.ByPassLogger())
+QuietGame(args...; kwargs...) = Game(args...; kwargs..., gui=TH.NoGUI(), logger=TH.ByPassLogger())
 
 @testset "Game: show" begin
     players = ntuple(2) do i

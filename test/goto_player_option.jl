@@ -6,7 +6,7 @@ const TH = TexasHoldem
 import Random
 Random.seed!(1234)
 
-QuietGame(args...; kwargs...) = Game(args...; kwargs..., logger=TH.ByPassLogger())
+QuietGame(args...; kwargs...) = Game(args...; kwargs..., gui=TH.NoGUI(), logger=TH.ByPassLogger())
 
 include("tester_bots.jl")
 

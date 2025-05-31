@@ -10,7 +10,7 @@ metafmt(level, _module, group, id, file, line) =
 
 function seeded_game(; fun, n_games, players)
     Random.seed!(1234)
-    games = map(x->Game(deepcopy(players);logger=TexasHoldem.ByPassLogger()), 1:n_games)
+    games = map(x->Game(deepcopy(players);logger=TexasHoldem.ByPassLogger(), gui=TH.NoGUI()), 1:n_games)
     for n in 1:length(games)
         game = games[n]
         fun(game)
@@ -32,7 +32,7 @@ end
 
 function fuzz_given_players(;fun, n_games, players)
     Random.seed!(1234)
-    games = map(x-> Game(deepcopy(players);logger=TexasHoldem.ByPassLogger()), 1:n_games)
+    games = map(x-> Game(deepcopy(players);logger=TH.ByPassLogger(), gui=TH.NoGUI()), 1:n_games)
     crashes = Int[]
     for n in 1:length(games)
         try
@@ -47,7 +47,7 @@ end
 function get_games(; n_games, crashes, players)
     return map(1:n_games) do x
         logger = x in crashes ? TexasHoldem.InfoLogger() : TexasHoldem.ByPassLogger()
-        Game(deepcopy(players);logger=logger)
+        Game(deepcopy(players);logger=logger, gui=TH.NoGUI())
     end
 end
 
