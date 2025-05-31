@@ -20,7 +20,7 @@ function ascii_player(table, player, player_cards; to_string=false, rbuffer="")
         net_winnings,
         hand,
     ]
-    lines = [i * repeat(" ", (width - length(i))) for i in info]
+    lines = [i * repeat(" ", max((width - length(i)),0)) for i in info]
     lines = vcat(lines, card_lines)
     return to_string ? join(lines, "\n") : lines
 end

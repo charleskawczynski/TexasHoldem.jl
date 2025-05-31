@@ -4,9 +4,15 @@
 
 export Game, play!, tournament!
 
+mutable struct OrbitState
+    i::Int
+    sn::Int
+end
+
 mutable struct Game{T<:Table, IBRs}
     table::T
     initial_brs::IBRs
+    orbit_state::OrbitState
 end
 
 function Base.show(io::IO, game::Game)
@@ -21,7 +27,9 @@ end
 Game(players; kwargs...) = Game(Players(players); kwargs...)
 function Game(players::Players; kwargs...)
     table = Table(players; kwargs...)
-    Game(table, deepcopy(bank_roll_chips.(players)))
+    os = first(enumerate(circle(table, FirstToAct())))
+    orbit_state = OrbitState(os[1], os[2])
+    Game(table, deepcopy(bank_roll_chips.(players)), orbit_state)
 end
 
 players_at_table(game::Game) = players_at_table(game.table)
@@ -50,8 +58,8 @@ function set_preflop_blind_raise!(table::Table, player::Player, ::PreFlop, i::In
         end
     end
 end
-reset_round_bank_rolls!(game::Game, round::PreFlop) = nothing # called separately prior to deal
-reset_round_bank_rolls!(game::Game, round::AbstractRound) = reset_round_bank_rolls!(game.table)
+reset_round_bank_rolls!(table::Table, round::PreFlop) = nothing # called separately prior to deal
+reset_round_bank_rolls!(table::Table, round::AbstractRound) = reset_round_bank_rolls!(table)
 
 # TODO: compactify. Some of these cases/conditions may be redundant
 function end_of_actions(table::Table, player)
@@ -148,9 +156,9 @@ function act_generic!(game::Game, round::AbstractRound, sf::StartFrom)
         set_round!(table, round)
         update_gui(table)
         print_round(table, round)
-        reset_round_bank_rolls!(game, round)
+        reset_round_bank_rolls!(table, round)
 
-        any_actions_required(game) || return
+        any_actions_required(table) || return
         play_out_game(table) && return
         set_play_out_game!(table)
     end
@@ -398,6 +406,9 @@ function reset_game!(game::Game)
         logger=logger,
         gui=table.gui,
     )
+    os = first(enumerate(circle(game.table, FirstToAct())))
+    game.orbit_state.i = os[1]
+    game.orbit_state.sn = os[2]
     PlayingCards.reset!(game.table.deck)
     table = game.table
     players = players_at_table(table)
