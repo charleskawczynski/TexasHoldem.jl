@@ -4,9 +4,15 @@
 
 export Game, play!, tournament!
 
+mutable struct OrbitState
+    i::Int
+    sn::Int
+end
+
 mutable struct Game{T<:Table, IBRs}
     table::T
     initial_brs::IBRs
+    orbit_state::OrbitState
 end
 
 function Base.show(io::IO, game::Game)
@@ -21,7 +27,9 @@ end
 Game(players; kwargs...) = Game(Players(players); kwargs...)
 function Game(players::Players; kwargs...)
     table = Table(players; kwargs...)
-    Game(table, deepcopy(bank_roll_chips.(players)))
+    os = first(enumerate(circle(table, FirstToAct())))
+    orbit_state = OrbitState(os[1], os[2])
+    Game(table, deepcopy(bank_roll_chips.(players)), orbit_state)
 end
 
 players_at_table(game::Game) = players_at_table(game.table)
@@ -398,6 +406,9 @@ function reset_game!(game::Game)
         logger=logger,
         gui=table.gui,
     )
+    os = first(enumerate(circle(game.table, FirstToAct())))
+    game.orbit_state.i = os[1]
+    game.orbit_state.sn = os[2]
     PlayingCards.reset!(game.table.deck)
     table = game.table
     players = players_at_table(table)
