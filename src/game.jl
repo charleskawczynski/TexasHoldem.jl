@@ -24,7 +24,8 @@ function Base.show(io::IO, game::Game)
     println(io, "-----------------------")
 end
 
-Game(players; kwargs...) = Game(Players(players); kwargs...)
+Game(table::Table; kwargs...) = Game(players_at_table(table); kwargs...)
+Game(players::Tuple; kwargs...) = Game(Players(players); kwargs...)
 function Game(players::Players; kwargs...)
     table = Table(players; kwargs...)
     os = first(enumerate(circle(table, FirstToAct())))
