@@ -340,7 +340,8 @@ function is_blind_call(table::Table, player::Player, amt = call_amount(table, pl
     end
 end
 
-function reset_round_bank_rolls!(table::Table)
+function reset_round_bank_rolls!(table::Table, round)
+    round == :preflop && return nothing
     players = players_at_table(table)
     for player in players
         player.round_bank_roll = bank_roll_chips(player)

@@ -9,10 +9,11 @@ mutable struct OrbitState
     sn::Int
 end
 
-mutable struct Game{T<:Table, IBRs}
+mutable struct Game{T<:Table, IBRs, TBR}
     table::T
     initial_brs::IBRs
     orbit_state::OrbitState
+    initial_∑brs::TBR
 end
 
 function Base.show(io::IO, game::Game)
@@ -30,7 +31,8 @@ function Game(players::Players; kwargs...)
     table = Table(players; kwargs...)
     os = first(enumerate(circle(table, FirstToAct())))
     orbit_state = OrbitState(os[1], os[2])
-    Game(table, deepcopy(bank_roll_chips.(players)), orbit_state)
+    initial_∑brs = ∑bank_rolls(players)
+    Game(table, deepcopy(bank_roll_chips.(players)), orbit_state, initial_∑brs)
 end
 
 players_at_table(game::Game) = players_at_table(game.table)
@@ -155,7 +157,7 @@ function act_generic!(game::Game, round, sf::StartFrom)
         table.round = round
         update_gui(table)
         print_round(table, round)
-        round == :preflop || reset_round_bank_rolls!(table)
+        reset_round_bank_rolls!(table, round)
 
         any_actions_required(table) || return
         play_out_game(table) && return
@@ -250,77 +252,23 @@ Optionally, users can pass in a `StartFrom`
 option, to start from a game-point, specified
 by `sf`.
 """
-play!(game::Game, sf::StartFrom = StartFrom(StartOfGame())) =
-    deal_and_play!(game::Game, sf)
-
-"""
-    deal_and_play!(game::Game[, sf::StartFrom])
-
-Deal and play a game.
-
-Optionally, users can pass in a `StartFrom`
-option, to start from a game-point, specified
-by `sf`.
-"""
-function deal_and_play!(game::Game, sf::StartFrom = StartFrom(StartOfGame()))
+function play!(game::Game, sf::StartFrom = StartFrom(StartOfGame()))
     if game.table.logger isa DebugLogger
         cl = Logging.ConsoleLogger(stderr,Logging.Debug; meta_formatter=metafmt)
         Logging.with_logger(cl) do
-            _deal_and_play!(game, sf)
+            _play!(game, sf)
         end
     else
-        _deal_and_play!(game, sf)
+        _play!(game, sf)
     end
 end
 
-∑bank_rolls(players) =
-    mapreduce(x->bank_roll_chips(x), +, players; init=Chips(0))
-
-function _deal_and_play!(game::Game, sf::StartFrom)
-    logger = game.table.logger
+function _play!(game::Game, sf::StartFrom)
+    game = initialize!(game, sf)
     table = game.table
+    logger = table.logger
     winners = table.winners
     players = players_at_table(table)
-    initial_brs = game.initial_brs
-    if sf.game_point isa PlayerOption
-        # Cannot (or, should not) play from a point
-        # at which a winner has been declared
-        @assert !winners.declared
-    end
-
-    if sf.game_point isa StartOfGame
-        @inbounds for (pidx, player) in enumerate(players)
-            initial_brs[pidx] = bank_roll_chips(player)
-        end
-        @cinfo logger "------ Playing game!"
-        set_active_status!(table)
-        initial_∑brs = ∑bank_rolls(players)
-
-        @cinfo logger "Initial bank roll summary: $(bank_roll_chips.(players))"
-
-        did = dealer_pidx(table)
-        sb = seat_number(small_blind(table))
-        bb = seat_number(big_blind(table))
-        f2a = seat_number(first_to_act(table))
-        @cinfo logger "Buttons (dealer, small, big, 1ˢᵗToAct): ($did, $sb, $bb, $f2a)"
-        @assert still_playing(dealer(table)) "The button must be placed on a non-folded player"
-        @assert still_playing(small_blind(table)) "The small blind button must be placed on a non-folded player"
-        @assert still_playing(big_blind(table)) "The big blind button must be placed on a non-folded player"
-        @assert still_playing(first_to_act(table)) "The first-to-act button must be placed on a non-folded player"
-    end
-
-    @assert dealer_pidx(table) ≠ small_blind_pidx(table) "The button and small blind cannot coincide"
-    @assert small_blind_pidx(table) ≠ big_blind_pidx(table) "The small and big blinds cannot coincide"
-    @assert big_blind_pidx(table) ≠ first_to_act_pidx(table) "The big blind and first to act cannot coincide"
-
-    if sf.game_point isa StartOfGame
-        reset!(table.transactions, players)
-        @assert all(p->!has_cards(p), players)
-        @assert all(c->c==joker, cards(table))
-        reset_round_bank_rolls!(table) # round bank-rolls must account for blinds
-        deal!(table, blinds(table))
-        @assert cards(table) ≠ nothing
-    end
 
     winners.declared || act!(game, :preflop, sf)   # Pre-flop bet/check/raise
     winners.declared || act!(game, :flop, sf)      # Deal flop , then bet/check/raise
@@ -330,20 +278,34 @@ function _deal_and_play!(game::Game, sf::StartFrom)
     distribute_winnings!(players, table.transactions, cards(table), logger)
     winners.declared = true
 
+    post_game_procedure(game, sf)
+    @cinfo logger "------ Finished game!"
+    return any(x->quit_game(game, x), players)
+end
+
+∑bank_rolls(players) =
+    mapreduce(x->bank_roll_chips(x), +, players; init=Chips(0))
+
+function post_game_procedure(game, sf)
+    logger = game.table.logger
+    table = game.table
+    winners = table.winners
+    players = players_at_table(table)
+    initial_brs = game.initial_brs
     update_gui(table)
     @cdebug logger "amounts.(table.transactions.side_pots) = $(amounts.(table.transactions.side_pots))"
-    @cdebug logger "initial_∑brs = $(initial_∑brs)"
+    @cdebug logger "initial_∑brs = $(game.initial_∑brs)"
     @cdebug logger "sum(bank_roll.(players)) = $(sum(bank_roll.(players)))"
     @cdebug logger "initial_brs = $(initial_brs)"
     @cdebug logger "bank_roll_chips.(players) = $(bank_roll_chips.(players))"
 
     if sf.game_point isa StartOfGame
         if !(logger isa ByPassLogger)
-            if initial_∑brs ≠ ∑bank_rolls(players)
-                @cinfo logger "initial_∑brs=$initial_∑brs, brs=$(bank_roll_chips.(players))"
+            if game.initial_∑brs ≠ ∑bank_rolls(players)
+                @cinfo logger "initial_∑brs=$(game.initial_∑brs), brs=$(bank_roll_chips.(players))"
             end
         end
-        @assert initial_∑brs == ∑bank_rolls(players) "initial_∑brs = $(initial_∑brs), ∑bank_rolls = $(∑bank_rolls(players))"
+        @assert game.initial_∑brs == ∑bank_rolls(players) "initial_∑brs = $(game.initial_∑brs), ∑bank_rolls = $(∑bank_rolls(players))"
     end
     @assert sum(sp->sum(amounts(sp)), table.transactions.side_pots) == 0
     for (player, initial_br) in zip(players, initial_brs)
@@ -365,13 +327,9 @@ function _deal_and_play!(game::Game, sf::StartFrom)
     for player in players
         notify_reward(player)
     end
-
-    @cinfo logger "------ Finished game!"
-    return any(x->quit_game(game, x), players)
 end
 
-function set_active_status!(table::Table)
-    players = players_at_table(table)
+function set_active_status!(players::Players)
     for player in players
         if zero_bank_roll(player)
             player.active = false
@@ -383,6 +341,58 @@ function set_active_status!(table::Table)
             player.action_required = true
         end
     end
+end
+
+function initialize!(game, sf)
+    logger = game.table.logger
+    table = game.table
+    winners = table.winners
+    players = players_at_table(table)
+    if sf.game_point isa StartOfGame
+        initial_brs = game.initial_brs
+        @assert !winners.declared "We haven't started playing yet!"
+        @inbounds for (pidx, player) in enumerate(players)
+            initial_brs[pidx] = bank_roll_chips(player)
+        end
+        @cinfo logger "------ Playing game!"
+        set_active_status!(players)
+        game.initial_∑brs = ∑bank_rolls(players)
+        verify_start_of_game(table)
+    end
+
+    verify_seats(table)
+
+    if sf.game_point isa StartOfGame
+        reset!(table.transactions, players)
+        table.round = :preflop
+        @assert all(p->!has_cards(p), players)
+        @assert all(c->c==joker, cards(table))
+        reset_round_bank_rolls!(table, :null) # round bank-rolls must account for blinds
+        deal!(table, blinds(table))
+        @assert cards(table) ≠ nothing
+    end
+    return game
+end
+
+function verify_seats(table)
+    @assert dealer_pidx(table) ≠ small_blind_pidx(table) "The button and small blind cannot coincide"
+    @assert small_blind_pidx(table) ≠ big_blind_pidx(table) "The small and big blinds cannot coincide"
+    @assert big_blind_pidx(table) ≠ first_to_act_pidx(table) "The big blind and first to act cannot coincide"
+end
+
+function verify_start_of_game(table)
+    logger = table.logger
+    players = players_at_table(table)
+    @cinfo logger "Initial bank roll summary: $(bank_roll_chips.(players))"
+    did = dealer_pidx(table)
+    sb = seat_number(small_blind(table))
+    bb = seat_number(big_blind(table))
+    f2a = seat_number(first_to_act(table))
+    @cinfo logger "Buttons (dealer, small, big, 1ˢᵗToAct): ($did, $sb, $bb, $f2a)"
+    @assert still_playing(dealer(table)) "The button must be placed on a non-folded player"
+    @assert still_playing(small_blind(table)) "The small blind button must be placed on a non-folded player"
+    @assert still_playing(big_blind(table)) "The big blind button must be placed on a non-folded player"
+    @assert still_playing(first_to_act(table)) "The first-to-act button must be placed on a non-folded player"
 end
 
 function reset_game!(game::Game)
@@ -415,7 +425,7 @@ function reset_game!(game::Game)
         player.round_contribution = 0
         player.active = true
     end
-    set_active_status!(table)
+    set_active_status!(players)
     table.play_out_game = false
 end
 
