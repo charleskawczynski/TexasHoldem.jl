@@ -49,15 +49,17 @@ print_round(table, round::Flop) =    @cinfo table.logger "Flop: $(repeat(" ", 44
 print_round(table, round::Turn) =    @cinfo table.logger "Turn: $(repeat(" ", 44)) $(table.cards[4])"
 print_round(table, round::River) =   @cinfo table.logger "River: $(repeat(" ", 43)) $(table.cards[5])"
 
-set_preflop_blind_raise!(table::Table, player, ::AbstractRound, i::Int) = nothing
-function set_preflop_blind_raise!(table::Table, player::Player, ::PreFlop, i::Int)
-    if 1 ≤ i ≤ length(players_at_table(table))
-        if is_first_to_act(table, player)
+function set_antes!(table::Table, round::AbstractRound)
+    round isa PreFlop || return nothing
+    players = players_at_table(table)
+    for i in 1:length(players)
+        if is_first_to_act(table, players[i])
             # everyone must call big blind to see flop:
             table.current_raise_amt = blinds(table).big
             table.initial_round_raise_amt = blinds(table).big
         end
     end
+    return nothing
 end
 reset_round_bank_rolls!(table::Table, round::PreFlop) = nothing # called separately prior to deal
 reset_round_bank_rolls!(table::Table, round::AbstractRound) = reset_round_bank_rolls!(table)
@@ -175,7 +177,6 @@ function act_generic!(game::Game, round::AbstractRound, sf::StartFrom)
             @cdebug logger "     not_playing(player) = $(not_playing(player))"
             @cdebug logger "     all_in(player) = $(all_in(player))"
             not_playing(player) && continue # skip players not playing
-            set_preflop_blind_raise!(table, player, round, i)
             if end_of_actions(table, player)
                 break
             end
