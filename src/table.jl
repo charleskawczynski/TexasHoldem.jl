@@ -56,7 +56,7 @@ mutable struct Table{P<:Players, L, TM, B <: Blinds, D <: PlayingCards.AbstractD
     cards::Vector{Card}
     blinds::B
     pot::Int
-    round::AbstractRound
+    round::Symbol
     buttons::Buttons
     current_raise_amt::Int
     initial_round_raise_amt::Int
@@ -89,7 +89,7 @@ which happens when
 function compute_n_max_actions(players::Players, bb)
     maxbr = maximum(bank_roll.(players))
     n_players = length(players)
-    n_check_call_rounds = n_players*3 # PreFlop, Flop, Turn
+    n_check_call_rounds = n_players*3 # preflop, flop, turn
     n_raise_rounds = findfirst(1:typemax(Int)) do i
         maxbr < bb^n_raises(i, n_players)
     end
@@ -104,7 +104,7 @@ function Table(players::Players;
     gui = isinteractive() ? Terminal() : NoGUI(), # NoGUI() is better for testing
     blinds = Blinds(),
     pot = 0,
-    round = PreFlop(),
+    round = :preflop,
     dealer_pidx = default_dealer_pidx(),
     current_raise_amt = 0,
     initial_round_raise_amt = blinds.small,
@@ -176,24 +176,34 @@ end
 
 cards(table::Table) = table.cards
 
-observed_cards(table::Table) = observed_cards(table, round(table))
-observed_cards(table::Table, ::PreFlop) = Card[]
-observed_cards(table::Table, ::Flop) = table.cards[1:3]
-observed_cards(table::Table, ::Turn) = table.cards[1:4]
-observed_cards(table::Table, ::River) = table.cards
+function observed_cards(table::Table)
+    r = round(table)
+    if r == :preflop;   return Card[]
+    elseif r == :flop;  return table.cards[1:3]
+    elseif r == :turn;  return table.cards[1:4]
+    elseif r == :river; return table.cards
+    else; error("Uncaught case")
+    end
+end
 
-observed_cards_all(table::Table) = observed_cards_all(table, round(table))
-observed_cards_all(table::Table, ::PreFlop) = Card[joker,joker,joker,joker,joker]
-observed_cards_all(table::Table, ::Flop) = Card[table.cards[1:3]..., joker, joker]
-observed_cards_all(table::Table, ::Turn) = Card[table.cards[1:4]..., joker]
-observed_cards_all(table::Table, ::River) = table.cards
+function observed_cards_all(table::Table, r = round(table))
+    if r == :preflop;   return Card[joker,joker,joker,joker,joker]
+    elseif r == :flop;  return Card[table.cards[1:3]..., joker, joker]
+    elseif r == :turn;  return Card[table.cards[1:4]..., joker]
+    elseif r == :river; return table.cards
+    else; error("Uncaught case")
+    end
+end
 
-# for testing
-unobserved_cards(table::Table) = unobserved_cards(table, round(table))
-unobserved_cards(table::Table, ::PreFlop) = table.cards
-unobserved_cards(table::Table, ::Flop) = table.cards[4:5]
-unobserved_cards(table::Table, ::Turn) = Card[table.cards[5]]
-unobserved_cards(table::Table, ::River) = Card[]
+function unobserved_cards(table::Table)
+    r = round(table)
+    if r == :preflop;   return table.cards
+    elseif r == :flop;  return table.cards[4:5]
+    elseif r == :turn;  return Card[table.cards[5]]
+    elseif r == :river; return Card[]
+    else; error("Uncaught case")
+    end
+end
 
 current_raise_amt(table::Table) = table.current_raise_amt
 initial_round_raise_amt(table::Table) = table.initial_round_raise_amt
@@ -349,10 +359,6 @@ function reset_round!(table::Table)
     end
     table.initial_round_raise_amt = blinds(table).small
     table.current_raise_amt = 0
-end
-
-function set_round!(table::Table, round::AbstractRound)
-    table.round = round
 end
 
 # Check for winner, in case when only a single player remains

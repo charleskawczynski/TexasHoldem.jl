@@ -23,11 +23,11 @@ function do_work!(game)
 end
 
 # Make sure it runs without errors
-game = Game(players();logger=TH.ByPassLogger())
+game = Game(players();logger=TH.ByPassLogger(), gui=TH.NoGUI())
 do_work!(game)
 
 Random.seed!(1234)
-game = Game(players();logger=TH.ByPassLogger())
+game = Game(players();logger=TH.ByPassLogger(), gui=TH.NoGUI())
 n_expected_failures = Dict()
 n_expected_failures[v"1.9.2"] = 0
 n_expected_failures[v"1.9.3"] = 0

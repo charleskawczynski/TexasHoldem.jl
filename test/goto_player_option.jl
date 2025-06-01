@@ -15,12 +15,8 @@ mutable struct RiverDreamer <: AbstractStrategy
     fixed::Bool
 end
 
-TH.player_option(game::Game, player::Player{RiverDreamer}, ::AGS, ::CheckRaiseFold) = Check()
-TH.player_option(game::Game, player::Player{RiverDreamer}, ::AGS, ::CallRaiseFold) = Call(game, player)
-TH.player_option(game::Game, player::Player{RiverDreamer}, ::AGS, ::CallAllInFold) = Call(game, player)
-TH.player_option(game::Game, player::Player{RiverDreamer}, ::AGS, ::CallFold) = Call(game, player)
-
-function TH.player_option(game::Game, player::Player{RiverDreamer}, round::River, option::CheckRaiseFold)
+function TH.player_option(game::Game, player::Player{RiverDreamer}, round, option::CheckRaiseFold)
+    round == :river || return Check()
     if player.strategy.fixed
         Check()
     else
@@ -43,15 +39,18 @@ function TH.player_option(game::Game, player::Player{RiverDreamer}, round::River
         return Check()
     end
 end
-function TH.player_option(game::Game, player::Player{RiverDreamer}, round::River, option::CallRaiseFold)
+function TH.player_option(game::Game, player::Player{RiverDreamer}, round, option::CallRaiseFold)
+    round == :river || return Call(game, player)
     rgame = TH.recreate_game(game, player)
     Call(game, player)
 end
-function TH.player_option(game::Game, player::Player{RiverDreamer}, round::River, option::CallAllInFold)
+function TH.player_option(game::Game, player::Player{RiverDreamer}, round, option::CallAllInFold)
+    round == :river || return Call(game, player)
     rgame = TH.recreate_game(game, player)
     Call(game, player)
 end
-function TH.player_option(game::Game, player::Player{RiverDreamer}, round::River, option::CallFold)
+function TH.player_option(game::Game, player::Player{RiverDreamer}, round, option::CallFold)
+    round == :river || return Call(game, player)
     rgame = TH.recreate_game(game, player)
     Call(game, player)
 end

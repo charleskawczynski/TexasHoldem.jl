@@ -35,7 +35,7 @@ function update_gui(io::IO, table::Table, ::Terminal, pov_player)
     println(io, "       Chips in pot: $(pot(table.transactions))")
     for i in 1:2; println(io); end
     ocs = if table.winners.declared
-        observed_cards_all(table, River())
+        observed_cards_all(table, :river)
     else
         observed_cards_all(table)
     end
