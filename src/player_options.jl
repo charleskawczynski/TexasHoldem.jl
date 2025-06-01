@@ -21,6 +21,15 @@ struct Options
 end
 
 """
+    NoOptions
+
+The options used when the game is over, a winner is declared,
+or all of the players have gone all in or folded and no players
+have any actions left to make.
+"""
+NoOptions() = Options(:none)
+
+"""
     CheckRaiseFold
 
 The option when a player is only able to
@@ -72,7 +81,6 @@ function is_valid_raise_amount(table::Table, player::Player, amt::Int)
     prc = round_contribution(player)
     rbr = round_bank_roll(player)
     vrr = valid_raise_range(table, player)
-    @cdebug logger "vrr = $vrr, amt = $amt, prc = $prc, rbr=$rbr, br=$(bank_roll(player))"
     minraise = first(vrr)
     maxraise = last(vrr)
 
@@ -180,8 +188,12 @@ function an_opponent_can_call_a_raise(table::Table, player::Player)
     return occr
 end
 
+update_given_valid_action!(game::Game, action::Action) =
+    update_given_valid_action!(game.table, current_player(game), action)
 update_given_valid_action!(game::Game, player::Player, action::Action) =
     update_given_valid_action!(game.table, player, action)
+update_given_valid_action!(table::Table, action::Action) =
+    update_given_valid_action!(table, current_player(game), action)
 function update_given_valid_action!(table::Table, player::Player, action::Action)
     logger = table.logger
     @assert action.name in (:fold, :raise, :call, :check, :all_in)
@@ -207,7 +219,6 @@ function update_given_valid_action!(table::Table, player::Player, action::Action
                 "$(name(player)) called $(amt)$blind_str."
             end
         end
-
     elseif action.name == :check
         player.performed_action = :checked
         @cinfo logger "$(name(player)) checked!"
@@ -266,17 +277,17 @@ and has one of the following names
 """
 function player_option end
 
-function player_option(game::Game, player::Player)
-    options = get_options(game, player)
-    action = player_option(game, player, options)::Action
-    validate_action(action, options)
-    return action
+current_player(game) =
+    players_at_table(game.table)[game.orbit_state.pidx]
+
+function next_player_to_act(game)
+    players = players_at_table(game.table)
+    pidx = pidx_next_player_to_act(game)
+    return players[pidx]
 end
 
-# By default, forward to `player_option` with
-# game round:
-# player_option(game::Game, options) =
-#     player_option(game, current_player(game), options)
+player_option(game::Game, options::Options) =
+    player_option(game, current_player(game), options)
 
 #####
 ##### AbstractStrategy

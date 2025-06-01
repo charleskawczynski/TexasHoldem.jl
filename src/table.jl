@@ -229,9 +229,11 @@ is_big_blind(table::Table, player::Player) = seat_number(player) == seat_number(
 is_first_to_act(table::Table, player::Player) = seat_number(player) == seat_number(first_to_act(table))
 
 players_at_table(table::Table) = table.players
-all_playing_checked(table::Table) = all(x -> not_playing(x) || checked(x), players_at_table(table))
+# all_playing_checked(table::Table) = all(x -> not_playing(x) || checked(x), players_at_table(table))
+all_playing_checked(table::Table) = all(x -> not_playing(x) || !action_required(x), players_at_table(table))
 all_playing_all_in(table::Table) = all(x -> not_playing(x) || all_in(x), players_at_table(table))
-all_all_in_or_checked(table::Table) = all(x -> checked(x) || all_in(x), players_at_table(table))
+# all_all_in_or_checked(table::Table) = all(x -> checked(x) || all_in(x), players_at_table(table))
+all_all_in_or_checked(table::Table) = all(x -> all_in(x) || !action_required(x), players_at_table(table))
 
 """
     bank_roll_leader(table::Table)
@@ -319,7 +321,8 @@ function set_play_out_game!(table::Table)
         cond1 = not_playing(player)
         cond2 = all_in(player)
         cond3 = seat_number(player) == seat_number(br_leader)
-        any((cond1, cond2, cond3))
+        cond4 = all_all_in_except_bank_roll_leader(table)
+        any((cond1, cond2, cond3, cond4))
     end, players)
 end
 

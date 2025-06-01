@@ -6,6 +6,12 @@ export Fold, Check, Call, Raise, AllIn
 export call_amount, valid_raise_range
 
 """
+    Ready()
+The action used to pass to `play` when first starting a game.
+"""
+Ready() = Action(:ready, 0)
+
+"""
     Fold()
 
 The fold action, to be returned from [`player_option`](@ref),

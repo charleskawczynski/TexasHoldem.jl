@@ -26,6 +26,8 @@ function TH.player_option(game::Game, player::Player{BotCheckCall}, options)
     on == :CallRaiseFold && return Call(game.table, player)
     on == :CallAllInFold && return Call(game.table, player)
     on == :CallFold && return Call(game.table, player)
+    # on == :none && return Call(game.table, player)
+    error("Uncaught case: $on")
 end
 
 ##### BotFlopRaise

@@ -67,7 +67,7 @@ function end_of_actions(table::Table, player)
     players = players_at_table(table)
     logger = table.logger
     @cdebug logger "     last_to_raise.(players) = $(last_to_raise.(players))"
-    @cdebug logger "     checked.(players) = $(checked.(players))"
+    # @cdebug logger "     checked.(players) = $(checked.(players))"
     @cdebug logger "     folded.(players) = $(folded.(players))"
     @cdebug logger "     action_required.(players) = $(action_required.(players))"
     @cdebug logger "     !any(action_required.(players)) = $(!any(action_required.(players)))"
@@ -113,106 +113,23 @@ function all_bets_were_called(table::Table)
         end
         @cdebug logger "snlptr = $(seat_number(lptr))"
     end
-    return all(player-> begin
+    abwc = all(player-> begin
         cond1 = seat_number(player) == seat_number(lptr)
         cond2 = not_playing(player)
         cond3 = all_in(player)
         cond4 = pot_investment(player) == pot_investment(lptr)
         any((cond1, cond2, cond3, cond4))
     end, players)
+    @cdebug logger "     all_bets_were_called = $abwc"
+    return abwc
 end
 
-function end_preflop_actions(table::Table, player::Player, round)
-    round == :preflop || return false
+function end_preflop_actions(table::Table, player::Player)
+    table.round == :preflop || return false
     cond1 = is_big_blind(table, player)
     cond2 = checked(player)
     cond3 = still_playing(player)
     return all((cond1, cond2, cond3))
-end
-
-skip_pre_option(sf::StartFrom{StartOfGame}, _) = false
-skip_option(sf::StartFrom{StartOfGame}, _) = false
-skip_post_option(sf::StartFrom{StartOfGame}, _) = false
-
-skip_pre_option(sf::StartFrom{GP}, player) where {GP <: PlayerOption} =
-    true
-skip_option(sf::StartFrom{GP}, player) where {GP <: PlayerOption} =
-    seat_number(sf.game_point.player) ≠ seat_number(player)
-skip_post_option(sf::StartFrom{GP}, player) where {GP <: PlayerOption} =
-    seat_number(sf.game_point.player) ≠ seat_number(player)
-
-function act_generic!(game::Game, round, sf::StartFrom)
-    table = game.table
-    players = table.players
-    logger = table.logger
-    table.winners.declared && return
-    @assert sf.game_point isa StartOfGame || sf.game_point isa PlayerOption
-    if sf.game_point isa StartOfGame
-        table.round = round
-        update_gui(table)
-        print_round(table, round)
-        reset_round_bank_rolls!(table, round)
-
-        any_actions_required(table) || return
-        play_out_game(table) && return
-        set_play_out_game!(table)
-    end
-    reached_game_point = false # to support when StartFrom is not StartOfGame
-    # need a bool so that we pick the recreated
-    # action (in `sf.game_point.action`) once,
-    # and then continue with `player_option`.
-    past_game_point = false
-    for (i, sn) in enumerate(circle(table, FirstToAct()))
-        player = players[sn]
-        if reached_game_point || !skip_pre_option(sf, player)
-            @cdebug logger "Checking to see if it's $(name(player))'s turn to act"
-            @cdebug logger "     not_playing(player) = $(not_playing(player))"
-            @cdebug logger "     all_in.(players) = $(all_in.(players))"
-            not_playing(player) && continue # skip players not playing
-            if end_of_actions(table, player)
-                break
-            end
-            all_in(player) && continue
-            @cdebug logger "$(name(player))'s turn to act"
-        end
-        if reached_game_point || !skip_option(sf, player)
-            reached_game_point = true
-            if sf.game_point isa PlayerOption && !past_game_point
-                action = sf.game_point.action
-                past_game_point = true
-            else
-                action = player_option(game, player)
-            end
-        end
-        if reached_game_point || !skip_post_option(sf, player)
-            update_given_valid_action!(table, player, action)
-            table.winners.declared && break
-            end_preflop_actions(table, player, round) && break
-        end
-        if i > n_max_actions(table)
-            error("Too many actions have occurred, please open an issue.")
-        end
-    end
-    @cinfo logger "Betting is finished."
-    @assert all_bets_were_called(table)
-end
-
-function skip_round(round, sf::StartFrom)
-    if sf.game_point isa StartOfGame;                         return false
-    elseif round == :preflop && sf.game_point.round == :flop; return true
-    elseif round == :preflop && sf.game_point.round == :turn; return true
-    elseif round == :flop &&    sf.game_point.round == :turn; return true
-    elseif round == :preflop && sf.game_point.round == :river; return true
-    elseif round == :flop &&    sf.game_point.round == :river; return true
-    elseif round == :turn &&    sf.game_point.round == :river; return true
-    else;                                                      return false
-    end
-end
-
-function act!(game::Game, round, sf::StartFrom)
-    skip_round(round, sf) && return nothing
-    act_generic!(game, round, sf)
-    reset_round_parameters!(game.table)
 end
 
 metafmt(level, _module, group, id, file, line) =
@@ -221,6 +138,15 @@ metafmt(level, _module, group, id, file, line) =
 function pidx_from_seat_number(player, players)::Int
     for (i, p) in enumerate(players)
         if seat_number(player) == seat_number(p)
+            return i
+        end
+    end
+    error("Uncaught case")
+end
+
+function pidx_given_seat_number(players, sn::Integer)::Int
+    for (i, p) in enumerate(players)
+        if sn == seat_number(p)
             return i
         end
     end
@@ -238,49 +164,183 @@ function max_possible_profit(player, players, initial_brs)
 end
 
 """
-    play!(game::Game[, sf::StartFrom])
+    play!(game::Game, action = Ready())
 
 Play a game.
 
-Optionally, users can pass in a `StartFrom`
-option, to start from a game-point, specified
-by `sf`.
+Optionally, users can pass in an existing game
+and the action to use at that game point.
+Returns the game after it's finished
 """
-function play!(game::Game, sf::StartFrom = StartFrom(StartOfGame()))
+function play!(game::Game, action = Ready())
     if game.table.logger isa DebugLogger
         cl = Logging.ConsoleLogger(stderr,Logging.Debug; meta_formatter=metafmt)
         Logging.with_logger(cl) do
-            _play!(game, sf)
+            _play!(game, action)
         end
     else
-        _play!(game, sf)
+        _play!(game, action)
     end
 end
 
-function _play!(game::Game, sf::StartFrom)
-    game = initialize!(game, sf)
+function _play!(game::Game, action = Ready())
     table = game.table
     logger = table.logger
-    winners = table.winners
     players = players_at_table(table)
-
-    winners.declared || act!(game, :preflop, sf)   # Pre-flop bet/check/raise
-    winners.declared || act!(game, :flop, sf)      # Deal flop , then bet/check/raise
-    winners.declared || act!(game, :turn, sf)      # Deal turn , then bet/check/raise
-    winners.declared || act!(game, :river, sf)     # Deal river, then bet/check/raise
-
-    distribute_winnings!(players, table.transactions, cards(table), logger)
+    game = initialize!(game, action)
+    while true
+        # server starts game, and returns options to client
+        maybe_reset_orbit_state!(game)
+        (game, options) = play_to_options!(game)
+        if game.orbit_state.i > n_max_actions(table) * 4 # (preflop, flop, turn, river)
+            error("Too many actions have occurred, please open an issue.")
+        end
+        # client returns action to server
+        # @cdebug logger "@which player_option(game, options): $(Main.InteractiveUtils.@which(player_option(game, options)))"
+        @cdebug logger "--------------------: player_option($(name(current_player(game)))): $options"
+        if options.name != :none
+            action = player_option(game, options)::Action
+            validate_action(action, options)
+            update_given_valid_action!(game, action)
+        end
+        player = current_player(game)
+        player.action_required = false
+        update_orbit_state!(game)
+        game_is_finished(game) && break
+        @cdebug logger "--------------------: action: $action"
+        game.table.round == :post_river && break
+    end
+    logger = table.logger
+    winners = table.winners
     winners.declared = true
+    distribute_winnings!(players, table.transactions, cards(table), logger)
+    post_game_procedure(game)
+    return game
+end
 
-    post_game_procedure(game, sf)
-    @cinfo logger "------ Finished game!"
-    return any(x->quit_game(game, x), players)
+function game_is_finished(game)
+    return game.table.winners.declared ||
+        any(x->quit_game(game, x), game.table.players)
+        # all_bets_were_called(game.table)
+end
+
+    # skip_round(game.round, action) && return nothing
+    # if action.name == :ready:
+        # 1) find next player to act
+        # 2) return their options (client submits `player_option` result)
+    # else
+        # 1) player = players[orbit_state.i]
+        # 2) update_given_valid_action!(table, player, action)
+        # 3) check for winner, if so, return (game, :none) (options = :none)
+        # 4) check if round is over, if so, update round state
+        # 5) find next player to act
+        # 6) return their options (client submits `player_option` result)
+    # end
+function play_to_options!(game::Game)
+    table = game.table
+    players = table.players
+    logger = table.logger
+    @cdebug logger " 1 ==================== play_to_options! round: $(table.round), player $(name(current_player(game))), orbit ctr: $(game.orbit_state.i)"
+    if table.winners.declared
+        @cdebug logger " 3 exit play_to_options!: Winner declared: $(table.winners), returning no options"
+        return (game, NoOptions())
+    end
+    # update_gui(table)
+    # game.orbit_state.i == 1 && print_round(table, table.round)
+    # if !any_actions_required(table)
+    #     @cdebug logger " 4 exit play_to_options!: !any_actions_required(table) (1)"
+    #     return (game, NoOptions())
+    # end
+    # if game.orbit_state.i == 1 && game.table.round == :preflop
+    #     if play_out_game(table)
+    #         @cdebug logger " 5 exit play_to_options!: play_out_game(table) (1)"
+    #         return (game, NoOptions())
+    #     end
+    #     set_play_out_game!(table)
+    # end
+
+    # if !any_actions_required(table)
+    #     @cdebug logger " 6 No actions required (2): returning no options"
+    #     @cdebug logger " 9 exit play_to_options!: !any_actions_required (2)"
+    #     return (game, NoOptions())
+    # end
+    set_play_out_game!(table)
+    if play_out_game(table)
+        @cdebug logger " 10 Playing out game (2): returning no options"
+        @cdebug logger " 13 exit play_to_options!: play_out_game(table) (2)"
+        return (game, NoOptions())
+    end
+    options = get_options(game, current_player(game))
+    return (game, options)
+end
+
+function maybe_reset_orbit_state!(game)
+    player = current_player(game)
+    table = game.table
+    logger = table.logger
+    if end_preflop_actions(table, player) || end_of_actions(table, player)
+        @cdebug logger "Resetting the orbit state"
+        update_gui(table)
+        print_round(table, table.round)
+        reset_round_bank_rolls!(table, table.round)
+        reset_orbit_state!(game)
+        reset_round_parameters!(table)
+        # reset_round_bank_rolls!(table, table.round)
+    else
+        @cdebug logger "Not resetting the orbit state, end_preflop_actions: $(end_preflop_actions(table, player)), end_of_actions: $(end_of_actions(table, player))"
+    end
+end
+
+function update_orbit_state!(game)
+    table = game.table
+    logger = table.logger
+    pidx = pidx_next_player_to_act(game)
+    players = players_at_table(table)
+    @cdebug logger "Updating orbit state"
+    @cdebug logger "     current_player(game) = $(current_player(game))"
+    game.orbit_state.i+=1
+    game.orbit_state.pidx=pidx
+    @cdebug logger "     current_player(game) = $(current_player(game))"
+    @cdebug logger "     action_required.(players) = $(action_required.(players))"
+    player = current_player(game)
+    if end_preflop_actions(table, player) || end_of_actions(table, player) || !any_actions_required(table)
+        table.round = next_round(table.round)
+        reset_round_parameters!(table)
+    end
+end
+
+function reset_orbit_state!(game)
+    pidx = if game.table.round == :preflop
+        first(circle(game.table, FirstToAct()))
+    else
+        first(circle(game.table, SmallBlind()))
+    end
+    game.orbit_state.i = 1
+    game.orbit_state.pidx = pidx
+end
+
+current_pidx(game) = game.orbit_state.pidx
+
+function pidx_next_player_to_act(game)
+    pidx = game.orbit_state.pidx
+    players = players_at_table(game.table)
+    return this_or_next_valid_pidx(players, pidx+1)
+end
+
+
+function next_round(r)
+    if r == :preflop;  return :flop
+    elseif r == :flop; return :turn
+    elseif r == :turn; return :river
+    elseif r == :river; return :post_river
+    else; error("Uncaught case")
+    end
 end
 
 ∑bank_rolls(players) =
     mapreduce(x->bank_roll_chips(x), +, players; init=Chips(0))
 
-function post_game_procedure(game, sf)
+function post_game_procedure(game)
     logger = game.table.logger
     table = game.table
     winners = table.winners
@@ -293,14 +353,12 @@ function post_game_procedure(game, sf)
     @cdebug logger "initial_brs = $(initial_brs)"
     @cdebug logger "bank_roll_chips.(players) = $(bank_roll_chips.(players))"
 
-    if sf.game_point isa StartOfGame
-        if !(logger isa ByPassLogger)
-            if game.initial_∑brs ≠ ∑bank_rolls(players)
-                @cinfo logger "initial_∑brs=$(game.initial_∑brs), brs=$(bank_roll_chips.(players))"
-            end
+    if !(logger isa ByPassLogger)
+        if game.initial_∑brs ≠ ∑bank_rolls(players)
+            @cinfo logger "initial_∑brs=$(game.initial_∑brs), brs=$(bank_roll_chips.(players))"
         end
-        @assert game.initial_∑brs == ∑bank_rolls(players) "initial_∑brs = $(game.initial_∑brs), ∑bank_rolls = $(∑bank_rolls(players))"
     end
+    @assert game.initial_∑brs == ∑bank_rolls(players) "initial_∑brs = $(game.initial_∑brs), ∑bank_rolls = $(∑bank_rolls(players))"
     @assert sum(sp->sum(amounts(sp)), table.transactions.side_pots) == 0
     for (player, initial_br) in zip(players, initial_brs)
         mpp = max_possible_profit(player, players, initial_brs)
@@ -338,12 +396,12 @@ function set_active_status!(table, players::Players)
     end
 end
 
-function initialize!(game, sf)
+function initialize!(game, action)
     logger = game.table.logger
     table = game.table
     winners = table.winners
     players = players_at_table(table)
-    if sf.game_point isa StartOfGame
+    if action.name == :ready
         initial_brs = game.initial_brs
         @assert !winners.declared "We haven't started playing yet!"
         @inbounds for (pidx, player) in enumerate(players)
@@ -357,7 +415,7 @@ function initialize!(game, sf)
 
     verify_seats(table)
 
-    if sf.game_point isa StartOfGame
+    if action.name == :ready
         reset!(table.transactions, players)
         table.round = :preflop
         @assert all(p->!has_cards(p), players)
@@ -401,9 +459,9 @@ function reset_game!(game::Game)
         logger=logger,
         gui=table.gui,
     )
-    os = first(enumerate(circle(game.table, FirstToAct())))
-    game.orbit_state.i = os[1]
-    game.orbit_state.pidx = os[2]
+    pidx = first(circle(game.table, FirstToAct()))
+    game.orbit_state.i = 1
+    game.orbit_state.pidx = pidx
     PlayingCards.reset!(game.table.deck)
     table = game.table
     players = players_at_table(table)
@@ -436,8 +494,8 @@ function tournament!(game::Game)
     table = game.table
     players = players_at_table(table)
     while length(players) > 1
-        quit = play!(game)
-        quit && break
+        game = play!(game)
+        any(x->quit_game(game, x), game.table.players) && break
         n_players_remaining = count(x->!(bank_roll(x) == 0), players)
         if n_players_remaining ≤ 1
             @cinfo logger "Victor emerges!"

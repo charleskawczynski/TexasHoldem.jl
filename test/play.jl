@@ -72,7 +72,7 @@ Random.seed!(1234)
             Player(BotLimpAllIn(), 1; bank_roll = 1),
             Player(BotCheckCall(), 2; bank_roll = 11),
         )
-        # game = Game(players; logger)
+        # game = Game(players; logger, gui = TH.NoGUI())
         game = QuietGame(players)
         play!(game)
     end
