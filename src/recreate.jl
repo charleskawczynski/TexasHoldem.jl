@@ -1,7 +1,11 @@
-table_card_inds(::PreFlop) = ntuple(i->i, 5)
-table_card_inds(::Flop) = (4, 5)
-table_card_inds(::Turn) = (5,)
-table_card_inds(::River) = ()
+function table_card_inds(round)
+    if round == :preflop; return ntuple(i->i, 5)
+    elseif round == :flop; return (4, 5)
+    elseif round == :turn; return (5,)
+    elseif round == :river; return ()
+    else; error("Uncaught case")
+    end
+end
 
 function restore_unobserved_table_cards!(table::Table, inds)
     @inbounds for i in inds

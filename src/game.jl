@@ -41,16 +41,14 @@ move_buttons!(game) = move_buttons!(game.table)
 
 function print_round(table, round)
     table.gui isa Terminal && return nothing
-    print_round(table, round)
+    round == :preflop && @cinfo table.logger "Pre-flop!"
+    round == :flop && @cinfo table.logger "Flop: $(repeat(" ", 44)) $(table.cards[1:3])"
+    round == :turn && @cinfo table.logger "Turn: $(repeat(" ", 44)) $(table.cards[4])"
+    round == :river && @cinfo table.logger "River: $(repeat(" ", 43)) $(table.cards[5])"
 end
 
-print_round(table, round::PreFlop) = @cinfo table.logger "Pre-flop!"
-print_round(table, round::Flop) =    @cinfo table.logger "Flop: $(repeat(" ", 44)) $(table.cards[1:3])"
-print_round(table, round::Turn) =    @cinfo table.logger "Turn: $(repeat(" ", 44)) $(table.cards[4])"
-print_round(table, round::River) =   @cinfo table.logger "River: $(repeat(" ", 43)) $(table.cards[5])"
-
-function set_antes!(table::Table, round::AbstractRound)
-    round isa PreFlop || return nothing
+function set_antes!(table::Table, round)
+    round == :preflop || return nothing
     players = players_at_table(table)
     for i in 1:length(players)
         if is_first_to_act(table, players[i])
@@ -61,8 +59,6 @@ function set_antes!(table::Table, round::AbstractRound)
     end
     return nothing
 end
-reset_round_bank_rolls!(table::Table, round::PreFlop) = nothing # called separately prior to deal
-reset_round_bank_rolls!(table::Table, round::AbstractRound) = reset_round_bank_rolls!(table)
 
 # TODO: compactify. Some of these cases/conditions may be redundant
 function end_of_actions(table::Table, player)
@@ -130,8 +126,8 @@ function all_bets_were_called(table::Table)
     end, players)
 end
 
-end_preflop_actions(table, player, ::AbstractRound) = false
-function end_preflop_actions(table::Table, player::Player, ::PreFlop)
+function end_preflop_actions(table::Table, player::Player, round)
+    round == :preflop || return false
     cond1 = is_big_blind(table, player)
     cond2 = checked(player)
     cond3 = still_playing(player)
@@ -149,17 +145,17 @@ skip_option(sf::StartFrom{GP}, player) where {GP <: PlayerOption} =
 skip_post_option(sf::StartFrom{GP}, player) where {GP <: PlayerOption} =
     seat_number(sf.game_point.player) ≠ seat_number(player)
 
-function act_generic!(game::Game, round::AbstractRound, sf::StartFrom)
+function act_generic!(game::Game, round, sf::StartFrom)
     table = game.table
     players = table.players
     logger = table.logger
     table.winners.declared && return
     @assert sf.game_point isa StartOfGame || sf.game_point isa PlayerOption
     if sf.game_point isa StartOfGame
-        set_round!(table, round)
+        table.round = round
         update_gui(table)
         print_round(table, round)
-        reset_round_bank_rolls!(table, round)
+        round == :preflop || reset_round_bank_rolls!(table)
 
         any_actions_required(table) || return
         play_out_game(table) && return
@@ -205,27 +201,19 @@ function act_generic!(game::Game, round::AbstractRound, sf::StartFrom)
     @assert all_bets_were_called(table)
 end
 
-skip_round(round::AbstractRound, sf::StartFrom) = skip_round(round, sf.game_point)
-skip_round(round::AbstractRound, gp::StartOfGame) = false
-skip_round(round::AbstractRound, po::PlayerOption) = skip_round(round, po.round)
-skip_round(round::AbstractRound, ::AbstractRound) = false
+function skip_round(round, sf::StartFrom)
+    if sf.game_point isa StartOfGame;                         return false
+    elseif round == :preflop && sf.game_point.round == :flop; return true
+    elseif round == :preflop && sf.game_point.round == :turn; return true
+    elseif round == :flop &&    sf.game_point.round == :turn; return true
+    elseif round == :preflop && sf.game_point.round == :river; return true
+    elseif round == :flop &&    sf.game_point.round == :river; return true
+    elseif round == :turn &&    sf.game_point.round == :river; return true
+    else;                                                      return false
+    end
+end
 
-# Skip to Preflop
-# Nothing needed-- we automatically skip to this if `StartFrom` is not StartOfGame
-
-# Skip to Flop
-skip_round(round::PreFlop, ::Flop) = true
-
-# Skip to Turn
-skip_round(round::PreFlop, ::Turn) = true
-skip_round(round::Flop, ::Turn) = true
-
-# Skip to River
-skip_round(round::PreFlop, ::River) = true
-skip_round(round::Flop, ::River) = true
-skip_round(round::Turn, ::River) = true
-
-function act!(game::Game, round::AbstractRound, sf::StartFrom)
+function act!(game::Game, round, sf::StartFrom)
     skip_round(round, sf) && return nothing
     act_generic!(game, round, sf)
     reset_round!(game.table)
@@ -334,10 +322,10 @@ function _deal_and_play!(game::Game, sf::StartFrom)
         @assert cards(table) ≠ nothing
     end
 
-    winners.declared || act!(game, PreFlop(), sf)   # Pre-flop bet/check/raise
-    winners.declared || act!(game, Flop(), sf)      # Deal flop , then bet/check/raise
-    winners.declared || act!(game, Turn(), sf)      # Deal turn , then bet/check/raise
-    winners.declared || act!(game, River(), sf)     # Deal river, then bet/check/raise
+    winners.declared || act!(game, :preflop, sf)   # Pre-flop bet/check/raise
+    winners.declared || act!(game, :flop, sf)      # Deal flop , then bet/check/raise
+    winners.declared || act!(game, :turn, sf)      # Deal turn , then bet/check/raise
+    winners.declared || act!(game, :river, sf)     # Deal river, then bet/check/raise
 
     distribute_winnings!(players, table.transactions, cards(table), logger)
     winners.declared = true

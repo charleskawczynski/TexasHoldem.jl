@@ -18,16 +18,16 @@ const TH = TexasHoldem
     table = TH.Table(players;deck=deck, cards=cards, logger=TH.ByPassLogger())
     TH.deal!(table, blinds)
 
-    table.round = PreFlop()
+    table.round = :preflop
     @test isempty(TH.observed_cards(table))
     @test TH.unobserved_cards(table) == table.cards
-    table.round = Flop()
+    table.round = :flop
     @test TH.observed_cards(table) == table.cards[1:3]
     @test TH.unobserved_cards(table) == table.cards[4:5]
-    table.round = Turn()
+    table.round = :turn
     @test TH.observed_cards(table) == table.cards[1:4]
     @test TH.unobserved_cards(table) == [table.cards[5]]
-    table.round = River()
+    table.round = :river
     @test TH.observed_cards(table) == table.cards
     @test isempty(TH.unobserved_cards(table))
 end

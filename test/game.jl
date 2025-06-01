@@ -22,7 +22,7 @@ QuietGame(args...; kwargs...) = Game(args...; kwargs..., gui=TH.NoGUI(), logger=
     game = QuietGame(players)
     sprint(show, game)
 
-    game.table.round = PreFlop()
+    game.table.round = :preflop
     sprint(show, game)
 end
 
