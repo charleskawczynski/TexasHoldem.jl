@@ -60,7 +60,7 @@ function player_option(game::Game, player::Player{MyBot}, options::Options)
         return Fold()
     else
         @assert options.name == :CallFold
-        rand() < 0.5 && return Call()
+        rand() < 0.5 && return Call(game.table, player)
         return Fold()
     end
 end
