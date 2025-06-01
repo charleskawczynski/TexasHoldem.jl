@@ -500,6 +500,7 @@ function deal!(table::Table, blinds::Blinds)
             end
         end
     end
+    set_antes!(table, table.round)
 
     @inbounds for j in 1:5
         table.cards[j] = SB.sample!(table.deck)
