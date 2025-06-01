@@ -51,26 +51,23 @@ end
 TransactionManager(players, logger) = TransactionManager(Players(players), logger)
 function TransactionManager(players::Players, logger)
     perm = collect(sortperm(players))
+    N = length(players)
     bank_rolls = collect(map(x->bank_roll_chips(x), players))
 
-    cap = zeros(Int,length(players))
-    for i in 1:length(players)
-        if i == 1
-            cap[i] = bank_roll(players[perm[i]])
-        else
-            cap[i] = bank_roll(players[perm[i]]) - sum(cap[1:i-1])
-        end
-    end
+    brp = map(p->bank_roll(players[p]), perm)
+    caps = collect(ntuple(N) do i
+        i==1 ? brp[1] : brp[i] - brp[i-1]
+    end)
 
     unsorted_to_sorted_map = collect(map(players) do player
         findfirst(p -> seat_number(players[p]) == seat_number(player), perm)
     end)
-    amts = zeros(Int, length(players))
-    side_pots = [SidePot(deepcopy(amts), cap_i) for cap_i in cap]
+    amts = zeros(Int, N)
+    side_pots = [SidePot(deepcopy(amts), c) for c in caps]
     @cdebug logger "initial caps = $(cap.(side_pots))"
 
     initial_brs = deepcopy(collect(bank_roll_chips.(players)))
-    sorted_hand_evals = map(x->HandEval(), 1:length(players))
+    sorted_hand_evals = map(x->HandEval(), 1:N)
     pot_id = Int[1]
     FT = eltype(initial_brs)
     side_pot_winnings = collect(map(x->collect(map(x->FT(0), players)), players))
