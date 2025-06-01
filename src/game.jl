@@ -218,7 +218,7 @@ end
 function act!(game::Game, round, sf::StartFrom)
     skip_round(round, sf) && return nothing
     act_generic!(game, round, sf)
-    reset_round!(game.table)
+    reset_round_parameters!(game.table)
 end
 
 metafmt(level, _module, group, id, file, line) =
