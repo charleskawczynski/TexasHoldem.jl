@@ -83,7 +83,7 @@ end
 
     @test_throws AssertionError call!(table, players[1]) # already all-in!
 
-    TH.reset_round!(table)
+    TH.reset_round_parameters!(table)
 
     raise_to!(table, players[2], 100) # Raise all-in
     call!(table, players[3]) # call
@@ -114,7 +114,7 @@ end
 
     @test TH.amounts.(tm.side_pots) == [[100, 100, 100], [0, 0, 0], [0, 0, 0]]
 
-    TH.reset_round!(table)
+    TH.reset_round_parameters!(table)
 
     raise_to!(table, players[1], 100) # call
     call!(table, players[2]) # all-in
@@ -153,7 +153,7 @@ end
     z = [0, 0, 0, 0, 0, 0]
     @test TH.amounts.(tm.side_pots) == [[100, 100, 100, 100, 100, 100], z, z, z, z, z]
 
-    TH.reset_round!(table)
+    TH.reset_round_parameters!(table)
 
     raise_to!(table, players[2], 100) # raise all-in
     call!(table, players[3]) # call
@@ -162,7 +162,7 @@ end
     call!(table, players[6]) # call
     @test TH.amounts.(tm.side_pots) == [[100, 100, 100, 100, 100, 100], [0, 100, 100, 100, 100, 100], z, z, z, z]
 
-    TH.reset_round!(table)
+    TH.reset_round_parameters!(table)
 
     raise_to!(table, players[3], 100) # raise all-in
     call!(table, players[4]) # call
@@ -170,14 +170,14 @@ end
     call!(table, players[6]) # call
     @test TH.amounts.(tm.side_pots) == [[100, 100, 100, 100, 100, 100], [0, 100, 100, 100, 100, 100], [0, 0, 100, 100, 100, 100], z, z, z]
 
-    TH.reset_round!(table)
+    TH.reset_round_parameters!(table)
 
     raise_to!(table, players[4], 100) # raise all-in
     call!(table, players[5]) # call
     call!(table, players[6]) # call
     @test TH.amounts.(tm.side_pots) == [[100, 100, 100, 100, 100, 100], [0, 100, 100, 100, 100, 100], [0, 0, 100, 100, 100, 100], [0, 0, 0, 100, 100, 100], z, z]
 
-    TH.reset_round!(table)
+    TH.reset_round_parameters!(table)
 
     raise_to!(table, players[5], 100) # raise all-in
     call!(table, players[6]) # call
@@ -218,7 +218,7 @@ end
     z = [0, 0, 0, 0, 0, 0]
     @test TH.amounts.(tm.side_pots) == [[7, 7, 7, 7, 7, 7], z, z, z, z, z]
 
-    TH.reset_round!(table)
+    TH.reset_round_parameters!(table)
 
     raise_to!(table, players[2], 7) # raise all-in
     call!(table, players[3]) # call
@@ -227,7 +227,7 @@ end
     call!(table, players[6]) # call
     @test TH.amounts.(tm.side_pots) == [[7, 7, 7, 7, 7, 7], [0, 7, 7, 7, 7, 7], z, z, z, z]
 
-    TH.reset_round!(table)
+    TH.reset_round_parameters!(table)
 
     raise_to!(table, players[3], 7) # raise all-in
     call!(table, players[4]) # call
@@ -235,14 +235,14 @@ end
     call!(table, players[6]) # call
     @test TH.amounts.(tm.side_pots) == [[7, 7, 7, 7, 7, 7], [0, 7, 7, 7, 7, 7], [0, 0, 7, 7, 7, 7], z, z, z]
 
-    TH.reset_round!(table)
+    TH.reset_round_parameters!(table)
 
     raise_to!(table, players[4], 7) # raise all-in
     call!(table, players[5]) # call
     call!(table, players[6]) # call
     @test TH.amounts.(tm.side_pots) == [[7, 7, 7, 7, 7, 7], [0, 7, 7, 7, 7, 7], [0, 0, 7, 7, 7, 7], [0, 0, 0, 7, 7, 7], z, z]
 
-    TH.reset_round!(table)
+    TH.reset_round_parameters!(table)
 
     raise_to!(table, players[5], 7) # raise all-in
     call!(table, players[6]) # call

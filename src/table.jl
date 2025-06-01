@@ -348,7 +348,7 @@ function reset_round_bank_rolls!(table::Table, round)
     end
 end
 
-function reset_round!(table::Table)
+function reset_round_parameters!(table::Table)
     players = players_at_table(table)
     for player in players
         not_playing(player) && continue
