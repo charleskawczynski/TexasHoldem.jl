@@ -1,16 +1,24 @@
-export AbstractPlayerOptions,
-    CheckRaiseFold,
+export CheckRaiseFold,
     CallRaiseFold,
     CallAllInFold,
     CallFold
 
-
 """
-    AbstractPlayerOptions
+    Options
 
-The option super type.
+An options type, returned by [`get_options`](@ref).
+Users can use this to determine which action to give
+back to `play`.
+
+Helper functions to return allowable options include:
+ - [`CheckRaiseFold`](@ref)
+ - [`CallRaiseFold`](@ref)
+ - [`CallAllInFold`](@ref)
+ - [`CallFold`](@ref)
 """
-abstract type AbstractPlayerOptions end
+struct Options
+    name::Symbol
+end
 
 """
     CheckRaiseFold
@@ -18,7 +26,7 @@ abstract type AbstractPlayerOptions end
 The option when a player is only able to
 check, raise, or fold.
 """
-struct CheckRaiseFold <: AbstractPlayerOptions end
+CheckRaiseFold() = Options(:CheckRaiseFold)
 
 """
     CallRaiseFold
@@ -26,7 +34,7 @@ struct CheckRaiseFold <: AbstractPlayerOptions end
 The option when a player is only able to
 call, raise, or fold.
 """
-struct CallRaiseFold <: AbstractPlayerOptions end
+CallRaiseFold() = Options(:CallRaiseFold)
 
 """
     CallAllInFold
@@ -34,7 +42,7 @@ struct CallRaiseFold <: AbstractPlayerOptions end
 The option when a player is only able to
 call, raise all-in, or fold.
 """
-struct CallAllInFold <: AbstractPlayerOptions end
+CallAllInFold() = Options(:CallAllInFold)
 
 """
     CallFold
@@ -42,12 +50,15 @@ struct CallAllInFold <: AbstractPlayerOptions end
 The option when a player is only able to
 call or fold.
 """
-struct CallFold <: AbstractPlayerOptions end
+CallFold() = Options(:CallFold)
 
-validate_action(a::Action, ::CheckRaiseFold) = @assert a.name in (:check, :raise, :all_in, :fold)
-validate_action(a::Action, ::CallRaiseFold) = @assert a.name in (:call, :raise, :all_in, :fold)
-validate_action(a::Action, ::CallAllInFold) = @assert a.name in (:call, :all_in, :fold)
-validate_action(a::Action, ::CallFold) = @assert a.name in (:call, :fold)
+function validate_action(a::Action, options)
+    on = options.name
+    on == :CheckRaiseFold && @assert a.name in (:check, :raise, :all_in, :fold)
+    on == :CallRaiseFold && @assert a.name in (:call, :raise, :all_in, :fold)
+    on == :CallAllInFold && @assert a.name in (:call, :all_in, :fold)
+    on == :CallFold && @assert a.name in (:call, :fold)
+end
 
 """
     is_valid, msg = is_valid_raise_amount(table::Table, player::Player, amt)
@@ -224,7 +235,13 @@ function update_given_valid_action!(table::Table, player::Player, action::Action
 
 end
 
-function predict_option(game, player)
+"""
+    get_options(game, player)
+
+Retuns the [`Options`](@ref) available to player `player`
+for the given game (state) `game`.
+"""
+function get_options(game, player)
     logger = game.table.logger
     table = game.table
     call_amt = call_amount(table, player)
@@ -249,57 +266,35 @@ function predict_option(game, player)
 end
 
 """
-    player_option(game::Game, player::Player, option::AbstractPlayerOptions)
+    player_option(game::Game, player::Player, options::Options)
 
 Returns a valid action (see [`Action`](@ref)),
-given the allowable option. `TexasHoldem` calls `player_option`
+given the allowable options. `TexasHoldem` calls `player_option`
 for each player on the table during each round. This
 function is entirely where the strategy logic resides.
 
 Users may overload this method to develop their
-own poker bots. The option type is one of
+own poker bots. The options type is of type [`Options`](@ref)
+and has one of the following names
 
- - [`CheckRaiseFold`](@ref)
- - [`CallRaiseFold`](@ref)
- - [`CallAllInFold`](@ref)
- - [`CallFold`](@ref)
+ - `options.name == CheckRaiseFold`
+ - `options.name == CallRaiseFold`
+ - `options.name == CallAllInFold`
+ - `options.name == CallFold`
 """
 function player_option end
 
 function player_option(game::Game, player::Player)
-    logger = game.table.logger
-    @cdebug logger "predicted option = $(predict_option(game, player))"
-    table = game.table
-    call_amt = call_amount(table, player)
-    local action
-    if !(call_amt == 0) # must call to stay in
-        cond_1 = bank_roll(player) > call_amt
-        cond_2 = an_opponent_can_call_a_raise(table, player)
-        raise_possible = cond_1 && cond_2
-        if raise_possible # raise possible
-            vrr = valid_raise_range(table, player)
-            if first(vrr) == last(vrr) # only all-in raise possible
-                action = player_option(game, player, CallAllInFold())::Action
-                validate_action(action, CallAllInFold())
-            else
-                action = player_option(game, player, CallRaiseFold())::Action
-                validate_action(action, CallRaiseFold())
-            end
-        else # only all-in possible
-            action = player_option(game, player, CallFold())::Action
-            validate_action(action, CallFold())
-        end
-    else
-        action = player_option(game, player, CheckRaiseFold())::Action
-        validate_action(action, CheckRaiseFold())
-    end
+    options = get_options(game, player)
+    action = player_option(game, player, options)::Action
+    validate_action(action, options)
     return action
 end
 
 # By default, forward to `player_option` with
 # game round:
-player_option(game::Game, player::Player, option) =
-    player_option(game, player, round(game.table), option)
+player_option(game::Game, player::Player, options) =
+    player_option(game, player, round(game.table), options)
 
 #####
 ##### AbstractStrategy
@@ -307,45 +302,45 @@ player_option(game::Game, player::Player, option) =
 
 ##### FuzzBot
 
-function player_option(game::Game, player::Player{FuzzBot}, ::CheckRaiseFold)
-    rand() < 0.5 && return Check()
-    rand() < 0.5 && return Raise(rand(valid_raise_range(game.table, player)))
-    # while we can check for free, this bot is used for fuzzing,
-    # so we want to explore the most diverse set of possible cases.
-    return Fold()
-end
-function player_option(game::Game, player::Player{FuzzBot}, ::CallRaiseFold)
-    rand() < 0.5 && return Call(game.table, player)
-    rand() < 0.5 && return Raise(rand(valid_raise_range(game.table, player))) # re-raise
-    return Fold()
-end
-function player_option(game::Game, player::Player{FuzzBot}, ::CallAllInFold)
-    rand() < 0.5 && return Call(game.table, player)
-    rand() < 0.5 && return AllIn(game.table, player) # re-raise
-    return Fold()
-end
-function player_option(game::Game, player::Player{FuzzBot}, ::CallFold)
-    rand() < 0.5 && return Call(game.table, player)
-    return Fold()
+function player_option(game::Game, player::Player{FuzzBot}, options)
+    if options.name == :CheckRaiseFold
+        rand() < 0.5 && return Check()
+        rand() < 0.5 && return Raise(rand(valid_raise_range(game.table, player)))
+        # while we can check for free, this bot is used for fuzzing,
+        # so we want to explore the most diverse set of possible cases.
+        return Fold()
+    elseif options.name == :CallRaiseFold
+        rand() < 0.5 && return Call(game.table, player)
+        rand() < 0.5 && return Raise(rand(valid_raise_range(game.table, player))) # re-raise
+        return Fold()
+    elseif options.name == :CallAllInFold
+        rand() < 0.5 && return Call(game.table, player)
+        rand() < 0.5 && return AllIn(game.table, player) # re-raise
+        return Fold()
+    elseif options.name == :CallFold
+        rand() < 0.5 && return Call(game.table, player)
+        return Fold()
+    end
+    error("Uncaught case")
 end
 
 ##### Bot5050
 
-function player_option(game::Game, player::Player{Bot5050}, ::CheckRaiseFold)
-    rand() < 0.5 && return Check()
-    return Raise(rand(valid_raise_range(game.table, player)))
-end
-function player_option(game::Game, player::Player{Bot5050}, ::CallRaiseFold)
-    rand() < 0.5 && return Call(game.table, player)
-    rand() < 0.5 && return Raise(rand(valid_raise_range(game.table, player))) # re-raise
-    return Fold()
-end
-function player_option(game::Game, player::Player{Bot5050}, ::CallAllInFold)
-    rand() < 0.5 && return Call(game.table, player)
-    rand() < 0.5 && return AllIn(game.table, player) # re-raise
-    return Fold()
-end
-function player_option(game::Game, player::Player{Bot5050}, ::CallFold)
-    rand() < 0.5 && return Call(game.table, player)
-    return Fold()
+function player_option(game::Game, player::Player{Bot5050}, options)
+    if options.name == :CheckRaiseFold
+        rand() < 0.5 && return Check()
+        return Raise(rand(valid_raise_range(game.table, player)))
+    elseif options.name == :CallRaiseFold
+        rand() < 0.5 && return Call(game.table, player)
+        rand() < 0.5 && return Raise(rand(valid_raise_range(game.table, player))) # re-raise
+        return Fold()
+    elseif options.name == :CallAllInFold
+        rand() < 0.5 && return Call(game.table, player)
+        rand() < 0.5 && return AllIn(game.table, player) # re-raise
+        return Fold()
+    elseif options.name == :CallFold
+        rand() < 0.5 && return Call(game.table, player)
+        return Fold()
+    end
+    error("Uncaught case")
 end

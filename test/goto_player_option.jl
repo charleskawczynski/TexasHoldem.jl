@@ -15,44 +15,43 @@ mutable struct RiverDreamer <: AbstractStrategy
     fixed::Bool
 end
 
-function TH.player_option(game::Game, player::Player{RiverDreamer}, round, option::CheckRaiseFold)
-    round == :river || return Check()
-    if player.strategy.fixed
-        Check()
-    else
-        player.strategy.fixed = true
-        vrr = TH.valid_raise_range(game.table, player)
-        raises = sort(map(x->rand(vrr), 1:10))
-        actions = (Check(), map(x->Raise(x), raises)..., Fold())
-        @test TH.Action(:raise, 5) in actions
-        @test TH.Action(:raise, 14) in actions
-        rewards = map(actions) do action
-            rgame = TH.recreate_game(game, player)
-            sf = TH.StartFrom(TH.PlayerOption(player, round, action))
-            play!(rgame, sf)
-            pidx = findfirst(rgame.table.players) do p
-                TH.seat_number(p) == TH.seat_number(player)
+function TH.player_option(game::Game, player::Player{RiverDreamer}, round, options)
+    if options.name == :CheckRaiseFold
+        round == :river || return Check()
+        if player.strategy.fixed
+            Check()
+        else
+            player.strategy.fixed = true
+            vrr = TH.valid_raise_range(game.table, player)
+            raises = sort(map(x->rand(vrr), 1:10))
+            actions = (Check(), map(x->Raise(x), raises)..., Fold())
+            @test TH.Action(:raise, 5) in actions
+            @test TH.Action(:raise, 14) in actions
+            rewards = map(actions) do action
+                rgame = TH.recreate_game(game, player)
+                sf = TH.StartFrom(TH.PlayerOption(player, round, action))
+                play!(rgame, sf)
+                pidx = findfirst(rgame.table.players) do p
+                    TH.seat_number(p) == TH.seat_number(player)
+                end
+                rgame.table.players[pidx].game_profit
             end
-            rgame.table.players[pidx].game_profit
+            return Check()
         end
-        # @show rewards
-        return Check()
+    elseif options.name == :CallRaiseFold
+        round == :river || return Call(game, player)
+        rgame = TH.recreate_game(game, player)
+        Call(game, player)
+    elseif options.name == :CallAllInFold
+        round == :river || return Call(game, player)
+        rgame = TH.recreate_game(game, player)
+        Call(game, player)
+    elseif options.name == :CallFold
+        round == :river || return Call(game, player)
+        rgame = TH.recreate_game(game, player)
+        Call(game, player)
+    else; error("Uncaught case")
     end
-end
-function TH.player_option(game::Game, player::Player{RiverDreamer}, round, option::CallRaiseFold)
-    round == :river || return Call(game, player)
-    rgame = TH.recreate_game(game, player)
-    Call(game, player)
-end
-function TH.player_option(game::Game, player::Player{RiverDreamer}, round, option::CallAllInFold)
-    round == :river || return Call(game, player)
-    rgame = TH.recreate_game(game, player)
-    Call(game, player)
-end
-function TH.player_option(game::Game, player::Player{RiverDreamer}, round, option::CallFold)
-    round == :river || return Call(game, player)
-    rgame = TH.recreate_game(game, player)
-    Call(game, player)
 end
 
 @testset "Game: Play (FuzzBot vs RiverDreamer)" begin

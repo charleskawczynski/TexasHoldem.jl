@@ -36,36 +36,33 @@ tournament!(configure_game()) # play until 1 player remains
 
 # Creating your own bot
 
-Four methods (variants of `player_option`) need to be defined to create and play your own bot:
+Overload `player_option` with your own bot and play against it:
 
 ```julia
 using TexasHoldem
+using TexasHoldem: Options
 import TexasHoldem: player_option
 
 struct MyBot <: AbstractStrategy end
 
-function player_option(game::Game, player::Player{MyBot}, ::CheckRaiseFold)
-    # options:
-    rand() < 0.5 && return Raise(rand(valid_raise_range(game.table, player)))
-    return Check()
-    # return Fold() # we can fold, but we can check for free
-end
-function player_option(game::Game, player::Player{MyBot}, ::CallRaiseFold)
-    # options:
-    rand() < 0.5 && return Call(game.table, player)
-    rand() < 0.5 && return Raise(rand(valid_raise_range(game.table, player)))
-    return Fold()
-end
-function player_option(game::Game, player::Player{MyBot}, ::CallAllInFold)
-    # options:
-    rand() < 0.5 && return Call(game.table, player)
-    rand() < 0.5 && return AllIn(game.table, player)
-    return Fold()
-end
-function player_option(game::Game, player::Player{MyBot}, ::CallFold)
-    # options:
-    rand() < 0.5 && return Call()
-    return Fold()
+function player_option(game::Game, player::Player{MyBot}, options::Options)
+    if options.name == :CheckRaiseFold
+        rand() < 0.5 && return Raise(rand(valid_raise_range(game.table, player)))
+        return Check()
+        # return Fold() # we can fold, but we can check for free
+    elseif options.name == :CallRaiseFold
+        rand() < 0.5 && return Call(game.table, player)
+        rand() < 0.5 && return Raise(rand(valid_raise_range(game.table, player)))
+        return Fold()
+    elseif options.name == :CallAllInFold
+        rand() < 0.5 && return Call(game.table, player)
+        rand() < 0.5 && return AllIn(game.table, player)
+        return Fold()
+    else
+        @assert options.name == :CallFold
+        rand() < 0.5 && return Call()
+        return Fold()
+    end
 end
 
 # Heads-up against MyBot!
