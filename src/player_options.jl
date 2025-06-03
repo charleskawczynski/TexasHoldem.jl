@@ -165,20 +165,6 @@ function update_given_raise!(table, player, amt)
     end
 end
 
-function call_valid_amount!(table::Table, player::Player, amt::Int)
-    logger = table.logger
-    @cdebug logger "$(name(player)) calling $(amt)."
-    player.action_required = false
-    player.checked = false
-    blind_str = is_blind_call(table, player, amt) ? " (blind)" : ""
-    contribute!(table, player, amt, true)
-    if all_in(player)
-        @cinfo logger "$(name(player)) called $(amt)$blind_str (now all-in)."
-    else
-        @cinfo logger "$(name(player)) called $(amt)$blind_str."
-    end
-end
-
 """
     an_opponent_can_call_a_raise(table::Table, player::Player)
 
@@ -212,7 +198,6 @@ function update_given_valid_action!(table::Table, player::Player, action::Action
         amt = valid_raise_amount(table, player, action.amt) # asserts valid requested raise amount
         update_given_raise!(table, player, amt)
     elseif action.name == :call
-        # call_valid_amount!(table, player, action.amt)
         amt = action.amt
         @cdebug logger "$(name(player)) calling $(amt)."
         player.action_required = false
@@ -252,17 +237,16 @@ function get_options(game, player)
         if raise_possible # raise possible
             vrr = valid_raise_range(table, player)
             if first(vrr) == last(vrr) # only all-in raise possible
-                option = CallAllInFold()
+                return CallAllInFold()
             else
-                option = CallRaiseFold()
+                return CallRaiseFold()
             end
         else # only all-in possible
-            option = CallFold()
+            return CallFold()
         end
     else
-        option = CheckRaiseFold()
+        return CheckRaiseFold()
     end
-    return option
 end
 
 """
