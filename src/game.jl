@@ -6,7 +6,7 @@ export Game, play!, tournament!
 
 mutable struct OrbitState
     i::Int
-    sn::Int
+    pidx::Int
 end
 
 mutable struct Game{T<:Table, IBRs, TBR}
@@ -408,7 +408,7 @@ function reset_game!(game::Game)
     )
     os = first(enumerate(circle(game.table, FirstToAct())))
     game.orbit_state.i = os[1]
-    game.orbit_state.sn = os[2]
+    game.orbit_state.pidx = os[2]
     PlayingCards.reset!(game.table.deck)
     table = game.table
     players = players_at_table(table)
