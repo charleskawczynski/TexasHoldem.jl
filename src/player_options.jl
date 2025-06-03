@@ -277,8 +277,8 @@ end
 
 # By default, forward to `player_option` with
 # game round:
-player_option(game::Game, player::Player, options) =
-    player_option(game, player, round(game.table), options)
+# player_option(game::Game, options) =
+#     player_option(game, current_player(game), options)
 
 #####
 ##### AbstractStrategy

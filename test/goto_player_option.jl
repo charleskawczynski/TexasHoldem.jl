@@ -15,7 +15,7 @@ mutable struct RiverDreamer <: AbstractStrategy
     fixed::Bool
 end
 
-function TH.player_option(game::Game, player::Player{RiverDreamer}, round, options)
+function TH.player_option(game::Game, player::Player{RiverDreamer}, options)
     if options.name == :CheckRaiseFold
         round == :river || return Check()
         if player.strategy.fixed
