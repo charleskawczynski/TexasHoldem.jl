@@ -193,7 +193,6 @@ function contribute!(table, player, amt, call=false)
     @assert amt_remaining == 0 # pots better be emptied
 
     if bank_roll(player) == 0 # went all-in.
-        player.all_in = true
         player.action_required = false
     end
 

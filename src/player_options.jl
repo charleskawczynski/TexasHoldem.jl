@@ -134,9 +134,7 @@ function update_given_raise!(table, player, amt)
     if all(player -> !player.last_to_raise, players)
         table.initial_round_raise_amt = amt
     end
-    player.action_required = false
     player.last_to_raise = true
-    player.checked = false
     for opponent in players
         seat_number(opponent) == seat_number(player) && continue
         not_playing(opponent) && continue
@@ -144,8 +142,6 @@ function update_given_raise!(table, player, amt)
             opponent.action_required = true
         end
         opponent.last_to_raise = false
-        # TODO: there's got to be a cleaner way
-        opponent.checked = false # to avoid exiting on all_all_in_or_checked(table).
     end
     @cinfo logger begin
         pbpai = opponents_being_put_all_in(table, player, amt)
@@ -190,18 +186,18 @@ function update_given_valid_action!(table::Table, player::Player, action::Action
     logger = table.logger
     @assert action.name in (:fold, :raise, :call, :check, :all_in)
     if action.name == :fold
-        player.action_required = false
+        player.performed_action = :folded
         player.folded = true
         check_for_and_declare_winner!(table)
         @cinfo logger "$(name(player)) folded!"
     elseif action.name == :raise || action.name == :all_in
         amt = valid_raise_amount(table, player, action.amt) # asserts valid requested raise amount
         update_given_raise!(table, player, amt)
+        player.performed_action = :raised
     elseif action.name == :call
         amt = action.amt
         @cdebug logger "$(name(player)) calling $(amt)."
-        player.action_required = false
-        player.checked = false
+        player.performed_action = :called
         contribute!(table, player, amt, true)
         @cinfo logger begin
             blind_str = is_blind_call(table, player, amt) ? " (blind)" : ""
@@ -213,10 +209,12 @@ function update_given_valid_action!(table::Table, player::Player, action::Action
         end
 
     elseif action.name == :check
-        player.action_required = false
-        player.checked = true
+        player.performed_action = :checked
         @cinfo logger "$(name(player)) checked!"
+    else
+        error("Uncaught case")
     end
+    player.action_required = false
 
 end
 
