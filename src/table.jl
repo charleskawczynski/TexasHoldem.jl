@@ -353,8 +353,10 @@ function reset_round_parameters!(table::Table)
     for player in players
         not_playing(player) && continue
         all_in(player) && continue
-        player.checked = false
-        player.action_required = true
+            player.performed_action = :none
+        if !all_oppononents_all_in(table, player) # all bets have been called
+            player.action_required = true
+        end
         player.last_to_raise = false
         player.round_contribution = 0
     end

@@ -76,17 +76,11 @@ function end_of_actions(table::Table, player)
     @cdebug logger "     all_all_in_or_checked(table) = $(all_all_in_or_checked(table))"
     @cdebug logger "     all_all_in_except_bank_roll_leader(table) = $(all_all_in_except_bank_roll_leader(table))"
     @cdebug logger "     all_oppononents_all_in(table, player) = $(all_oppononents_all_in(table, player))"
-
-    case_1 = last_to_raise(player)
-    case_2 = all_playing_checked(table)
-    case_3 = all_playing_all_in(table)
-    case_4 = all_all_in_except_bank_roll_leader(table)
-    case_5 = all_all_in_or_checked(table) # TODO: likely replaceable with case_6
-    case_6 = !any(x->action_required(x), players)
-    case_7 = all_oppononents_all_in(table, player) && paid_current_raise_amount(table, player)
-    @cdebug logger "     cases = $((case_1, case_2, case_3, case_4, case_5, case_6, case_7))"
-
-    return any((case_1, case_2, case_3, case_4, case_5, case_6, case_7))
+    # all_oppononents_all_in is needed because an opponent _can_ voluntarily
+    # fold a hand resulting in the next player not needing to act (if the
+    # remaining players are all-in)
+    return all_bets_were_called(table) &&
+        (!any_actions_required(table) || all_oppononents_all_in(table, player))
 end
 
 function last_player_to_raise(players)
@@ -173,7 +167,7 @@ function act_generic!(game::Game, round, sf::StartFrom)
         if reached_game_point || !skip_pre_option(sf, player)
             @cdebug logger "Checking to see if it's $(name(player))'s turn to act"
             @cdebug logger "     not_playing(player) = $(not_playing(player))"
-            @cdebug logger "     all_in(player) = $(all_in(player))"
+            @cdebug logger "     all_in.(players) = $(all_in.(players))"
             not_playing(player) && continue # skip players not playing
             if end_of_actions(table, player)
                 break
@@ -329,7 +323,8 @@ function post_game_procedure(game, sf)
     end
 end
 
-function set_active_status!(players::Players)
+function set_active_status!(table, players::Players)
+    logger = table.logger
     for player in players
         if zero_bank_roll(player)
             player.active = false
@@ -355,7 +350,7 @@ function initialize!(game, sf)
             initial_brs[pidx] = bank_roll_chips(player)
         end
         @cinfo logger "------ Playing game!"
-        set_active_status!(players)
+        set_active_status!(table, players)
         game.initial_∑brs = ∑bank_rolls(players)
         verify_start_of_game(table)
     end
@@ -418,14 +413,13 @@ function reset_game!(game::Game)
         end
         player.pot_investment = 0
         player.game_profit = Chips(0)
-        player.all_in = false
         player.round_bank_roll = bank_roll_chips(player)
-        player.checked = false
+        player.performed_action = :none
         player.last_to_raise = false
         player.round_contribution = 0
         player.active = true
     end
-    set_active_status!(players)
+    set_active_status!(table, players)
     table.play_out_game = false
 end
 

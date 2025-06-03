@@ -72,7 +72,7 @@ mutable struct Player{S #=<: AbstractStrategy=#}
     round_bank_roll::Chips # bank roll at the beginning of the round
     folded::Bool
     pot_investment::Int # accumulation of round_contribution
-    checked::Bool
+    performed_action::Symbol # (:none, :checked, :called, :raised, :folded)
     last_to_raise::Bool
     active::Bool
     round_contribution::Int
@@ -89,8 +89,8 @@ function Player(strategy, seat_number = -1, cards = Card[joker, joker]; bank_rol
     folded = false
     pot_investment = 0
     game_profit = 0
-    checked = false
     active = true
+    performed_action = :none
     round_contribution = 0
     last_to_raise = false
     S = typeof(strategy)
@@ -105,7 +105,7 @@ function Player(strategy, seat_number = -1, cards = Card[joker, joker]; bank_rol
         Chips(round_bank_roll),
         folded,
         pot_investment,
-        checked,
+        performed_action,
         last_to_raise,
         active,
         round_contribution,
@@ -155,9 +155,9 @@ folded(player::Player) = player.folded
 zero_bank_roll(player::Player) = bank_roll(player) == 0
 still_playing(player::Player) = active(player) && !folded(player)
 not_playing(player::Player) = !still_playing(player)
-checked(player::Player) = player.checked
+checked(player::Player) = player.performed_action == :checked
 last_to_raise(player::Player) = player.last_to_raise
-all_in(player::Player) = player.all_in
+all_in(player::Player) = still_playing(player) && bank_roll(player) == 0
 action_required(player::Player) = player.action_required
 active(player::Player) = player.active
 inactive(player::Player) = !active(player)
