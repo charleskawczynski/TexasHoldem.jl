@@ -8,6 +8,7 @@ import Random
 
 include("tester_bots.jl")
 QuietGame(args...; kwargs...) = Game(args...; kwargs..., gui=TH.NoGUI(), logger=TH.ByPassLogger())
+DebugGame(args...; kwargs...) = Game(args...; kwargs..., gui=TH.NoGUI(), logger=TH.DebugLogger())
 
 @testset "Game: Play (invalid number of players)" begin
     @test_throws AssertionError("Invalid number of players") QuietGame(ntuple(i->Player(TH.FuzzBot(), i), 1))

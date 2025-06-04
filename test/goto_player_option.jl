@@ -7,6 +7,7 @@ import Random
 Random.seed!(1234)
 
 QuietGame(args...; kwargs...) = Game(args...; kwargs..., gui=TH.NoGUI(), logger=TH.ByPassLogger())
+DebugGame(args...; kwargs...) = Game(args...; kwargs..., gui=TH.NoGUI(), logger=TH.DebugLogger())
 
 include("tester_bots.jl")
 
