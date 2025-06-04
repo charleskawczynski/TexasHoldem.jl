@@ -29,13 +29,17 @@ function TH.player_option(game::Game, player::Player{BotCheckCall}, options)
 end
 
 ##### BotFlopRaise
-struct BotFlopRaise <: AbstractStrategy end
+struct BotFlopRaise{T} <: AbstractStrategy
+    amt::T
+end
+BotFlopRaise() = BotFlopRaise(nothing)
 # Call blind / check pre-flop, raise on flop
 
-function TH.player_option(game::Game, player::Player{BotFlopRaise}, options)
+function TH.player_option(game::Game, player::Player{<:BotFlopRaise}, options)
+    amt = player.strategy.amt isa Nothing ? floor(Int, bank_roll(player)/2) : player.strategy.amt
     round = game.table.round
     on = options.name
-    on == :CheckRaiseFold && return round == :flop ? Raise(Int(bank_roll(player)/2)) : Check()
+    on == :CheckRaiseFold && return round == :flop ? Raise(amt) : Check()
     on == :CallRaiseFold && return Call(game.table, player)
     on == :CallAllInFold && return Call(game.table, player)
     on == :CallFold && return Call(game.table, player)
