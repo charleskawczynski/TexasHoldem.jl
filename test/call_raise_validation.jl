@@ -5,6 +5,7 @@ using TexasHoldem
 TH = TexasHoldem
 
 QuietGame(args...; kwargs...) = Game(args...; kwargs..., gui=TH.NoGUI(), logger=TH.ByPassLogger())
+DebugGame(args...; kwargs...) = Game(args...; kwargs..., gui=TH.NoGUI(), logger=TH.DebugLogger())
 
 function valid_raise_range_simple(table::Table, player::Player)
     cra = TH.current_raise_amt(table)

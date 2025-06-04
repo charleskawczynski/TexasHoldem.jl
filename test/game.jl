@@ -14,6 +14,7 @@ fold!(t, p) = TH.update_given_valid_action!(t, p, Fold())
 check!(t, p) = TH.update_given_valid_action!(t, p, Check())
 
 QuietGame(args...; kwargs...) = Game(args...; kwargs..., gui=TH.NoGUI(), logger=TH.ByPassLogger())
+DebugGame(args...; kwargs...) = Game(args...; kwargs..., gui=TH.NoGUI(), logger=TH.DebugLogger())
 
 @testset "Game: show" begin
     players = ntuple(2) do i
