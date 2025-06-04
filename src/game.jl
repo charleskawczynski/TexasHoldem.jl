@@ -183,7 +183,6 @@ function act_generic!(game::Game, round, sf::StartFrom)
     # action (in `sf.game_point.action`) once,
     # and then continue with `player_option`.
     past_game_point = false
-    reset_round_orbit_state!(game)
 
     while true
         os = game.orbit_state
@@ -197,6 +196,7 @@ function act_generic!(game::Game, round, sf::StartFrom)
                 continue # skip players not playing
             end
             if end_of_actions(table, player)
+                reset_round_orbit_state!(game)
                 break
             end
             if all_in(player)
@@ -216,8 +216,10 @@ function act_generic!(game::Game, round, sf::StartFrom)
         end
         if reached_game_point || !skip_post_option(sf, player)
             update_given_valid_action!(table, player, action)
-            table.winners.declared && break
-            end_preflop_actions(table, player, round) && break
+            if table.winners.declared || end_preflop_actions(table, player, round)
+                reset_round_orbit_state!(game)
+                break
+            end
         end
         if os.i > n_max_actions(table)
             error("Too many actions have occurred, please open an issue.")
@@ -295,6 +297,7 @@ function _play!(game::Game, sf::StartFrom)
     logger = table.logger
     winners = table.winners
     players = players_at_table(table)
+    reset_round_orbit_state!(game)
 
     winners.declared || act!(game, :preflop, sf)   # Pre-flop bet/check/raise
     winners.declared || act!(game, :flop, sf)      # Deal flop , then bet/check/raise
