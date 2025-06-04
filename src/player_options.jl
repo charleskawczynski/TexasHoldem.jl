@@ -137,11 +137,11 @@ function update_given_raise!(table, player, amt)
     player.last_to_raise = true
     for opponent in players
         seat_number(opponent) == seat_number(player) && continue
+        opponent.last_to_raise = false
         not_playing(opponent) && continue
         if !all_in(opponent)
             opponent.action_required = true
         end
-        opponent.last_to_raise = false
     end
     @cinfo logger begin
         pbpai = opponents_being_put_all_in(table, player, amt)
