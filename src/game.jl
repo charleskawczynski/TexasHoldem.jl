@@ -158,8 +158,7 @@ function reset_round_orbit_state!(game)
     if game.table.round == :preflop
         game.orbit_state.pidx=first(circle(game.table, FirstToAct()))
     else
-        game.orbit_state.pidx=first(circle(game.table, FirstToAct())) # BUG: use SmallBlind()
-        # game.orbit_state.pidx=first(circle(game.table, SmallBlind()))
+        game.orbit_state.pidx=first(circle(game.table, SmallBlind()))
     end
 end
 
