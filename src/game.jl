@@ -141,6 +141,28 @@ skip_option(sf::StartFrom{GP}, player) where {GP <: PlayerOption} =
 skip_post_option(sf::StartFrom{GP}, player) where {GP <: PlayerOption} =
     seat_number(sf.game_point.player) ≠ seat_number(player)
 
+function pidx_next_player(game)
+    pidx = game.orbit_state.pidx
+    players = players_at_table(game.table)
+    # return this_or_next_valid_pidx(players, pidx+1)
+    return cyclic_player_index(players, pidx+1)
+end
+
+function update_orbit_state!(game)
+    game.orbit_state.i+=1
+    game.orbit_state.pidx=pidx_next_player(game)
+end
+
+function reset_round_orbit_state!(game)
+    game.orbit_state.i=1
+    if game.table.round == :preflop
+        game.orbit_state.pidx=first(circle(game.table, FirstToAct()))
+    else
+        game.orbit_state.pidx=first(circle(game.table, FirstToAct())) # BUG: use SmallBlind()
+        # game.orbit_state.pidx=first(circle(game.table, SmallBlind()))
+    end
+end
+
 function act_generic!(game::Game, round, sf::StartFrom)
     table = game.table
     players = table.players
@@ -162,17 +184,26 @@ function act_generic!(game::Game, round, sf::StartFrom)
     # action (in `sf.game_point.action`) once,
     # and then continue with `player_option`.
     past_game_point = false
-    for (i, sn) in enumerate(circle(table, FirstToAct()))
-        player = players[sn]
+    reset_round_orbit_state!(game)
+
+    while true
+        os = game.orbit_state
+        player = players[os.pidx]
         if reached_game_point || !skip_pre_option(sf, player)
             @cdebug logger "Checking to see if it's $(name(player))'s turn to act"
             @cdebug logger "     not_playing(player) = $(not_playing(player))"
             @cdebug logger "     all_in.(players) = $(all_in.(players))"
-            not_playing(player) && continue # skip players not playing
+            if not_playing(player)
+                update_orbit_state!(game)
+                continue # skip players not playing
+            end
             if end_of_actions(table, player)
                 break
             end
-            all_in(player) && continue
+            if all_in(player)
+                update_orbit_state!(game)
+                continue
+            end
             @cdebug logger "$(name(player))'s turn to act"
         end
         if reached_game_point || !skip_option(sf, player)
@@ -189,10 +220,12 @@ function act_generic!(game::Game, round, sf::StartFrom)
             table.winners.declared && break
             end_preflop_actions(table, player, round) && break
         end
-        if i > n_max_actions(table)
+        if os.i > n_max_actions(table)
             error("Too many actions have occurred, please open an issue.")
         end
+        update_orbit_state!(game)
     end
+
     @cinfo logger "Betting is finished."
     @assert all_bets_were_called(table)
 end
