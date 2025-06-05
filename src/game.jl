@@ -260,6 +260,15 @@ function play!(game::Game)
     end
 end
 
+function next_round(r)
+    if r == :preflop;  return :flop
+    elseif r == :flop; return :turn
+    elseif r == :turn; return :river
+    elseif r == :river; return :post_river
+    else; error("Uncaught case")
+    end
+end
+
 function _play!(game::Game)
     game = initialize!(game)
     table = game.table
