@@ -143,6 +143,13 @@ function update_given_raise!(table, player, amt)
             opponent.action_required = true
         end
     end
+    @cdebug logger begin
+        pbpai = opponents_being_put_all_in(table, player, amt)
+        s = "opponents_being_put_all_in: $pbpai\n"
+        s *= "bank_rolls: $(bank_roll.(players))\n"
+        s *= "round_bank_roll: $(round_bank_roll.(players))\n"
+        s
+    end
     @cinfo logger begin
         pbpai = opponents_being_put_all_in(table, player, amt)
         if bank_roll(player) == 0

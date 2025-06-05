@@ -31,8 +31,7 @@ function TH.player_option(game::Game, player::Player{RiverDreamer}, options)
             @test TH.Action(:raise, 14) in actions
             rewards = map(actions) do action
                 rgame = TH.recreate_game(game, player)
-                sf = TH.StartFrom(TH.PlayerOption(player, round, action))
-                play!(rgame, sf)
+                play!(rgame, Val(false))
                 pidx = findfirst(rgame.table.players) do p
                     TH.seat_number(p) == TH.seat_number(player)
                 end
