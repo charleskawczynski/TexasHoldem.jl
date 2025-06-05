@@ -273,13 +273,6 @@ and has one of the following names
 """
 function player_option end
 
-function player_option(game::Game, player::Player)
-    options = get_options(game, player)
-    action = player_option(game, player, options)::Action
-    validate_action(action, options)
-    return action
-end
-
 # By default, forward to `player_option` with
 # game round:
 # player_option(game::Game, options) =

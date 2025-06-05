@@ -220,6 +220,9 @@ function _play!(game::Game, ::Val{init}) where {init}
         logger = table.logger
 
         os = game.orbit_state
+        if os.i > n_max_actions(table) # :preflop, :flop, :turn, :river
+            error("Too many actions have occurred, please open an issue.")
+        end
         if os.i == 1
             @cdebug logger "----------- Betting round: $(table.round)"
             @cdebug logger "orbit_state: $os"
@@ -259,10 +262,6 @@ function _play!(game::Game, ::Val{init}) where {init}
         @cdebug logger "Checking to see if it's $(name(player))'s turn to act"
         @cdebug logger "     not_playing(player) = $(not_playing(player))"
         @cdebug logger "     all_in.(players) = $(all_in.(players))"
-        if not_playing(player)
-            update_orbit_state!(game)
-            continue # skip players not playing
-        end
         if end_of_actions(table, player)
             @cinfo logger "Betting finished for $(table.round)."
             @assert all_bets_were_called(table)
@@ -276,13 +275,16 @@ function _play!(game::Game, ::Val{init}) where {init}
                 continue
             end
         end
-        if all_in(player)
+        if all_in(player) || not_playing(player)
             update_orbit_state!(game)
             continue
         end
         @cdebug logger "$(name(player))'s turn to act"
 
-        action = player_option(game, player)
+        options = get_options(game, player)
+        action = player_option(game, player, options)::Action
+        validate_action(action, options)
+
         update_given_valid_action!(table, player, action)
         if table.winners.declared || end_preflop_actions(table, player, round)
             @cinfo logger "Betting finished for $(table.round)."
@@ -296,9 +298,6 @@ function _play!(game::Game, ::Val{init}) where {init}
                 reset_round_bank_rolls!(table, table.round)
                 continue
             end
-        end
-        if os.i > n_max_actions(table) # :preflop, :flop, :turn, :river
-            error("Too many actions have occurred, please open an issue.")
         end
         update_orbit_state!(game)
     end
