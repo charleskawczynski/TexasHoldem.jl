@@ -28,7 +28,6 @@ struct Terminal <: AbstractGUI end
 
 include("chips.jl")
 include("types.jl")
-include("goto_player_option.jl")
 include("player_type.jl")
 include("players.jl")
 include("transactions.jl")

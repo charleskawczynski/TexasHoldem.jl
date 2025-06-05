@@ -174,18 +174,22 @@ function max_possible_profit(player, players, initial_brs)
 end
 
 """
-    play!(game::Game)
+    play!(game::Game[, ::Val{true|false}])
 
-Play a game.
+Play a game. Users can take a game at an instance
+and continue that game, by calling `play!` with
+`Val(false)`.
 """
-function play!(game::Game)
+play!(game::Game) = play!(game, Val(true))
+
+function play!(game::Game, ::Val{init}) where {init}
     if game.table.logger isa DebugLogger
         cl = Logging.ConsoleLogger(stderr,Logging.Debug; meta_formatter=metafmt)
         Logging.with_logger(cl) do
-            _play!(game)
+            _play!(game, Val(init))
         end
     else
-        _play!(game)
+        _play!(game, Val(init))
     end
 end
 
@@ -197,14 +201,18 @@ function next_round(r)
     end
 end
 
-function _play!(game::Game)
-    game = initialize!(game)
+function _play!(game::Game, ::Val{init}) where {init}
+    if init
+        initialize!(game)
+    end
     table = game.table
     logger = table.logger
     winners = table.winners
     players = players_at_table(table)
-    table.round = :preflop
-    reset_round_orbit_state!(game) # depends on round
+    if init
+        table.round = :preflop
+        reset_round_orbit_state!(game) # depends on round
+    end
 
     while true
         table = game.table
