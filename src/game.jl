@@ -196,14 +196,14 @@ end
 function _play!(game::Game, ::Val{init}) where {init}
     init && initialize!(game)
     while true
-        (options, flow) = play_to_options!(game)
+        (options, flow) = play_to_options!(game)::Tuple{Options,Symbol}
         if flow == :continue; continue; elseif flow == :break; break
         elseif flow == :goto_action; else; error("Uncaught case"); end
 
-        action = player_option(game, current_player(game), options)::Action
+        action = player_option(game, options)::Action
         validate_action(action, options)
 
-        update_given_valid_action!(game.table, current_player(game), action)
+        update_given_valid_action!(game, action)
         flow = check_if_game_is_over!(game)
         if flow == :continue; continue; elseif flow == :break; break
         else; error("Uncaught case"); end
@@ -252,7 +252,7 @@ function play_to_options!(game::Game)
         reset_round_parameters!(game.table)
         reset_round_orbit_state!(game)
         reset_round_bank_rolls!(table, table.round)
-        return (:none, :break)
+        return (NoOptions(), :break)
     end
     if os.i == 1
         update_gui(table)
@@ -263,12 +263,12 @@ function play_to_options!(game::Game)
             @assert all_bets_were_called(table)
             reset_round_parameters!(game.table)
             if table.round == :river
-                return (:none, :break)
+                return (NoOptions(), :break)
             else
                 table.round = next_round(table.round)
                 reset_round_orbit_state!(game)
                 reset_round_bank_rolls!(table, table.round)
-                return (:none, :continue)
+                return (NoOptions(), :continue)
             end
         end
         set_play_out_game!(table)
@@ -283,17 +283,17 @@ function play_to_options!(game::Game)
         @assert all_bets_were_called(table)
         reset_round_parameters!(game.table)
         if table.round == :river
-            return (:none, :break)
+            return (NoOptions(), :break)
         else
             table.round = next_round(table.round)
             reset_round_orbit_state!(game)
             reset_round_bank_rolls!(table, table.round)
-            return (:none, :continue)
+            return (NoOptions(), :continue)
         end
     end
     if all_in(player) || not_playing(player)
         update_orbit_state!(game)
-        return (:none, :continue)
+        return (NoOptions(), :continue)
     end
     @cdebug logger "$(name(player))'s turn to act"
 

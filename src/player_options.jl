@@ -21,6 +21,14 @@ struct Options
 end
 
 """
+    NoOptions
+
+The option when a player has no options (e.g.,
+they are all-in).
+"""
+NoOptions() = Options(:NoOptions)
+
+"""
     CheckRaiseFold
 
 The option when a player is only able to
@@ -187,6 +195,9 @@ function an_opponent_can_call_a_raise(table::Table, player::Player)
     return occr
 end
 
+update_given_valid_action!(game::Game, action::Action) =
+    update_given_valid_action!(game.table, current_player(game), action)
+
 update_given_valid_action!(game::Game, player::Player, action::Action) =
     update_given_valid_action!(game.table, player, action)
 function update_given_valid_action!(table::Table, player::Player, action::Action)
@@ -272,6 +283,9 @@ and has one of the following names
  - `options.name == CallFold`
 """
 function player_option end
+
+player_option(game::Game, options::Options) =
+    player_option(game, current_player(game), options)
 
 # By default, forward to `player_option` with
 # game round:
