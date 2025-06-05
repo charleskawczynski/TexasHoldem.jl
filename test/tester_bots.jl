@@ -66,9 +66,9 @@ struct BotRaiseAlmostAllIn <: AbstractStrategy end
 
 function TH.player_option(game::Game, player::Player{BotRaiseAlmostAllIn}, options)
     on = options.name
-    on == :CheckRaiseFold && return Raise(Int(0.9*round_bank_roll(player)))
-    on == :CallRaiseFold && return Raise(Int(0.9*round_bank_roll(player)))
-    on == :CallAllInFold && return Raise(Int(0.9*round_bank_roll(player)))
+    on == :CheckRaiseFold && return Raise(floor(Int, 0.9*round_bank_roll(player)))
+    on == :CallRaiseFold && return Raise(floor(Int, 0.9*round_bank_roll(player)))
+    on == :CallAllInFold && return Raise(floor(Int, 0.9*round_bank_roll(player)))
     error("Uncaught case")
 end
 
@@ -100,7 +100,7 @@ end
 struct BotCheckOnCallRaiseFold <: AbstractStrategy end
 
 function TH.player_option(game::Game, player::Player{BotCheckOnCallRaiseFold}, options)
-    @assert options.name == :CallRaiseFold
+    @assert options.name == :CallRaiseFold "needed :CallRaiseFold, got options.name: $(options.name)"
     return Check()
 end
 
@@ -108,7 +108,7 @@ end
 struct BotCheckOnCallAllInFold <: AbstractStrategy end
 
 function TH.player_option(game::Game, player::Player{BotCheckOnCallAllInFold}, options)
-    @assert options.name == :CallAllInFold
+    @assert options.name == :CallAllInFold "needed :CallAllInFold, got options.name: $(options.name)"
     return Check()
 end
 
@@ -116,7 +116,7 @@ end
 struct BotCheckOnCallFold <: AbstractStrategy end
 
 function TH.player_option(game::Game, player::Player{BotCheckOnCallFold}, options)
-    @assert options.name == :CallFold
+    @assert options.name == :CallFold "needed :CallFold, got options.name: $(options.name)"
     Check()
 end
 
@@ -135,7 +135,7 @@ end
 struct BotRaiseOnCallFold <: AbstractStrategy end
 
 function TH.player_option(game::Game, player::Player{BotRaiseOnCallFold}, options)
-    @assert options.name == :CallFold
+    @assert options.name == :CallFold "needed :CallFold, got options.name: $(options.name)"
     return Raise(bank_roll(player))
 end
 

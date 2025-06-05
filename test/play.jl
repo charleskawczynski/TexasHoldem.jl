@@ -25,7 +25,8 @@ end
 
 @testset "Game: Play (BotBetSB) - breaks lowest allowable bet" begin
     game = QuietGame((Player(BotBetSB(),1), Player(BotCheckCall(),2)))
-    # Cannot raise small blind on pre-flop! The big blind is the raise min raise, so we must raise at least big-blind
+    # Cannot raise small blind on pre-flop! The big blind is
+    # the raise min raise, so we must raise at least big-blind
     @test_throws AssertionError("Cannot raise 1. Raise must be between [4, 200]") play!(game)
 end
 
