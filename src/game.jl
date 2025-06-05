@@ -41,7 +41,7 @@ any_actions_required(game::Game) = any_actions_required(game.table)
 round(game::Game) = round(game.table)
 move_buttons!(game) = move_buttons!(game.table)
 
-function print_round(table, round)
+function print_round(table, round::Symbol)
     table.gui isa Terminal && return nothing
     round == :preflop && @cinfo table.logger "Pre-flop!"
     round == :flop && @cinfo table.logger "Flop: $(repeat(" ", 44)) $(table.cards[1:3])"
@@ -49,7 +49,7 @@ function print_round(table, round)
     round == :river && @cinfo table.logger "River: $(repeat(" ", 43)) $(table.cards[5])"
 end
 
-function set_antes!(table::Table, round)
+function set_antes!(table::Table, round::Symbol)
     round == :preflop || return nothing
     players = players_at_table(table)
     for i in 1:length(players)
@@ -122,7 +122,7 @@ function all_bets_were_called(table::Table)
     end, players)
 end
 
-function end_preflop_actions(table::Table, player::Player, round)
+function end_preflop_actions(table::Table, player::Player, round::Symbol)
     round == :preflop || return false
     cond1 = is_big_blind(table, player)
     cond2 = checked(player)
@@ -286,7 +286,7 @@ function _play!(game::Game, ::Val{init}) where {init}
         validate_action(action, options)
 
         update_given_valid_action!(table, player, action)
-        if table.winners.declared || end_preflop_actions(table, player, round)
+        if table.winners.declared || end_preflop_actions(table, player, table.round)
             @cinfo logger "Betting finished for $(table.round)."
             @assert all_bets_were_called(table)
             reset_round_parameters!(game.table)
