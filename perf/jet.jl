@@ -14,9 +14,9 @@ function do_work!(game)
 end
 
 # Make sure it runs without errors
-game = Game(players();logger=TH.ByPassLogger())
+game = Game(players();gui=TH.NoGUI(), logger=TH.ByPassLogger())
 do_work!(game)
 
 import JET
-game = Game(players();logger=TH.ByPassLogger())
+game = Game(players();gui=TH.NoGUI(), logger=TH.ByPassLogger())
 JET.@test_opt do_work!(game)
