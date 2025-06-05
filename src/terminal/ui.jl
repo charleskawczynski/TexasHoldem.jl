@@ -31,7 +31,7 @@ function update_gui(io::IO, table::Table, ::Terminal, pov_player)
     gui = table.gui
     clear_screen(io)
     # Print pot info
-    println(io, "       Round: $(nameof(typeof(table.round)))")
+    println(io, "       Round: $(table.round)")
     println(io, "       Chips in pot: $(pot(table.transactions))")
     for i in 1:2; println(io); end
     ocs = if table.winners.declared
