@@ -4,7 +4,7 @@
 
 export Game, play!, tournament!
 
-mutable struct OrbitState
+mutable struct BettingCycleState
     i::Int
     pidx::Int
 end
@@ -12,7 +12,7 @@ end
 mutable struct Game{T<:Table, IBRs, TBR}
     table::T
     initial_brs::IBRs
-    orbit_state::OrbitState
+    betting_cycle_state::BettingCycleState
     initial_∑brs::TBR
 end
 
@@ -29,10 +29,10 @@ Game(table::Table; kwargs...) = Game(players_at_table(table); kwargs...)
 Game(players::Tuple; kwargs...) = Game(Players(players); kwargs...)
 function Game(players::Players; kwargs...)
     table = Table(players; kwargs...)
-    os = first(enumerate(circle(table, FirstToAct())))
-    orbit_state = OrbitState(os[1], os[2])
+    bcs = first(enumerate(circle(table, FirstToAct())))
+    betting_cycle_state = BettingCycleState(bcs[1], bcs[2])
     initial_∑brs = ∑bank_rolls(players)
-    Game(table, deepcopy(bank_roll_chips.(players)), orbit_state, initial_∑brs)
+    Game(table, deepcopy(bank_roll_chips.(players)), betting_cycle_state, initial_∑brs)
 end
 
 players_at_table(game::Game) = players_at_table(game.table)
@@ -131,23 +131,23 @@ function end_preflop_actions(table::Table, player::Player, round::Symbol)
 end
 
 function pidx_next_player(game)
-    pidx = game.orbit_state.pidx
+    pidx = game.betting_cycle_state.pidx
     players = players_at_table(game.table)
     # return this_or_next_valid_pidx(players, pidx+1)
     return cyclic_player_index(players, pidx+1)
 end
 
-function update_orbit_state!(game)
-    game.orbit_state.i+=1
-    game.orbit_state.pidx=pidx_next_player(game)
+function update_betting_cycle_state!(game)
+    game.betting_cycle_state.i+=1
+    game.betting_cycle_state.pidx=pidx_next_player(game)
 end
 
-function reset_round_orbit_state!(game)
-    game.orbit_state.i=1
+function reset_round_betting_cycle_state!(game)
+    game.betting_cycle_state.i=1
     if game.table.round == :preflop
-        game.orbit_state.pidx=first(circle(game.table, FirstToAct()))
+        game.betting_cycle_state.pidx=first(circle(game.table, FirstToAct()))
     else
-        game.orbit_state.pidx=first(circle(game.table, SmallBlind()))
+        game.betting_cycle_state.pidx=first(circle(game.table, SmallBlind()))
     end
 end
 
@@ -222,7 +222,7 @@ function next_round(r)
     end
 end
 
-current_player(game) = players_at_table(game.table)[game.orbit_state.pidx]
+current_player(game) = players_at_table(game.table)[game.betting_cycle_state.pidx]
 
 any_quit_game(game) = any(x->quit_game(game, x), players_at_table(game.table))
 
@@ -235,26 +235,26 @@ function play_to_options!(game::Game)
     logger = table.logger
     winners = table.winners
     players = players_at_table(table)
-    os = game.orbit_state
-    if os.i > n_max_actions(table) # :preflop, :flop, :turn, :river
+    bcs = game.betting_cycle_state
+    if bcs.i > n_max_actions(table) # :preflop, :flop, :turn, :river
         error("Too many actions have occurred, please open an issue.")
     end
-    if os.i == 1
+    if bcs.i == 1
         @cdebug logger "----------- Betting round: $(table.round)"
-        @cdebug logger "orbit_state: $os"
+        @cdebug logger "betting_cycle_state: $bcs"
     else
-        @cdebug logger "orbit_state: $os"
+        @cdebug logger "betting_cycle_state: $bcs"
     end
     check_for_and_declare_winner!(table)
     if table.winners.declared
         @cinfo logger "Winner declared!"
         @assert all_bets_were_called(table)
         reset_round_parameters!(game.table)
-        reset_round_orbit_state!(game)
+        reset_round_betting_cycle_state!(game)
         reset_round_bank_rolls!(table, table.round)
         return (NoOptions(), :break)
     end
-    if os.i == 1
+    if bcs.i == 1
         update_gui(table)
         print_round(table, table.round)
 
@@ -266,7 +266,7 @@ function play_to_options!(game::Game)
                 return (NoOptions(), :break)
             else
                 table.round = next_round(table.round)
-                reset_round_orbit_state!(game)
+                reset_round_betting_cycle_state!(game)
                 reset_round_bank_rolls!(table, table.round)
                 return (NoOptions(), :continue)
             end
@@ -274,7 +274,7 @@ function play_to_options!(game::Game)
         set_play_out_game!(table)
     end
 
-    player = players[os.pidx]
+    player = players[bcs.pidx]
     @cdebug logger "Checking to see if it's $(name(player))'s turn to act"
     @cdebug logger "     not_playing(player) = $(not_playing(player))"
     @cdebug logger "     all_in.(players) = $(all_in.(players))"
@@ -286,13 +286,13 @@ function play_to_options!(game::Game)
             return (NoOptions(), :break)
         else
             table.round = next_round(table.round)
-            reset_round_orbit_state!(game)
+            reset_round_betting_cycle_state!(game)
             reset_round_bank_rolls!(table, table.round)
             return (NoOptions(), :continue)
         end
     end
     if all_in(player) || not_playing(player)
-        update_orbit_state!(game)
+        update_betting_cycle_state!(game)
         return (NoOptions(), :continue)
     end
     @cdebug logger "$(name(player))'s turn to act"
@@ -312,12 +312,12 @@ function check_if_game_is_over!(game::Game)
             return :break
         else
             table.round = next_round(table.round)
-            reset_round_orbit_state!(game)
+            reset_round_betting_cycle_state!(game)
             reset_round_bank_rolls!(table, table.round)
             return :continue
         end
     end
-    update_orbit_state!(game)
+    update_betting_cycle_state!(game)
     return :continue
 end
 
@@ -407,7 +407,7 @@ function initialize!(game)
     deal!(table, blinds(table))
     @assert cards(table) ≠ nothing
     game.table.round = :preflop
-    reset_round_orbit_state!(game) # depends on round
+    reset_round_betting_cycle_state!(game) # depends on round
     return game
 end
 
@@ -443,9 +443,9 @@ function reset_game!(game::Game)
         logger=logger,
         gui=table.gui,
     )
-    os = first(enumerate(circle(game.table, FirstToAct())))
-    game.orbit_state.i = os[1]
-    game.orbit_state.pidx = os[2]
+    bcs = first(enumerate(circle(game.table, FirstToAct())))
+    game.betting_cycle_state.i = bcs[1]
+    game.betting_cycle_state.pidx = bcs[2]
     PlayingCards.reset!(game.table.deck)
     table = game.table
     players = players_at_table(table)
