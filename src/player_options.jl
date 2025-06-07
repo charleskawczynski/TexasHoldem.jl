@@ -68,6 +68,9 @@ function validate_action(a::Action, options)
     on == :CallFold && @assert a.name in (:call, :fold)
 end
 
+is_valid_raise_amount(game, amt) =
+    is_valid_raise_amount(game.table, current_player(game), amt)
+
 """
     is_valid, msg = is_valid_raise_amount(table::Table, player::Player, amt)
 
@@ -93,7 +96,7 @@ function is_valid_raise_amount(table::Table, player::Player, amt::Int)
     end
     if !(minraise ≤ amt ≤ maxraise || amt == minraise == maxraise)
         if minraise == maxraise
-            return false, "Only allowable raise is $(minraise) (all-in)"
+            return false, "Only allowable raise is $(minraise) (all-in), attempting to raise $amt"
         else
             return false, "Cannot raise $amt. Raise must be between [$minraise, $maxraise]"
         end

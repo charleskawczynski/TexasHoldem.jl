@@ -35,6 +35,9 @@ function Game(players::Players; kwargs...)
     Game(table, deepcopy(bank_roll_chips.(players)), orbit_state, initial_∑brs)
 end
 
+dealer(game::Game) = dealer(game.table)
+pot(game::Game) = pot(game.table.transactions)
+observed_cards(game::Game) = observed_cards(game.table)
 players_at_table(game::Game) = players_at_table(game.table)
 blinds(game::Game) = blinds(game.table)
 any_actions_required(game::Game) = any_actions_required(game.table)
