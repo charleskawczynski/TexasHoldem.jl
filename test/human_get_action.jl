@@ -41,43 +41,43 @@ end
     players = (Player(Human(), 1), Player(TH.FuzzBot(), 2))
     game = Game(players)
     simulate_keystrokes(:down, :down, :enter, 'd')
-    TH.player_option(game, players[1], CheckRaiseFold())
+    TH.get_action(game, players[1], CheckRaiseFold())
     simulate_keystrokes(:down, :down, :enter, 'd')
-    TH.player_option(game, players[1], CallRaiseFold())
+    TH.get_action(game, players[1], CallRaiseFold())
     simulate_keystrokes(:down, :down, :enter, 'd')
-    TH.player_option(game, players[1], CallAllInFold())
+    TH.get_action(game, players[1], CallAllInFold())
     simulate_keystrokes(:down, :enter, 'd')
-    TH.player_option(game, players[1], CallFold())
+    TH.get_action(game, players[1], CallFold())
 end
 
 @testset "Test check" begin
     players = (Player(Human(), 1), Player(TH.FuzzBot(), 2))
     game = Game(players)
     simulate_keystrokes(:enter, 'd')
-    TH.player_option(game, players[1], CheckRaiseFold())
+    TH.get_action(game, players[1], CheckRaiseFold())
 end
 
 @testset "Test call" begin
     # No initial round contribution
     players = (Player(Human(), 1), Player(TH.FuzzBot(), 2))
     game = Game(players)
-    game.table.current_raise_amt = 10
+    game.table.total_bet = 10
     simulate_keystrokes(:enter, 'd', 10)
-    act = TH.player_option(game, players[1], CallRaiseFold())
+    act = TH.get_action(game, players[1], CallRaiseFold())
     @test act == TH.Call(10)
 
     players = (Player(Human(), 1), Player(TH.FuzzBot(), 2))
     game = Game(players)
-    game.table.current_raise_amt = 10
+    game.table.total_bet = 10
     simulate_keystrokes(:enter, 'd', 10)
-    act = TH.player_option(game, players[1], CallAllInFold())
+    act = TH.get_action(game, players[1], CallAllInFold())
     @test act == TH.Call(10)
 
     players = (Player(Human(), 1), Player(TH.FuzzBot(), 2))
     game = Game(players)
-    game.table.current_raise_amt = 10
+    game.table.total_bet = 10
     simulate_keystrokes(:enter, 'd', 10)
-    act = TH.player_option(game, players[1], CallFold())
+    act = TH.get_action(game, players[1], CallFold())
     @test act == TH.Call(10)
 end
 
@@ -85,9 +85,9 @@ end
     # No initial round contribution
     players = (Player(Human(), 1), Player(TH.FuzzBot(), 2))
     game = Game(players)
-    game.table.current_raise_amt = 10
+    game.table.total_bet = 10
     simulate_keystrokes(:down, :enter, 'd')
-    act = TH.player_option(game, players[1], CallAllInFold())
+    act = TH.get_action(game, players[1], CallAllInFold())
     @test act.amt == 200
     @test act == TH.AllIn(act.amt)
 end
@@ -122,24 +122,24 @@ TH.use_input_io() = true
     players = (Player(Human(), 1), Player(TH.FuzzBot(), 2))
     game = Game(players)
     table = game.table
-    table.current_raise_amt = 0
+    table.total_bet = 0
     file = joinpath(path,"CheckRaiseFold.output")
     simulate_keystrokes(:down, :enter) # select Raise
     TRT.automated_test(file, [10]) do emuterm
         @testset "Human player options: CheckRaiseFold" begin
-            TH.player_option(game, players[1], CheckRaiseFold(), emuterm)
+            TH.get_action(game, players[1], CheckRaiseFold(), emuterm)
         end
     end
 
     players = (Player(Human(), 1), Player(TH.FuzzBot(), 2))
     game = Game(players)
     table = game.table
-    table.current_raise_amt = 10
+    table.total_bet = 10
     file = joinpath(path,"CallRaiseFold.output")
     simulate_keystrokes(:down, :enter) # select Raise
     TRT.automated_test(file, [20]) do emuterm
         @testset "Human player options: CallRaiseFold" begin
-            TH.player_option(game, players[1], CallRaiseFold(), emuterm)
+            TH.get_action(game, players[1], CallRaiseFold(), emuterm)
         end
     end
 end

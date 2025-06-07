@@ -2,7 +2,7 @@
 ##### Human player options (ask via prompts)
 #####
 
-function player_option(game::Game, player::Player{Human}, options::Options, ioin::IO=stdin)
+function get_action(game::Game, player::Player{Human}, options::Options, ioin::IO=stdin)
     table = game.table
     update_gui(stdout, table, player)
     if options.name == :CheckRaiseFold

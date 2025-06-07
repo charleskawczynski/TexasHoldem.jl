@@ -36,16 +36,16 @@ tournament!(configure_game()) # play until 1 player remains
 
 # Creating your own bot
 
-Overload `player_option` with your own bot and play against it:
+Overload `get_action` with your own bot and play against it:
 
 ```julia
 using TexasHoldem
 using TexasHoldem: Options
-import TexasHoldem: player_option
+import TexasHoldem: get_action
 
 struct MyBot <: AbstractStrategy end
 
-function player_option(game::Game, player::Player{MyBot}, options::Options)
+function get_action(game::Game, player::Player{MyBot}, options::Options)
     if options.name == :CheckRaiseFold
         rand() < 0.5 && return Raise(rand(valid_raise_range(game.table, player)))
         return Check()

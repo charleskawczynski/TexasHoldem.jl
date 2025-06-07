@@ -35,6 +35,13 @@ function Game(players::Players; kwargs...)
     Game(table, deepcopy(bank_roll_chips.(players)), betting_cycle_state, initial_∑brs)
 end
 
+dealer(game::Game) = dealer(game.table)
+pot(game::Game) = pot(game.table.transactions)
+pot_investment(game::Game) = pot_investment(current_player(game))
+round_contribution(game::Game) = round_contribution(current_player(game))
+strategy(game::Game) = strategy(current_player(game))
+bank_roll(game::Game) = bank_roll(current_player(game))
+observed_cards(game::Game) = observed_cards(game.table)
 players_at_table(game::Game) = players_at_table(game.table)
 blinds(game::Game) = blinds(game.table)
 any_actions_required(game::Game) = any_actions_required(game.table)
@@ -55,8 +62,8 @@ function set_antes!(table::Table, round::Symbol)
     for i in 1:length(players)
         if is_first_to_act(table, players[i])
             # everyone must call big blind to see flop:
-            table.current_raise_amt = blinds(table).big
-            table.initial_round_raise_amt = blinds(table).big
+            table.total_bet = blinds(table).big
+            table.initial_round_raise_amount = blinds(table).big
         end
     end
     return nothing
@@ -200,7 +207,7 @@ function _play!(game::Game, ::Val{init}) where {init}
         if flow == :continue; continue; elseif flow == :break; break
         elseif flow == :goto_action; else; error("Uncaught case"); end
 
-        action = player_option(game, options)::Action
+        action = get_action(game, options)::Action
         validate_action(action, options)
 
         update_given_valid_action!(game, action)

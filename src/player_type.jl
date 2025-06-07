@@ -162,6 +162,12 @@ action_required(player::Player) = player.action_required
 active(player::Player) = player.active
 inactive(player::Player) = !active(player)
 pot_investment(player::Player) = player.pot_investment
+
+"""
+    round_contribution
+
+The contribution for the round
+"""
 round_contribution(player::Player) = player.round_contribution
 strategy(player::Player) = player.strategy
 pot_eligible(player::Player) = !folded(player) && still_playing(player) && active(player)

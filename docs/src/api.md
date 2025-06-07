@@ -18,6 +18,7 @@ Chips
 ```
 
 ## Player type and methods
+
 ```@docs
 AbstractStrategy
 Human
@@ -30,6 +31,18 @@ round_bank_roll
 
 ## Player actions
 
+The call, raise, and all-in functions follow the convetion:
+
+ - `call_amount = total_bet - round_contribution`
+ - `pot_investment = sum(round_contribution, rounds)`
+ - `pot` the sum of all round contributions
+ - `initial_round_raise_amount` minimum raise amount for all betting cycles in the round
+ - `minimum_raise_amount` the minimum raise amount.
+ - `Call(game)` will match the amount of the last bet made in the current betting round. By calling, you stay in the hand.
+ - `Raise(5)` amount to raise _above_ the current total bet.
+ - `AllIn(game)` raise all-in (all of your remaining chips). Note that `AllIn(game).amt` will contain the raise _above_ the current total bet.
+ - `bank_roll(game)`
+
 ```@docs
 TexasHoldem.Action
 Check
@@ -39,18 +52,25 @@ call_amount
 Raise
 AllIn
 valid_raise_range
+TexasHoldem.get_action
+```
+
+Additional helpers:
+```@docs
+TexasHoldem.total_bet
+TexasHoldem.round_contribution
 ```
 
 ## Player options
 
 ```@docs
 TexasHoldem.Options
+NoOptions
+CheckRaiseFold
+CallRaiseFold
+CallAllInFold
+CallFold
 TexasHoldem.get_options
-TexasHoldem.CheckRaiseFold
-TexasHoldem.CallRaiseFold
-TexasHoldem.CallAllInFold
-TexasHoldem.CallFold
-TexasHoldem.player_option
 ```
 
 ## Training
