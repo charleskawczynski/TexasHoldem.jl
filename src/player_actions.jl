@@ -24,6 +24,7 @@ Check() = Action(:check, 0)
 """
     Call(amt::Int)
     Call(table::Table, player::Player)
+    Call(game)
 
 The call action, should be returned from [`player_option`](@ref).
 when a player wants to call amount `amt`.
@@ -31,6 +32,7 @@ when a player wants to call amount `amt`.
 Use [`call_amount`](@ref) to query how much is needed to call.
 """
 Call(amt::Int) = Action(:call, amt)
+Call(game::Game) = Call(game.table, current_player(game))
 Call(game::Game, player::Player) = Call(game.table, player)
 function Call(table::Table, player::Player)
     call_amt = call_amount(table, player)
@@ -72,6 +74,10 @@ end
 AllIn(table::Table, player::Player) = # convenience function
     AllIn(last(valid_raise_range(table, player)))
 
+AllIn(game) = AllIn(game.table, current_player(game))
+
+call_amount(game) = call_amount(game.table, current_player(game))
+
 """
     call_amount(table::Table, player::Player)
 
@@ -86,7 +92,7 @@ function call_amount(table::Table, player::Player)
     if cra == 0
         @assert prc == 0 "Round contribution must be zero if current raise is zero."
     end
-    @assert !(call_amt < 0) "Call amount cannot be negative"
+    @assert !(call_amt < 0) "Call amount cannot be negative. call_amt: $call_amt, round_contribution: $prc"
     return call_amt
 end
 
