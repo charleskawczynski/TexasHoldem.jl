@@ -16,6 +16,7 @@ makedocs(;
         "Home" => "index.md",
         "Installation" => "installation.md",
         "Quick-start" => "quickstart.md",
+        "Rules" => "rules.md",
         "Terminology" => "terminology.md",
         "Performance" => "perf.md",
         "API" => "api.md",
