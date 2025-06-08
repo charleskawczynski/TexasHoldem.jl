@@ -25,7 +25,13 @@ function Base.show(io::IO, game::Game)
     println(io, "-----------------------")
 end
 
-Game(table::Table; kwargs...) = Game(players_at_table(table); kwargs...)
+function Game(table::Table; kwargs...)
+    players = players_at_table(table)
+    bcs = first(enumerate(circle(table, FirstToAct())))
+    betting_cycle_state = BettingCycleState(bcs[1], bcs[2])
+    initial_∑brs = ∑bank_rolls(players)
+    Game(table, deepcopy(bank_roll_chips.(players)), betting_cycle_state, initial_∑brs)
+end
 Game(players::Tuple; kwargs...) = Game(Players(players); kwargs...)
 function Game(players::Players; kwargs...)
     table = Table(players; kwargs...)
@@ -208,7 +214,7 @@ function _play!(game::Game, ::Val{init}) where {init}
         elseif flow == :goto_action; else; error("Uncaught case"); end
 
         action = get_action(game, options)::Action
-        validate_action(action, options)
+        validate_action(game, action, options)
 
         update_given_valid_action!(game, action)
         flow = check_if_game_is_over!(game)
@@ -357,7 +363,6 @@ function post_game_procedure(game)
     for (player, initial_br) in zip(players, initial_brs)
         mpp = max_possible_profit(player, players, initial_brs)
         prof = bank_roll_chips(player) - initial_br
-        # TODO: this is broken due to https://github.com/charleskawczynski/TexasHoldem.jl/issues/200
         @assert prof ≤ mpp string("Over-winning occurred:\n",
               "    Player $(name(player))\n",
               "    Initial BRs $(initial_brs)\n",

@@ -51,13 +51,13 @@ that they are allowed to raise.
 When a player returns `RaiseTo(game, 5)`, this means that they want to
 raise the current total bet to 5.
 """
-function RaiseTo(table::Table, total_bet::Int)
-    # TODO: fix this bug
-    # @assert total_bet > minimum_raise_amount(table) "Cannot raise less than minimum_raise_amount(table)!"
-    @assert total_bet > 0 "Cannot raise less than 0!"
+function RaiseTo(table::Table, player::Player, total_bet::Int)
+    # `total_bet` is validated in `validate_action` so that
+    # users can handle this gracefully
     Action(:raiseto, total_bet)
 end
-RaiseTo(game::Game, total_bet::Int) = RaiseTo(game.table, total_bet)
+RaiseTo(game::Game, total_bet::Int) =
+    RaiseTo(game.table, current_player(game), total_bet)
 
 """
     Raise(game::Game, amt::Int)
@@ -176,6 +176,10 @@ function valid_total_bet_range(table::Table, player::Player)
         s*="   (minraise:maxraise) = $vrr"
         s
     end
-    @assert maxraise ≥ minraise "Min valid raise bound must be ≤ max valid raise bound."
+    if !(maxraise == minraise == bank_roll(player))
+        # We can accept a raise below minimum_raise_amount
+        # if it exactly puts us all-in
+        @assert maxraise ≥ minraise "Min valid raise bound must be ≤ max valid raise bound."
+    end
     return (minraise:maxraise)
 end

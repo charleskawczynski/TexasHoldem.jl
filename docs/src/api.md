@@ -96,7 +96,7 @@ The `name` property of an `Options` object (`(action::Action).name`) is a `Symbo
 
 `get_options(game::Game)` will always yield a valid `Options` object, TexasHoldem
 cannot guarantee that a user will yield a valid action. Use
-`is_valid_action(a::Action, options::Options)::Bool` to determine if a given
+`is_valid_action(game::Game, action::Action, options::Options)::Bool` to determine if a given
 action is valid or not.
 
 ## Training
