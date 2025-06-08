@@ -84,7 +84,6 @@ end
 Returns a Bool indicating that the given action is
 valid given the options
 """
-
 function is_valid_action(game, a::Action, options::Options)
     on = options.name
     on == :CheckRaiseFold && return a.name in (:check, :raiseto, :all_in, :fold) && is_valid_raise(game, action)

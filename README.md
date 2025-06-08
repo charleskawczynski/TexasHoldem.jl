@@ -69,6 +69,37 @@ end
 tournament!(Game((Player(Human(), 1), Player(MyBot(), 2))))
 ```
 
+## Orchestrating your own game
+
+Want to orchestrate your own game? TexasHoldem.jl's `play!` implementation is
+(very roughly)
+
+```julia
+import TexasHoldem as TH
+function play!(game::Game)
+    TH.initialize!(game)
+    while true
+        (options, flow) = TH.play_to_options!(game)::Tuple{TH.Options,Symbol}
+        if flow == :continue; continue; elseif flow == :break; break
+        elseif flow == :goto_action; else; error("Uncaught case"); end
+
+        action = TH.get_action(game, options)::Action
+        TH.validate_action(game, action, options)
+
+        TH.update_given_valid_action!(game, action)
+        flow = TH.check_if_game_is_over!(game)
+        if flow == :continue; continue; elseif flow == :break; break
+        else; error("Uncaught case"); end
+    end
+    TH.distribute_winnings!(game)
+    game.table.winners.declared = true
+    TH.post_game_procedure(game)
+    return TH.any_quit_game(game)
+end
+```
+
+Implement your own for your own needs!
+
 ## Related packages
 
 | Package                                                                             |  Development status      |         Purpose                                       |
