@@ -245,6 +245,16 @@ distribute_winnings!(game) =
     distribute_winnings!(players_at_table(game.table),
         game.table.transactions, cards(game.table), game.table.logger)
 
+
+"""
+    play_to_options!(game::Game)
+
+Plays until the next player's options are reached, and returns a tuple
+(options, flow) where:
+
+ - `flow` is either (:continue, :break, or :goto_action)
+ - `options` is a valid [`Options`](@ref) object
+"""
 function play_to_options!(game::Game)
     table = game.table
     logger = table.logger

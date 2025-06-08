@@ -63,7 +63,7 @@ A hand of Texas Hold'em progresses through distinct stages:
 ## 4. No-Limit Betting Rules
 
 * **Minimum Bet:** In any betting round, the minimum bet is equal to the Big Blind (unless it's a call of a pre-existing bet).
-* **Minimum Raise:** A raise must be at least the size of the previous bet or raise in that betting round. For example, if a player bets $10, the next player must raise at least $10 (making the total bet $20).
+* **Minimum Raise:** A raise must be at least the size of the previous bet or raise in that betting round. For example, if a player bets \$10, the next player must raise at least \$10 (making the total bet \$20).
 * **Maximum Bet/Raise:** This is the "No-Limit" aspect. A player can bet or raise any amount up to their entire "stack" at any time it's their turn to act.
 * **All-in:** If a player bets "all-in" (puts all their remaining chips into the pot) and it's less than a full raise, subsequent players can call that amount, but cannot re-raise unless the amount is at least equal to a full minimum raise. If a player goes all-in, they can only win chips from the main pot up to the amount of their all-in bet. Any further bets create a "side pot" which the all-in player is not eligible to win.
 

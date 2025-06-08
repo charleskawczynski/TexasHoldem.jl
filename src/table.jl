@@ -206,7 +206,8 @@ function unobserved_cards(table::Table)
 end
 
 """
-    total_bet
+    total_bet(game::Game)
+    total_bet(table::Table)
 
 The total bet.
 """
