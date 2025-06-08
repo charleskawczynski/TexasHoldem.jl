@@ -41,7 +41,7 @@ function TH.get_action(game::Game, player::Player{<:BotFlopRaise}, options)
     amt = player.strategy.amt isa Nothing ? floor(Int, bank_roll(player)/2) : player.strategy.amt
     round = game.table.round
     on = options.name
-    on == :CheckRaiseFold && return round == :flop ? Raise(amt) : Check()
+    on == :CheckRaiseFold && return round == :flop ? RaiseTo(game, amt) : Check()
     on == :CallRaiseFold && return Call(game)
     on == :CallAllInFold && return Call(game)
     on == :CallFold && return Call(game)
@@ -54,9 +54,9 @@ struct BotRaiseAllIn <: AbstractStrategy end
 
 function TH.get_action(game::Game, player::Player{BotRaiseAllIn}, options)
     on = options.name
-    on == :CheckRaiseFold && return Raise(last(valid_raise_range(game)))
-    on == :CallRaiseFold && return Raise(last(valid_raise_range(game)))
-    on == :CallAllInFold && return Raise(last(valid_raise_range(game)))
+    on == :CheckRaiseFold && return RaiseTo(game, last(valid_total_bet_range(game)))
+    on == :CallRaiseFold && return RaiseTo(game, last(valid_total_bet_range(game)))
+    on == :CallAllInFold && return RaiseTo(game, last(valid_total_bet_range(game)))
     error("Uncaught case")
 end
 
@@ -66,9 +66,9 @@ struct BotRaiseAlmostAllIn <: AbstractStrategy end
 
 function TH.get_action(game::Game, player::Player{BotRaiseAlmostAllIn}, options)
     on = options.name
-    on == :CheckRaiseFold && return Raise(floor(Int, 0.9*round_bank_roll(player)))
-    on == :CallRaiseFold && return Raise(floor(Int, 0.9*round_bank_roll(player)))
-    on == :CallAllInFold && return Raise(floor(Int, 0.9*round_bank_roll(player)))
+    on == :CheckRaiseFold && return RaiseTo(game, floor(Int, 0.9*round_bank_roll(player)))
+    on == :CallRaiseFold && return RaiseTo(game, floor(Int, 0.9*round_bank_roll(player)))
+    on == :CallAllInFold && return RaiseTo(game, floor(Int, 0.9*round_bank_roll(player)))
     error("Uncaught case")
 end
 
@@ -78,7 +78,7 @@ struct BotBetSB <: AbstractStrategy end
 function TH.get_action(game::Game, player::Player{BotBetSB}, options)
     round = game.table.round
     on = options.name
-    on == :CheckRaiseFold && return round == :preflop ? Raise(TH.blinds(game).small) : Raise(TH.blinds(game).small)
+    on == :CheckRaiseFold && return round == :preflop ? RaiseTo(game, TH.blinds(game).small) : RaiseTo(game, TH.blinds(game).small)
     on == :CallRaiseFold && return Call(game)
     on == :CallFold && return Call(game)
     error("Uncaught case")
@@ -90,7 +90,7 @@ struct BotBetBB <: AbstractStrategy end
 function TH.get_action(game::Game, player::Player{BotBetBB}, options)
     round = game.table.round
     on = options.name
-    on == :CheckRaiseFold && return round == :preflop ? Raise(2*TH.blinds(game).big) : Raise(TH.blinds(game).big)
+    on == :CheckRaiseFold && return round == :preflop ? RaiseTo(game, 2*TH.blinds(game).big) : RaiseTo(game, TH.blinds(game).big)
     on == :CallRaiseFold && return Call(game)
     on == :CallFold && return Call(game)
     error("Uncaught case")
@@ -136,7 +136,7 @@ struct BotRaiseOnCallFold <: AbstractStrategy end
 
 function TH.get_action(game::Game, player::Player{BotRaiseOnCallFold}, options)
     @assert options.name == :CallFold "needed :CallFold, got options.name: $(options.name)"
-    return Raise(bank_roll(player))
+    return RaiseTo(game, bank_roll(player))
 end
 
 ##### BotLimpAllIn
@@ -170,8 +170,8 @@ end
 function TH.get_action(game::Game, player::Player{<:BotPreFlopRaise}, options)
     round = game.table.round
     on = options.name
-    on == :CheckRaiseFold && return round == :preflop ? Raise(TH.strategy(player).amt) : Check()
-    on == :CallRaiseFold && return Raise(TH.strategy(player).amt)
+    on == :CheckRaiseFold && return round == :preflop ? RaiseTo(game, TH.strategy(player).amt) : Check()
+    on == :CallRaiseFold && return RaiseTo(game, TH.strategy(player).amt)
     on == :CallAllInFold && return Call(game)
     on == :CallFold && return Call(game)
     error("Uncaught case")

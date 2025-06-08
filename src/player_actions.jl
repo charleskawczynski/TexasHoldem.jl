@@ -2,8 +2,8 @@
 ##### Player actions
 #####
 
-export Fold, Check, Call, Raise, AllIn
-export call_amount, valid_raise_range
+export Fold, Check, Call, Raise, RaiseTo, AllIn
+export call_amount, valid_total_bet_range
 
 """
     Fold()
@@ -39,24 +39,46 @@ function Call(table::Table, player::Player)
 end
 
 """
-    Raise(amt::Int)
+    RaiseTo(game::Game, total_bet::Int)
+
+The raise-to action, should be returned from [`get_action`](@ref).
+when a player wants to raise the current total bet amount
+to `total_bet`.
+
+Use [`valid_total_bet_range`](@ref) to query the valid range
+that they are allowed to raise.
+
+When a player returns `RaiseTo(game, 5)`, this means that they want to
+raise the current total bet to 5.
+"""
+function RaiseTo(table::Table, total_bet::Int)
+    # TODO: fix this bug
+    # @assert total_bet > minimum_raise_amount(table) "Cannot raise less than minimum_raise_amount(table)!"
+    @assert total_bet > 0 "Cannot raise less than 0!"
+    Action(:raiseto, total_bet)
+end
+RaiseTo(game::Game, total_bet::Int) = RaiseTo(game.table, total_bet)
+
+"""
+    Raise(game::Game, amt::Int)
 
 The raise action, should be returned from [`get_action`](@ref).
 when a player wants to raise to amount `amt`.
 
-Use [`valid_raise_range`](@ref) to query the valid range
+Use [`valid_total_bet_range`](@ref) to query the valid range
 that they are allowed to raise.
 
 When a player returns `Raise(5)`, this means that they want to
-raise 5 above the current raise amount.
+raise 5 above the current total bet.
 """
-function Raise(amt::Int)
-    @assert amt > 0 "Cannot raise less than 0!"
-    Action(:raise, amt)
+function Raise(game::Game, amt::Int)
+    error("Raise has been deprecated. We plan to add support please use RaiseTo")
+    # @assert amt > 0 "Cannot raise less than 0!"
+    # Action(:raiseto, amt)
 end
 
 """
-    AllIn(game)
+    AllIn(game::Game)
 
 The all-in action, should be returned from [`get_action`](@ref).
 when a player wants to raise all-in.
@@ -65,7 +87,7 @@ when a player wants to raise all-in.
 
 Users may call this via `AllIn(game)`.
 
-See [`valid_raise_range`](@ref) for querying the valid range
+See [`valid_total_bet_range`](@ref) for querying the valid range
 that they are allowed to raise.
 """
 function AllIn(amt::Int)
@@ -73,11 +95,11 @@ function AllIn(amt::Int)
     Action(:all_in, amt)
 end
 AllIn(table::Table, player::Player) = # convenience function
-    AllIn(last(valid_raise_range(table, player)))
+    AllIn(last(valid_total_bet_range(table, player)))
 
 AllIn(game::Game) = AllIn(game.table, current_player(game))
 
-call_amount(game) = call_amount(game.table, current_player(game))
+call_amount(game::Game) = call_amount(game.table, current_player(game))
 
 """
     call_amount(table::Table, player::Player)
@@ -108,18 +130,18 @@ function max_opponent_round_bank_roll(table::Table, player::Player)
     return max_orbr
 end
 
-valid_raise_range(game::Game) =
-    valid_raise_range(game.table, current_player(game))
+valid_total_bet_range(game::Game) =
+    valid_total_bet_range(game.table, current_player(game))
 
 """
-    valid_raise_range(table::Table, player::Player)
+    valid_total_bet_range(table::Table, player::Player)
 
 A `UnitRange{Int}` of valid raises. Note that
 sometimes the range's starting and ending values
 are the same when, for example, all-in is the
 only available option.
 """
-function valid_raise_range(table::Table, player::Player)
+function valid_total_bet_range(table::Table, player::Player)
     tb = total_bet(table)
     irra = initial_round_raise_amount(table)
     mra = minimum_raise_amount(table)
@@ -137,7 +159,7 @@ function valid_raise_range(table::Table, player::Player)
         amt_computed = rbr - round_contribution(player)
         check = amt_computed ≤ bank_roll(player)
         s = ""
-        s*="determining valid_raise_range\n"
+        s*="determining valid_total_bet_range\n"
         s*="   round_bank_roll = $rbr\n"
         s*="   max_opponent_round_bank_roll = $max_orbr\n"
         s*="   total_bet == 0 = $(tb == 0)\n"

@@ -8,11 +8,11 @@ import TexasHoldem: get_action
 struct RandomBot <: AbstractStrategy end
 function get_action(game::Game, player::Player{RandomBot}, options)
     if options.name == :CheckRaiseFold
-        rand() < 0.5 && return Raise(rand(valid_raise_range(game)))
+        rand() < 0.5 && return RaiseTo(game, rand(valid_total_bet_range(game)))
         return Check()
     elseif options.name == :CallRaiseFold
         rand() < 0.5 && return Call(game)
-        rand() < 0.5 && return Raise(rand(valid_raise_range(game)))
+        rand() < 0.5 && return RaiseTo(game, rand(valid_total_bet_range(game)))
         return Fold()
     elseif options.name == :CallAllInFold
         rand() < 0.5 && return Call(game)

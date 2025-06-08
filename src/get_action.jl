@@ -53,9 +53,9 @@ valid under the given options.
 function validate_action(a::Action, options::Options)
     on = options.name
     if on == :CheckRaiseFold
-        @assert a.name in (:check, :raise, :all_in, :fold)
+        @assert a.name in (:check, :raiseto, :all_in, :fold)
     elseif on == :CallRaiseFold
-        @assert a.name in (:call, :raise, :all_in, :fold)
+        @assert a.name in (:call, :raiseto, :all_in, :fold)
     elseif on == :CallAllInFold
         @assert a.name in (:call, :all_in, :fold)
     elseif on == :CallFold
@@ -73,8 +73,8 @@ valid given the options
 """
 function is_valid_action(a::Action, options::Options)
     on = options.name
-    on == :CheckRaiseFold && return a.name in (:check, :raise, :all_in, :fold)
-    on == :CallRaiseFold && return a.name in (:call, :raise, :all_in, :fold)
+    on == :CheckRaiseFold && return a.name in (:check, :raiseto, :all_in, :fold)
+    on == :CallRaiseFold && return a.name in (:call, :raiseto, :all_in, :fold)
     on == :CallAllInFold && return a.name in (:call, :all_in, :fold)
     on == :CallFold && return a.name in (:call, :fold)
     on == :NoOptions && return a.name == :none
@@ -95,7 +95,7 @@ function is_valid_raise_amount(table::Table, player::Player, amt::Int)
     logger = table.logger
     prc = round_contribution(player)
     rbr = round_bank_roll(player)
-    vrr = valid_raise_range(table, player)
+    vrr = valid_total_bet_range(table, player)
     @cdebug logger "vrr = $vrr, amt = $amt, prc = $prc, rbr=$rbr, br=$(bank_roll(player))"
     minraise = first(vrr)
     maxraise = last(vrr)
@@ -218,16 +218,16 @@ update_given_valid_action!(game::Game, player::Player, action::Action) =
     update_given_valid_action!(game.table, player, action)
 function update_given_valid_action!(table::Table, player::Player, action::Action)
     logger = table.logger
-    @assert action.name in (:fold, :raise, :call, :check, :all_in)
+    @assert action.name in (:fold, :raiseto, :call, :check, :all_in)
     if action.name == :fold
         player.performed_action = :folded
         player.folded = true
         check_for_and_declare_winner!(table)
         @cinfo logger "$(name(player)) folded!"
-    elseif action.name == :raise || action.name == :all_in
+    elseif action.name == :raiseto || action.name == :all_in
         amt = valid_raise_amount(table, player, action.amt) # asserts valid requested raise amount
         update_given_raise!(table, player, amt)
-        player.performed_action = :raised
+        player.performed_action = :raiseto
     elseif action.name == :call
         amt = action.amt
         @cdebug logger "$(name(player)) calling $(amt)."
@@ -270,7 +270,7 @@ function get_options(game, player)
         cond_2 = an_opponent_can_call_a_raise(table, player)
         raise_possible = cond_1 && cond_2
         if raise_possible # raise possible
-            vrr = valid_raise_range(table, player)
+            vrr = valid_total_bet_range(table, player)
             if first(vrr) == last(vrr) # only all-in raise possible
                 return CallAllInFold()
             else
@@ -315,13 +315,13 @@ get_action(game::Game, options::Options) =
 function get_action(game::Game, player::Player{FuzzBot}, options)
     if options.name == :CheckRaiseFold
         rand() < 0.5 && return Check()
-        rand() < 0.5 && return Raise(rand(valid_raise_range(game)))
+        rand() < 0.5 && return RaiseTo(game, rand(valid_total_bet_range(game)))
         # while we can check for free, this bot is used for fuzzing,
         # so we want to explore the most diverse set of possible cases.
         return Fold()
     elseif options.name == :CallRaiseFold
         rand() < 0.5 && return Call(game)
-        rand() < 0.5 && return Raise(rand(valid_raise_range(game))) # re-raise
+        rand() < 0.5 && return RaiseTo(game, rand(valid_total_bet_range(game))) # re-raise
         return Fold()
     elseif options.name == :CallAllInFold
         rand() < 0.5 && return Call(game)
@@ -339,10 +339,10 @@ end
 function get_action(game::Game, player::Player{Bot5050}, options)
     if options.name == :CheckRaiseFold
         rand() < 0.5 && return Check()
-        return Raise(rand(valid_raise_range(game)))
+        return RaiseTo(game, rand(valid_total_bet_range(game)))
     elseif options.name == :CallRaiseFold
         rand() < 0.5 && return Call(game)
-        rand() < 0.5 && return Raise(rand(valid_raise_range(game))) # re-raise
+        rand() < 0.5 && return RaiseTo(game, rand(valid_total_bet_range(game))) # re-raise
         return Fold()
     elseif options.name == :CallAllInFold
         rand() < 0.5 && return Call(game)

@@ -7,7 +7,7 @@ TH = TexasHoldem
 QuietGame(args...; kwargs...) = Game(args...; kwargs..., gui=TH.NoGUI(), logger=TH.ByPassLogger())
 DebugGame(args...; kwargs...) = Game(args...; kwargs..., gui=TH.NoGUI(), logger=TH.DebugLogger())
 
-function valid_raise_range_simple(table::Table, player::Player)
+function valid_total_bet_range_simple(table::Table, player::Player)
     cra = TH.total_bet(table)
     irra = TH.initial_round_raise_amount(table)
     rbr = TH.round_bank_roll(player)
@@ -48,54 +48,54 @@ function valid_raise_range_simple(table::Table, player::Player)
     return (minraise:maxraise), case
 end
 
-@testset "valid_raise_range" begin
+@testset "valid_total_bet_range" begin
     # Case 1
     table = QuietGame((Player(TH.FuzzBot(), 1; bank_roll=1), Player(TH.FuzzBot(), 2));blinds = TH.Blinds(2,4)).table
     players = TH.players_at_table(table)
     table.total_bet = 0
-    @test valid_raise_range_simple(table, players[1]) == (TH.valid_raise_range(table, players[1]), 1)
+    @test valid_total_bet_range_simple(table, players[1]) == (TH.valid_total_bet_range(table, players[1]), 1)
 
     # Case 2
     table = QuietGame((Player(TH.FuzzBot(), 1), Player(TH.FuzzBot(), 2; bank_roll = 300))).table
     players = TH.players_at_table(table)
     table.total_bet = 0
-    @test valid_raise_range_simple(table, players[1]) == (TH.valid_raise_range(table, players[1]), 2)
+    @test valid_total_bet_range_simple(table, players[1]) == (TH.valid_total_bet_range(table, players[1]), 2)
 
     # Case 3
     table = QuietGame((Player(TH.FuzzBot(), 1; bank_roll=2), Player(TH.FuzzBot(), 2; bank_roll = 1)); blinds=TH.Blinds(2,4)).table
     players = TH.players_at_table(table)
     table.total_bet = 0
-    @test valid_raise_range_simple(table, players[1]) == (TH.valid_raise_range(table, players[1]), 3)
+    @test valid_total_bet_range_simple(table, players[1]) == (TH.valid_total_bet_range(table, players[1]), 3)
 
     # Case 4
     table = QuietGame((Player(TH.FuzzBot(), 1), Player(TH.FuzzBot(), 2; bank_roll = 50))).table
     players = TH.players_at_table(table)
     table.total_bet = 0
-    @test valid_raise_range_simple(table, players[1]) == (TH.valid_raise_range(table, players[1]), 4)
+    @test valid_total_bet_range_simple(table, players[1]) == (TH.valid_total_bet_range(table, players[1]), 4)
 
     # Case 5
     table = QuietGame((Player(TH.FuzzBot(), 1; bank_roll=1), Player(TH.FuzzBot(), 2))).table
     players = TH.players_at_table(table)
     table.total_bet = 1
-    @test valid_raise_range_simple(table, players[1]) == (TH.valid_raise_range(table, players[1]), 5)
+    @test valid_total_bet_range_simple(table, players[1]) == (TH.valid_total_bet_range(table, players[1]), 5)
 
     # Case 6
     table = QuietGame((Player(TH.FuzzBot(), 1), Player(TH.FuzzBot(), 2; bank_roll = 300))).table
     players = TH.players_at_table(table)
     table.total_bet = 1
-    @test valid_raise_range_simple(table, players[1]) == (TH.valid_raise_range(table, players[1]), 6)
+    @test valid_total_bet_range_simple(table, players[1]) == (TH.valid_total_bet_range(table, players[1]), 6)
 
     # Case 7
     table = QuietGame((Player(TH.FuzzBot(), 1; bank_roll=2), Player(TH.FuzzBot(), 2; bank_roll = 1));blinds=TH.Blinds(2,4)).table
     players = TH.players_at_table(table)
     table.total_bet = 1
-    @test valid_raise_range_simple(table, players[1]) == (TH.valid_raise_range(table, players[1]), 7)
+    @test valid_total_bet_range_simple(table, players[1]) == (TH.valid_total_bet_range(table, players[1]), 7)
 
     # Case 8
     table = QuietGame((Player(TH.FuzzBot(), 1), Player(TH.FuzzBot(), 2; bank_roll = 50))).table
     players = TH.players_at_table(table)
     table.total_bet = 1
-    @test valid_raise_range_simple(table, players[1]) == (TH.valid_raise_range(table, players[1]), 8)
+    @test valid_total_bet_range_simple(table, players[1]) == (TH.valid_total_bet_range(table, players[1]), 8)
 end
 
 @testset "is_valid_raise_amount" begin

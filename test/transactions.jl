@@ -11,10 +11,10 @@ This reaches into internals
 (`update_given_valid_action!`)
 for the convenience of testing
 =#
-call!(t, p) = TH.update_given_valid_action!(t, p, Call(t, p))
-raise_to!(t, p, amt) = TH.update_given_valid_action!(t, p, Raise(amt))
-fold!(t, p) = TH.update_given_valid_action!(t, p, Fold())
-check!(t, p) = TH.update_given_valid_action!(t, p, Check())
+call!(g, p) = TH.update_given_valid_action!(g, p, Call(g, p))
+raise_to!(g, p, amt) = TH.update_given_valid_action!(g, p, RaiseTo(g, amt))
+fold!(g, p) = TH.update_given_valid_action!(g, p, Fold())
+check!(g, p) = TH.update_given_valid_action!(g, p, Check())
 
 @testset "TransactionManagers - Lowest bank roll goes all-in and wins it all" begin
     table_cards = (A♢, K♢, Q♢, 2♠, 3♠)

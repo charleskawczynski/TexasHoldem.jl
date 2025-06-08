@@ -24,11 +24,11 @@ function TH.get_action(game::Game, player::Player{RiverDreamer}, options)
             Check()
         else
             player.strategy.fixed = true
-            vrr = TH.valid_raise_range(game)
+            vrr = TH.valid_total_bet_range(game)
             raises = sort(map(x->rand(vrr), 1:10))
-            actions = (Check(), map(x->Raise(x), raises)..., Fold())
-            @test TH.Action(:raise, 5) in actions
-            @test TH.Action(:raise, 14) in actions
+            actions = (Check(), map(x -> RaiseTo(game, x), raises)..., Fold())
+            @test TH.Action(:raiseto, 5) in actions
+            @test TH.Action(:raiseto, 14) in actions
             rewards = map(actions) do action
                 rgame = TH.recreate_game(game, player)
                 play!(rgame, Val(false))
