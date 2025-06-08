@@ -107,7 +107,7 @@ function Table(players::Players;
     round = :preflop,
     dealer_pidx = default_dealer_pidx(),
     total_bet = 0,
-    initial_round_raise_amount = blinds.small,
+    initial_round_raise_amount = blinds.big,
     logger = InfoLogger(),
     transactions = TransactionManager(players, logger),
     winners = Winners(),
@@ -213,8 +213,7 @@ The total bet.
 total_bet(table::Table) = table.total_bet
 initial_round_raise_amount(table::Table) = table.initial_round_raise_amount
 
-# TODO: this should be big blind
-minimum_raise_amount(table::Table) = blinds(table).small
+minimum_raise_amount(table::Table) = blinds(table).big
 
 round(table::Table) = table.round
 

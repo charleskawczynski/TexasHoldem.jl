@@ -27,7 +27,7 @@ function TH.get_action(game::Game, player::Player{RiverDreamer}, options)
             vrr = TH.valid_total_bet_range(game)
             raises = sort(map(x->rand(vrr), 1:10))
             actions = (Check(), map(x -> RaiseTo(game, x), raises)..., Fold())
-            @test TH.Action(:raiseto, 5) in actions
+            @test TH.Action(:raiseto, 6) in actions
             @test TH.Action(:raiseto, 14) in actions
             rewards = map(actions) do action
                 rgame = TH.recreate_game(game, player)

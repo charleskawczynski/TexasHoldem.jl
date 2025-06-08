@@ -45,12 +45,12 @@ call or fold.
 CallFold() = Options(:CallFold)
 
 """
-    validate_action(action::Action, options::Options)
+    validate_action(game::Game, action::Action, options::Options)
 
 This method will assert that the given action is
 valid under the given options.
 """
-function validate_action(a::Action, options::Options)
+function validate_action(game::Game, a::Action, options::Options)
     on = options.name
     if on == :CheckRaiseFold
         @assert a.name in (:check, :raiseto, :all_in, :fold)
@@ -63,19 +63,33 @@ function validate_action(a::Action, options::Options)
     else
         @assert on == :NoOptions "Expected on == :NoOptions, got $(on) == :NoOptions" # needed for, e.g., all-in
     end
+    if a.name == :raiseto
+        vtbr = valid_total_bet_range(game.table, current_player(game))
+        total_bet = a.amt
+        @assert total_bet in vtbr "Cannot raise $(total_bet). Raise must be between [$(first(vtbr)), $(last(vtbr))]"
+    end
+end
+
+function is_valid_raise(game, action::Action)
+    if action.name == :raiseto
+        return action.amt in valid_total_bet_range(game.table, current_player(game))
+    else
+        return true
+    end
 end
 
 """
-    is_valid_action(a::Action, options::Options)
+    is_valid_action(game, a::Action, options::Options)
 
 Returns a Bool indicating that the given action is
 valid given the options
 """
-function is_valid_action(a::Action, options::Options)
+
+function is_valid_action(game, a::Action, options::Options)
     on = options.name
-    on == :CheckRaiseFold && return a.name in (:check, :raiseto, :all_in, :fold)
-    on == :CallRaiseFold && return a.name in (:call, :raiseto, :all_in, :fold)
-    on == :CallAllInFold && return a.name in (:call, :all_in, :fold)
+    on == :CheckRaiseFold && return a.name in (:check, :raiseto, :all_in, :fold) && is_valid_raise(game, action)
+    on == :CallRaiseFold && return a.name in (:call, :raiseto, :all_in, :fold) && is_valid_raise(game, action)
+    on == :CallAllInFold && return a.name in (:call, :all_in, :fold) && is_valid_raise(game, action)
     on == :CallFold && return a.name in (:call, :fold)
     on == :NoOptions && return a.name == :none
     error("Uncaught case")

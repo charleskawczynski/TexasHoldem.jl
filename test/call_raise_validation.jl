@@ -102,13 +102,13 @@ end
     players = (Player(Human(), 1), Player(TH.FuzzBot(), 2))
     table = QuietGame(players).table
     mra = TH.minimum_raise_amount(table)
-    @assert mra == TH.blinds(table).small
+    @assert mra == TH.blinds(table).big "mra: $mra, bb: $(TH.blinds(table).big)"
     @test TH.is_valid_raise_amount(table, players[1], 0) == (false, "Cannot raise 0. Raise must be between [$mra, 200]")
     @test TH.is_valid_raise_amount(table, players[1], TH.bank_roll(players[1])+1) == (false, "Insufficient funds (200) to raise 201. Raise must be between [$mra, 200]")
     @test TH.is_valid_raise_amount(table, players[1], -1) == (false, "Cannot raise -1. Raise must be between [$mra, 200]")
 
     @test TH.is_valid_raise_amount(table, players[1], TH.bank_roll(players[1])-1) == (true, "")
-    @test TH.is_valid_raise_amount(table, players[1], TH.blinds(table).small) == (true, "")
+    @test TH.is_valid_raise_amount(table, players[1], TH.blinds(table).big) == (true, "")
     @test TH.is_valid_raise_amount(table, players[1], TH.blinds(table).big) == (true, "")
     @test TH.is_valid_raise_amount(table, players[1], TH.bank_roll(players[1])) == (true, "")
 

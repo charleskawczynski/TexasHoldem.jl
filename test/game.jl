@@ -9,7 +9,7 @@ This reaches into internals
 for the convenience of testing
 =#
 call!(g, p) = TH.update_given_valid_action!(g, p, Call(g, p))
-raise_to!(g, p, amt) = TH.update_given_valid_action!(g, p, RaiseTo(g, amt))
+raise_to!(g, p, amt) = TH.update_given_valid_action!(g, p, RaiseTo(g.table, p, amt))
 fold!(g, p) = TH.update_given_valid_action!(g, p, Fold())
 check!(g, p) = TH.update_given_valid_action!(g, p, Check())
 
