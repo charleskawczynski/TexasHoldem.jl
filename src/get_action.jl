@@ -62,12 +62,41 @@ call or fold.
 """
 CallFold() = Options(:CallFold)
 
-function validate_action(a::Action, options)
+"""
+    validate_action(action::Action, options::Options)
+
+This method will assert that the given action is
+valid under the given options.
+"""
+function validate_action(a::Action, options::Options)
     on = options.name
-    on == :CheckRaiseFold && @assert a.name in (:check, :raise, :all_in, :fold)
-    on == :CallRaiseFold && @assert a.name in (:call, :raise, :all_in, :fold)
-    on == :CallAllInFold && @assert a.name in (:call, :all_in, :fold)
-    on == :CallFold && @assert a.name in (:call, :fold)
+    if on == :CheckRaiseFold
+        @assert a.name in (:check, :raise, :all_in, :fold)
+    elseif on == :CallRaiseFold
+        @assert a.name in (:call, :raise, :all_in, :fold)
+    elseif on == :CallAllInFold
+        @assert a.name in (:call, :all_in, :fold)
+    elseif on == :CallFold
+        @assert a.name in (:call, :fold)
+    else
+        @assert on == :NoOptions "Expected on == :NoOptions, got $(on) == :NoOptions" # needed for, e.g., all-in
+    end
+end
+
+"""
+    is_valid_action(a::Action, options)
+
+Returns a Bool indicating that the given action is
+valid given the options
+"""
+function is_valid_action(a::Action, options::Options)
+    on = options.name
+    on == :CheckRaiseFold && return a.name in (:check, :raise, :all_in, :fold)
+    on == :CallRaiseFold && return a.name in (:call, :raise, :all_in, :fold)
+    on == :CallAllInFold && return a.name in (:call, :all_in, :fold)
+    on == :CallFold && return a.name in (:call, :fold)
+    on == :NoOptions && return a.name == :none
+    error("Uncaught case")
 end
 
 is_valid_raise_amount(game, amt) =
@@ -304,20 +333,20 @@ get_action(game::Game, options::Options) =
 function get_action(game::Game, player::Player{FuzzBot}, options)
     if options.name == :CheckRaiseFold
         rand() < 0.5 && return Check()
-        rand() < 0.5 && return Raise(rand(valid_raise_range(game.table, player)))
+        rand() < 0.5 && return Raise(rand(valid_raise_range(game)))
         # while we can check for free, this bot is used for fuzzing,
         # so we want to explore the most diverse set of possible cases.
         return Fold()
     elseif options.name == :CallRaiseFold
-        rand() < 0.5 && return Call(game.table, player)
-        rand() < 0.5 && return Raise(rand(valid_raise_range(game.table, player))) # re-raise
+        rand() < 0.5 && return Call(game)
+        rand() < 0.5 && return Raise(rand(valid_raise_range(game))) # re-raise
         return Fold()
     elseif options.name == :CallAllInFold
-        rand() < 0.5 && return Call(game.table, player)
-        rand() < 0.5 && return AllIn(game.table, player) # re-raise
+        rand() < 0.5 && return Call(game)
+        rand() < 0.5 && return AllIn(game) # re-raise
         return Fold()
     elseif options.name == :CallFold
-        rand() < 0.5 && return Call(game.table, player)
+        rand() < 0.5 && return Call(game)
         return Fold()
     end
     error("Uncaught case")
@@ -328,17 +357,17 @@ end
 function get_action(game::Game, player::Player{Bot5050}, options)
     if options.name == :CheckRaiseFold
         rand() < 0.5 && return Check()
-        return Raise(rand(valid_raise_range(game.table, player)))
+        return Raise(rand(valid_raise_range(game)))
     elseif options.name == :CallRaiseFold
-        rand() < 0.5 && return Call(game.table, player)
-        rand() < 0.5 && return Raise(rand(valid_raise_range(game.table, player))) # re-raise
+        rand() < 0.5 && return Call(game)
+        rand() < 0.5 && return Raise(rand(valid_raise_range(game))) # re-raise
         return Fold()
     elseif options.name == :CallAllInFold
-        rand() < 0.5 && return Call(game.table, player)
-        rand() < 0.5 && return AllIn(game.table, player) # re-raise
+        rand() < 0.5 && return Call(game)
+        rand() < 0.5 && return AllIn(game) # re-raise
         return Fold()
     elseif options.name == :CallFold
-        rand() < 0.5 && return Call(game.table, player)
+        rand() < 0.5 && return Call(game)
         return Fold()
     end
     error("Uncaught case")

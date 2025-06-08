@@ -58,6 +58,8 @@ TexasHoldem.get_action
 Additional helpers:
 ```@docs
 TexasHoldem.total_bet
+TexasHoldem.is_valid_action
+TexasHoldem.validate_action
 TexasHoldem.round_contribution
 ```
 

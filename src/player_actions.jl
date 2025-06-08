@@ -22,9 +22,7 @@ when a player wants to check.
 Check() = Action(:check, 0)
 
 """
-    Call(amt::Int)
-    Call(table::Table, player::Player)
-    Call(game)
+    Call(game::Game)
 
 The call action, should be returned from [`get_action`](@ref).
 when a player wants to call amount `amt`.
@@ -58,8 +56,6 @@ function Raise(amt::Int)
 end
 
 """
-    AllIn(amt::Int)
-    AllIn(table::Table, player::Player)
     AllIn(game)
 
 The all-in action, should be returned from [`get_action`](@ref).
@@ -79,7 +75,7 @@ end
 AllIn(table::Table, player::Player) = # convenience function
     AllIn(last(valid_raise_range(table, player)))
 
-AllIn(game) = AllIn(game.table, current_player(game))
+AllIn(game::Game) = AllIn(game.table, current_player(game))
 
 call_amount(game) = call_amount(game.table, current_player(game))
 
@@ -111,6 +107,9 @@ function max_opponent_round_bank_roll(table::Table, player::Player)
     end
     return max_orbr
 end
+
+valid_raise_range(game::Game) =
+    valid_raise_range(game.table, current_player(game))
 
 """
     valid_raise_range(table::Table, player::Player)

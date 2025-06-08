@@ -24,9 +24,9 @@ struct BotCheckCall <: AbstractStrategy end
 function TH.get_action(game::Game, player::Player{BotCheckCall}, options)
     on = options.name
     on == :CheckRaiseFold && return Check()
-    on == :CallRaiseFold && return Call(game.table, player)
-    on == :CallAllInFold && return Call(game.table, player)
-    on == :CallFold && return Call(game.table, player)
+    on == :CallRaiseFold && return Call(game)
+    on == :CallAllInFold && return Call(game)
+    on == :CallFold && return Call(game)
     error("Uncaught case")
 end
 
@@ -42,9 +42,9 @@ function TH.get_action(game::Game, player::Player{<:BotFlopRaise}, options)
     round = game.table.round
     on = options.name
     on == :CheckRaiseFold && return round == :flop ? Raise(amt) : Check()
-    on == :CallRaiseFold && return Call(game.table, player)
-    on == :CallAllInFold && return Call(game.table, player)
-    on == :CallFold && return Call(game.table, player)
+    on == :CallRaiseFold && return Call(game)
+    on == :CallAllInFold && return Call(game)
+    on == :CallFold && return Call(game)
     error("Uncaught case")
 end
 
@@ -54,9 +54,9 @@ struct BotRaiseAllIn <: AbstractStrategy end
 
 function TH.get_action(game::Game, player::Player{BotRaiseAllIn}, options)
     on = options.name
-    on == :CheckRaiseFold && return Raise(last(valid_raise_range(game.table, player)))
-    on == :CallRaiseFold && return Raise(last(valid_raise_range(game.table, player)))
-    on == :CallAllInFold && return Raise(last(valid_raise_range(game.table, player)))
+    on == :CheckRaiseFold && return Raise(last(valid_raise_range(game)))
+    on == :CallRaiseFold && return Raise(last(valid_raise_range(game)))
+    on == :CallAllInFold && return Raise(last(valid_raise_range(game)))
     error("Uncaught case")
 end
 
@@ -79,8 +79,8 @@ function TH.get_action(game::Game, player::Player{BotBetSB}, options)
     round = game.table.round
     on = options.name
     on == :CheckRaiseFold && return round == :preflop ? Raise(TH.blinds(game).small) : Raise(TH.blinds(game).small)
-    on == :CallRaiseFold && return Call(game.table, player)
-    on == :CallFold && return Call(game.table, player)
+    on == :CallRaiseFold && return Call(game)
+    on == :CallFold && return Call(game)
     error("Uncaught case")
 end
 
@@ -91,8 +91,8 @@ function TH.get_action(game::Game, player::Player{BotBetBB}, options)
     round = game.table.round
     on = options.name
     on == :CheckRaiseFold && return round == :preflop ? Raise(2*TH.blinds(game).big) : Raise(TH.blinds(game).big)
-    on == :CallRaiseFold && return Call(game.table, player)
-    on == :CallFold && return Call(game.table, player)
+    on == :CallRaiseFold && return Call(game)
+    on == :CallFold && return Call(game)
     error("Uncaught case")
 end
 
@@ -126,8 +126,8 @@ struct BotCallOnCheckRaiseFold <: AbstractStrategy end
 function TH.get_action(game::Game, player::Player{BotCallOnCheckRaiseFold}, options)
     round = game.table.round
     on = options.name
-    on == :CallRaiseFold && return round == :preflop ? Call(game.table, player) : Call(game.table, player)
-    on == :CheckRaiseFold && return Call(game.table, player)
+    on == :CallRaiseFold && return round == :preflop ? Call(game) : Call(game)
+    on == :CheckRaiseFold && return Call(game)
     error("Uncaught case")
 end
 
@@ -143,7 +143,7 @@ end
 struct BotLimpAllIn <: AbstractStrategy end
 
 function TH.get_action(game::Game, player::Player{BotLimpAllIn}, options)
-    return Call(game.table, player)
+    return Call(game)
 end
 
 ##### BotNActions
@@ -155,7 +155,7 @@ function TH.get_action(game::Game, player::Player{BotNActions}, options)
         return Check()
     elseif options.name == :CallRaiseFold
         n_call_actions[1]+=1
-        return Call(game.table, player)
+        return Call(game)
     else
         error("Uncaught case")
     end
@@ -172,7 +172,7 @@ function TH.get_action(game::Game, player::Player{<:BotPreFlopRaise}, options)
     on = options.name
     on == :CheckRaiseFold && return round == :preflop ? Raise(TH.strategy(player).amt) : Check()
     on == :CallRaiseFold && return Raise(TH.strategy(player).amt)
-    on == :CallAllInFold && return Call(game.table, player)
-    on == :CallFold && return Call(game.table, player)
+    on == :CallAllInFold && return Call(game)
+    on == :CallFold && return Call(game)
     error("Uncaught case")
 end
