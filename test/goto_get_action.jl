@@ -24,7 +24,7 @@ function TH.get_action(game::Game, player::Player{RiverDreamer}, options)
             Check()
         else
             player.strategy.fixed = true
-            vrr = TH.valid_raise_range(game.table, player)
+            vrr = TH.valid_raise_range(game)
             raises = sort(map(x->rand(vrr), 1:10))
             actions = (Check(), map(x->Raise(x), raises)..., Fold())
             @test TH.Action(:raise, 5) in actions
