@@ -58,8 +58,8 @@ mutable struct Table{P<:Players, L, TM, B <: Blinds, D <: PlayingCards.AbstractD
     pot::Int
     round::Symbol
     buttons::Buttons
-    current_raise_amt::Int
-    initial_round_raise_amt::Int
+    total_bet::Int
+    initial_round_raise_amount::Int
     transactions::TM
     winners::Winners
     play_out_game::Bool
@@ -106,8 +106,8 @@ function Table(players::Players;
     pot = 0,
     round = :preflop,
     dealer_pidx = default_dealer_pidx(),
-    current_raise_amt = 0,
-    initial_round_raise_amt = blinds.small,
+    total_bet = 0,
+    initial_round_raise_amount = blinds.small,
     logger = InfoLogger(),
     transactions = TransactionManager(players, logger),
     winners = Winners(),
@@ -128,8 +128,8 @@ function Table(players::Players;
         pot,
         round,
         buttons,
-        current_raise_amt,
-        initial_round_raise_amt,
+        total_bet,
+        initial_round_raise_amount,
         transactions,
         winners,
         play_out_game,
@@ -205,9 +205,14 @@ function unobserved_cards(table::Table)
     end
 end
 
-current_raise_amt(table::Table) = table.current_raise_amt
-initial_round_raise_amt(table::Table) = table.initial_round_raise_amt
-minimum_raise_amt(table::Table) = blinds(table).small
+"""
+    total_bet
+
+The total bet.
+"""
+total_bet(table::Table) = table.total_bet
+initial_round_raise_amount(table::Table) = table.initial_round_raise_amount
+minimum_raise_amount(table::Table) = blinds(table).small
 
 round(table::Table) = table.round
 
@@ -262,9 +267,6 @@ function bank_roll_leader(table::Table)
     end
     return br_leader, multiple_leaders
 end
-
-paid_current_raise_amount(table::Table, player::Player) =
-    round_contribution(player) == current_raise_amt(table)
 
 # Can be true in exactly 2 cases:
 #  1) Everyone (still playing) is all-in.
@@ -360,8 +362,8 @@ function reset_round_parameters!(table::Table)
         player.last_to_raise = false
         player.round_contribution = 0
     end
-    table.initial_round_raise_amt = blinds(table).big
-    table.current_raise_amt = 0
+    table.initial_round_raise_amount = blinds(table).big
+    table.total_bet = 0
 end
 
 # Check for winner, in case when only a single player remains

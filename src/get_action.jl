@@ -1,4 +1,5 @@
-export CheckRaiseFold,
+export NoOptions,
+    CheckRaiseFold,
     CallRaiseFold,
     CallAllInFold,
     CallFold
@@ -11,6 +12,7 @@ Users can use this to determine which action to give
 back to `play`.
 
 Helper functions to return allowable options include:
+ - [`NoOptions`](@ref)
  - [`CheckRaiseFold`](@ref)
  - [`CallRaiseFold`](@ref)
  - [`CallAllInFold`](@ref)
@@ -68,6 +70,9 @@ function validate_action(a::Action, options)
     on == :CallFold && @assert a.name in (:call, :fold)
 end
 
+is_valid_raise_amount(game, amt) =
+    is_valid_raise_amount(game.table, current_player(game), amt)
+
 """
     is_valid, msg = is_valid_raise_amount(table::Table, player::Player, amt)
 
@@ -93,7 +98,7 @@ function is_valid_raise_amount(table::Table, player::Player, amt::Int)
     end
     if !(minraise ≤ amt ≤ maxraise || amt == minraise == maxraise)
         if minraise == maxraise
-            return false, "Only allowable raise is $(minraise) (all-in)"
+            return false, "Only allowable raise is $(minraise) (all-in), attempting to raise $amt"
         else
             return false, "Cannot raise $amt. Raise must be between [$minraise, $maxraise]"
         end
@@ -136,11 +141,11 @@ function update_given_raise!(table, player, amt)
     @cdebug logger "contributing = $(amt - prc)"
     @cdebug logger "bank_roll = $(bank_roll(player))"
     contribute!(table, player, amt - prc, false)
-    table.current_raise_amt = amt
+    table.total_bet = amt
 
     players = players_at_table(table)
     if all(player -> !player.last_to_raise, players)
-        table.initial_round_raise_amt = amt
+        table.initial_round_raise_amount = amt
     end
     player.last_to_raise = true
     for opponent in players
@@ -188,7 +193,7 @@ function an_opponent_can_call_a_raise(table::Table, player::Player)
         seat_number(opponent) == seat_number(player) && continue
         not_playing(opponent) && continue
         all_in(opponent) && continue
-        if round_bank_roll(opponent) > current_raise_amt(table)
+        if round_bank_roll(opponent) > total_bet(table)
             occr = true
         end
     end
@@ -236,7 +241,10 @@ function update_given_valid_action!(table::Table, player::Player, action::Action
 
 end
 
+get_options(game) = get_options(game, current_player(game))
+
 """
+    get_options(game[, current_player])
     get_options(game, player)
 
 Retuns the [`Options`](@ref) available to player `player`
@@ -266,10 +274,10 @@ function get_options(game, player)
 end
 
 """
-    player_option(game::Game, player::Player, options::Options)
+    get_action(game::Game, player::Player, options::Options)
 
 Returns a valid action (see [`Action`](@ref)),
-given the allowable options. `TexasHoldem` calls `player_option`
+given the allowable options. `TexasHoldem` calls `get_action`
 for each player on the table during each round. This
 function is entirely where the strategy logic resides.
 
@@ -277,20 +285,15 @@ Users may overload this method to develop their
 own poker bots. The options type is of type [`Options`](@ref)
 and has one of the following names
 
- - `options.name == CheckRaiseFold`
- - `options.name == CallRaiseFold`
- - `options.name == CallAllInFold`
- - `options.name == CallFold`
+ - `options.name == :CheckRaiseFold`
+ - `options.name == :CallRaiseFold`
+ - `options.name == :CallAllInFold`
+ - `options.name == :CallFold`
 """
-function player_option end
+function get_action end
 
-player_option(game::Game, options::Options) =
-    player_option(game, current_player(game), options)
-
-# By default, forward to `player_option` with
-# game round:
-# player_option(game::Game, options) =
-#     player_option(game, current_player(game), options)
+get_action(game::Game, options::Options) =
+    get_action(game, current_player(game), options)
 
 #####
 ##### AbstractStrategy
@@ -298,7 +301,7 @@ player_option(game::Game, options::Options) =
 
 ##### FuzzBot
 
-function player_option(game::Game, player::Player{FuzzBot}, options)
+function get_action(game::Game, player::Player{FuzzBot}, options)
     if options.name == :CheckRaiseFold
         rand() < 0.5 && return Check()
         rand() < 0.5 && return Raise(rand(valid_raise_range(game.table, player)))
@@ -322,7 +325,7 @@ end
 
 ##### Bot5050
 
-function player_option(game::Game, player::Player{Bot5050}, options)
+function get_action(game::Game, player::Player{Bot5050}, options)
     if options.name == :CheckRaiseFold
         rand() < 0.5 && return Check()
         return Raise(rand(valid_raise_range(game.table, player)))

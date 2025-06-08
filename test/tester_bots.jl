@@ -9,7 +9,7 @@ const TH = TexasHoldem
 ##### BotCheckFold
 struct BotCheckFold <: AbstractStrategy end
 
-function TH.player_option(game::Game, player::Player{BotCheckFold}, options)
+function TH.get_action(game::Game, player::Player{BotCheckFold}, options)
     on = options.name
     on == :CheckRaiseFold && return Check()
     on == :CallRaiseFold && return Fold()
@@ -21,7 +21,7 @@ end
 ##### BotCheckCall
 struct BotCheckCall <: AbstractStrategy end
 
-function TH.player_option(game::Game, player::Player{BotCheckCall}, options)
+function TH.get_action(game::Game, player::Player{BotCheckCall}, options)
     on = options.name
     on == :CheckRaiseFold && return Check()
     on == :CallRaiseFold && return Call(game.table, player)
@@ -37,7 +37,7 @@ end
 BotFlopRaise() = BotFlopRaise(nothing)
 # Call blind / check pre-flop, raise on flop
 
-function TH.player_option(game::Game, player::Player{<:BotFlopRaise}, options)
+function TH.get_action(game::Game, player::Player{<:BotFlopRaise}, options)
     amt = player.strategy.amt isa Nothing ? floor(Int, bank_roll(player)/2) : player.strategy.amt
     round = game.table.round
     on = options.name
@@ -52,7 +52,7 @@ end
 struct BotRaiseAllIn <: AbstractStrategy end
 # Call blind / check pre-flop, raise on flop
 
-function TH.player_option(game::Game, player::Player{BotRaiseAllIn}, options)
+function TH.get_action(game::Game, player::Player{BotRaiseAllIn}, options)
     on = options.name
     on == :CheckRaiseFold && return Raise(last(valid_raise_range(game.table, player)))
     on == :CallRaiseFold && return Raise(last(valid_raise_range(game.table, player)))
@@ -64,7 +64,7 @@ end
 struct BotRaiseAlmostAllIn <: AbstractStrategy end
 # Call blind / check pre-flop, raise on flop
 
-function TH.player_option(game::Game, player::Player{BotRaiseAlmostAllIn}, options)
+function TH.get_action(game::Game, player::Player{BotRaiseAlmostAllIn}, options)
     on = options.name
     on == :CheckRaiseFold && return Raise(floor(Int, 0.9*round_bank_roll(player)))
     on == :CallRaiseFold && return Raise(floor(Int, 0.9*round_bank_roll(player)))
@@ -75,7 +75,7 @@ end
 ##### BotBetSB
 struct BotBetSB <: AbstractStrategy end
 
-function TH.player_option(game::Game, player::Player{BotBetSB}, options)
+function TH.get_action(game::Game, player::Player{BotBetSB}, options)
     round = game.table.round
     on = options.name
     on == :CheckRaiseFold && return round == :preflop ? Raise(TH.blinds(game).small) : Raise(TH.blinds(game).small)
@@ -87,7 +87,7 @@ end
 ##### BotBetBB
 struct BotBetBB <: AbstractStrategy end
 
-function TH.player_option(game::Game, player::Player{BotBetBB}, options)
+function TH.get_action(game::Game, player::Player{BotBetBB}, options)
     round = game.table.round
     on = options.name
     on == :CheckRaiseFold && return round == :preflop ? Raise(2*TH.blinds(game).big) : Raise(TH.blinds(game).big)
@@ -99,7 +99,7 @@ end
 ##### BotCheckOnCallRaiseFold
 struct BotCheckOnCallRaiseFold <: AbstractStrategy end
 
-function TH.player_option(game::Game, player::Player{BotCheckOnCallRaiseFold}, options)
+function TH.get_action(game::Game, player::Player{BotCheckOnCallRaiseFold}, options)
     @assert options.name == :CallRaiseFold "needed :CallRaiseFold, got options.name: $(options.name)"
     return Check()
 end
@@ -107,7 +107,7 @@ end
 ##### BotCheckOnCallAllInFold
 struct BotCheckOnCallAllInFold <: AbstractStrategy end
 
-function TH.player_option(game::Game, player::Player{BotCheckOnCallAllInFold}, options)
+function TH.get_action(game::Game, player::Player{BotCheckOnCallAllInFold}, options)
     @assert options.name == :CallAllInFold "needed :CallAllInFold, got options.name: $(options.name)"
     return Check()
 end
@@ -115,7 +115,7 @@ end
 ##### BotCheckOnCallFold
 struct BotCheckOnCallFold <: AbstractStrategy end
 
-function TH.player_option(game::Game, player::Player{BotCheckOnCallFold}, options)
+function TH.get_action(game::Game, player::Player{BotCheckOnCallFold}, options)
     @assert options.name == :CallFold "needed :CallFold, got options.name: $(options.name)"
     Check()
 end
@@ -123,7 +123,7 @@ end
 ##### BotCallOnCheckRaiseFold
 struct BotCallOnCheckRaiseFold <: AbstractStrategy end
 
-function TH.player_option(game::Game, player::Player{BotCallOnCheckRaiseFold}, options)
+function TH.get_action(game::Game, player::Player{BotCallOnCheckRaiseFold}, options)
     round = game.table.round
     on = options.name
     on == :CallRaiseFold && return round == :preflop ? Call(game.table, player) : Call(game.table, player)
@@ -134,7 +134,7 @@ end
 ##### BotRaiseOnCallFold
 struct BotRaiseOnCallFold <: AbstractStrategy end
 
-function TH.player_option(game::Game, player::Player{BotRaiseOnCallFold}, options)
+function TH.get_action(game::Game, player::Player{BotRaiseOnCallFold}, options)
     @assert options.name == :CallFold "needed :CallFold, got options.name: $(options.name)"
     return Raise(bank_roll(player))
 end
@@ -142,14 +142,14 @@ end
 ##### BotLimpAllIn
 struct BotLimpAllIn <: AbstractStrategy end
 
-function TH.player_option(game::Game, player::Player{BotLimpAllIn}, options)
+function TH.get_action(game::Game, player::Player{BotLimpAllIn}, options)
     return Call(game.table, player)
 end
 
 ##### BotNActions
 struct BotNActions <: AbstractStrategy end
 
-function TH.player_option(game::Game, player::Player{BotNActions}, options)
+function TH.get_action(game::Game, player::Player{BotNActions}, options)
     if options.name == :CheckRaiseFold
         n_check_actions[1]+=1
         return Check()
@@ -167,7 +167,7 @@ struct BotPreFlopRaise{FT} <: AbstractStrategy
 end
 # Call blind / check pre-flop, raise on flop
 
-function TH.player_option(game::Game, player::Player{<:BotPreFlopRaise}, options)
+function TH.get_action(game::Game, player::Player{<:BotPreFlopRaise}, options)
     round = game.table.round
     on = options.name
     on == :CheckRaiseFold && return round == :preflop ? Raise(TH.strategy(player).amt) : Check()

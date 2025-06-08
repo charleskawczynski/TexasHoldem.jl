@@ -4,9 +4,9 @@ Once you've finished [Installation](@ref), you can start playing games with:
 
 ```julia
 using TexasHoldem
-import TexasHoldem: player_option
+import TexasHoldem: get_action
 struct RandomBot <: AbstractStrategy end
-function player_option(game::Game, player::Player{RandomBot}, options)
+function get_action(game::Game, player::Player{RandomBot}, options)
     if options.name == :CheckRaiseFold
         rand() < 0.5 && return Raise(rand(valid_raise_range(game.table, player)))
         return Check()

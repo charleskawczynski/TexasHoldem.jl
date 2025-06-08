@@ -27,7 +27,7 @@ These are the primary actions a player can take during their turn in a betting r
 * **Check:** To pass the action to the next player without placing a bet. You can only check if no bets have been made in the current betting round. If another player bets after you check, you then have the option to **call**, **raise**, or **fold**.
 * **Call:** To match the amount of the last bet made in the current betting round. By calling, you stay in the hand.
 * **Bet:** To place the first wager in a betting round. Once a bet is made, other players must at least **call** that bet to stay in the hand.
-* **Raise:** To increase the amount of the current bet. If a player bets, you can raise by putting in more chips than their bet. This forces other players to **call** your raise, re-raise, or **fold**.
+* **Raise:** To increase the amount of the current (total) bet. If a player bets, you can raise by putting in more chips than their bet. This forces other players to **call** your raise, re-raise, or **fold**.
 * **All-in:** To bet all of your remaining chips. When you go all-in, you can only win the portion of the **pot** that corresponds to the chips you put in.
 
 * **Betting Cycle:** A betting round can contain multiple "betting cycles." A new betting cycle begins every time a player makes a "Bet" or a "Raise." All subsequent players must then either "Call" that amount, "Re-raise" it, or "Fold" to complete that specific cycle. Once all active players have either called the highest bet or folded, that "betting cycle" ends. If no one raises again, the round ends. If someone raises, a new betting cycle begins.

@@ -8,7 +8,7 @@ export call_amount, valid_raise_range
 """
     Fold()
 
-The fold action, to be returned from [`player_option`](@ref),
+The fold action, to be returned from [`get_action`](@ref),
 when a player wants to fold.
 """
 Fold() = Action(:fold, 0)
@@ -16,7 +16,7 @@ Fold() = Action(:fold, 0)
 """
     Check()
 
-The check action, to be returned from [`player_option`](@ref),
+The check action, to be returned from [`get_action`](@ref),
 when a player wants to check.
 """
 Check() = Action(:check, 0)
@@ -24,13 +24,15 @@ Check() = Action(:check, 0)
 """
     Call(amt::Int)
     Call(table::Table, player::Player)
+    Call(game)
 
-The call action, should be returned from [`player_option`](@ref).
+The call action, should be returned from [`get_action`](@ref).
 when a player wants to call amount `amt`.
 
 Use [`call_amount`](@ref) to query how much is needed to call.
 """
 Call(amt::Int) = Action(:call, amt)
+Call(game::Game) = Call(game.table, current_player(game))
 Call(game::Game, player::Player) = Call(game.table, player)
 function Call(table::Table, player::Player)
     call_amt = call_amount(table, player)
@@ -41,11 +43,14 @@ end
 """
     Raise(amt::Int)
 
-The raise action, should be returned from [`player_option`](@ref).
+The raise action, should be returned from [`get_action`](@ref).
 when a player wants to raise to amount `amt`.
 
 Use [`valid_raise_range`](@ref) to query the valid range
 that they are allowed to raise.
+
+When a player returns `Raise(5)`, this means that they want to
+raise 5 above the current raise amount.
 """
 function Raise(amt::Int)
     @assert amt > 0 "Cannot raise less than 0!"
@@ -55,12 +60,14 @@ end
 """
     AllIn(amt::Int)
     AllIn(table::Table, player::Player)
+    AllIn(game)
 
-The all-in action, should be returned from [`player_option`](@ref).
-when a player wants to raise all in (to amount `amt`).
+The all-in action, should be returned from [`get_action`](@ref).
+when a player wants to raise all-in.
 
-Users may call this via `AllIn(last(valid_raise_range(table, player)))`
-or use the convenience function `AllIn(table, player)`.
+`action = AllIn(game)` will contain the amount to go all-in.
+
+Users may call this via `AllIn(game)`.
 
 See [`valid_raise_range`](@ref) for querying the valid range
 that they are allowed to raise.
@@ -72,21 +79,25 @@ end
 AllIn(table::Table, player::Player) = # convenience function
     AllIn(last(valid_raise_range(table, player)))
 
+AllIn(game) = AllIn(game.table, current_player(game))
+
+call_amount(game) = call_amount(game.table, current_player(game))
+
 """
     call_amount(table::Table, player::Player)
 
-Return the amount to call inside [`player_option`](@ref).
+Return the amount to call inside [`get_action`](@ref).
 """
 function call_amount(table::Table, player::Player)
-    cra = current_raise_amt(table)
-    prc = round_contribution(player)
-    call_amt = cra - prc
+    tb = total_bet(table)
+    rc = round_contribution(player)
+    call_amt = tb - rc
     logger = table.logger
-    @cdebug logger "current_raise_amt = $cra, round_contribution = $prc, call_amt = $call_amt"
-    if cra == 0
-        @assert prc == 0 "Round contribution must be zero if current raise is zero."
+    @cdebug logger "total_bet = $tb, round_contribution = $rc, call_amt = $call_amt"
+    if tb == 0
+        @assert rc == 0 "Round contribution must be zero if the total bet is zero."
     end
-    @assert !(call_amt < 0) "Call amount cannot be negative"
+    @assert !(call_amt < 0) "Call amount cannot be negative. call_amt: $call_amt, round_contribution: $rc"
     return call_amt
 end
 
@@ -110,13 +121,13 @@ are the same when, for example, all-in is the
 only available option.
 """
 function valid_raise_range(table::Table, player::Player)
-    cra = current_raise_amt(table)
-    irra = initial_round_raise_amt(table)
-    mra = minimum_raise_amt(table)
+    tb = total_bet(table)
+    irra = initial_round_raise_amount(table)
+    mra = minimum_raise_amount(table)
     rbr = round_bank_roll(player)
     max_orbr = max_opponent_round_bank_roll(table, player)
     logger = table.logger
-    lim = cra == 0 ? mra : (cra+irra)
+    lim = tb == 0 ? mra : (tb+irra)
     @cdebug logger "   lim = $lim"
     br₀ = min(max_orbr, rbr)
     vrr = lim > br₀ ? (br₀, br₀) : (lim, br₀) # somewhat like clamp
@@ -130,14 +141,14 @@ function valid_raise_range(table::Table, player::Player)
         s*="determining valid_raise_range\n"
         s*="   round_bank_roll = $rbr\n"
         s*="   max_opponent_round_bank_roll = $max_orbr\n"
-        s*="   current_raise_amt == 0 = $(cra == 0)\n"
+        s*="   total_bet == 0 = $(tb == 0)\n"
         s*="   amt_computed = $amt_computed\n"
         s*="   check = $check\n"
         s*="   max_opponent_round_bank_roll > rbr = $(max_orbr > rbr)\n"
-        s*="   initial_round_raise_amt = $irra\n"
-        s*="   current_raise_amt = $cra\n"
+        s*="   initial_round_raise_amount = $irra\n"
+        s*="   total_bet = $tb\n"
         s*="   (round_bank_roll - bank_roll) = $Δbr\n"
-        s*="   (current_raise_amt + initial_round_raise_amt) = $(cra+irra)\n"
+        s*="   (total_bet + initial_round_raise_amount) = $(tb+irra)\n"
         s*="   bank_roll = $(bank_roll(player))\n"
         s*="   round_contribution = $(round_contribution(player))\n"
         s*="   lim = $lim\n"
