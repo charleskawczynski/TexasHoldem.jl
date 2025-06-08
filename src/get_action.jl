@@ -5,24 +5,6 @@ export NoOptions,
     CallFold
 
 """
-    Options
-
-An options type, returned by [`get_options`](@ref).
-Users can use this to determine which action to give
-back to `play`.
-
-Helper functions to return allowable options include:
- - [`NoOptions`](@ref)
- - [`CheckRaiseFold`](@ref)
- - [`CallRaiseFold`](@ref)
- - [`CallAllInFold`](@ref)
- - [`CallFold`](@ref)
-"""
-struct Options
-    name::Symbol
-end
-
-"""
     NoOptions
 
 The option when a player has no options (e.g.,
@@ -84,7 +66,7 @@ function validate_action(a::Action, options::Options)
 end
 
 """
-    is_valid_action(a::Action, options)
+    is_valid_action(a::Action, options::Options)
 
 Returns a Bool indicating that the given action is
 valid given the options

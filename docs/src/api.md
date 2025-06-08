@@ -75,6 +75,29 @@ CallFold
 TexasHoldem.get_options
 ```
 
+## Action and Options symbols
+
+The `name` property of an `Action` object (`(action::Action).name`) is a `Symbol` that can be only one of:
+
+ - `:Fold`
+ - `:Check`
+ - `:Call`
+ - `:Raise`
+ - `:AllIn`
+
+The `name` property of an `Options` object (`(action::Action).name`) is a `Symbol` that can be only one of:
+
+ - `:NoOptions`
+ - `:CheckRaiseFold`
+ - `:CallRaiseFold`
+ - `:CallAllInFold`
+ - `:CallFold`
+
+`get_options(game::Game)` will always yield a valid `Options` object, TexasHoldem
+cannot guarantee that a user will yield a valid action. Use
+`is_valid_action(a::Action, options::Options)::Bool` to determine if a given
+action is valid or not.
+
 ## Training
 
 There are additional functionalities added for training purposes
