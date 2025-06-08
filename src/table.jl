@@ -212,6 +212,8 @@ The total bet.
 """
 total_bet(table::Table) = table.total_bet
 initial_round_raise_amount(table::Table) = table.initial_round_raise_amount
+
+# TODO: this should be big blind
 minimum_raise_amount(table::Table) = blinds(table).small
 
 round(table::Table) = table.round

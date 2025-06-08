@@ -6,16 +6,16 @@ function get_action(game::Game, player::Player{Human}, options::Options, ioin::I
     table = game.table
     update_gui(stdout, table, player)
     if options.name == :CheckRaiseFold
-        vrr = valid_raise_range(table, player)
+        vrr = valid_total_bet_range(table, player)
         moptions = ["Check", "Raise [$(first(vrr)), $(last(vrr))]", "Fold"]
         menu = RadioMenu(moptions, pagesize=4)
         choice = request("$(name(player))'s turn to act:", menu)
         choice == -1 && error("Uncaught case")
         choice == 1 && return Check()
-        choice == 2 && return Raise(input_raise_amt(table, player, ioin))
+        choice == 2 && return RaiseTo(game, input_raise_amt(table, player, ioin))
         choice == 3 && return Fold()
     elseif options.name == :CallRaiseFold
-        vrr = valid_raise_range(table, player)
+        vrr = valid_total_bet_range(table, player)
         call_amt = call_amount(table, player)
         blind_str = is_blind_call(table, player) ? " (blind)" : ""
         moptions = ["Call $(call_amt)$blind_str", "Raise [$(first(vrr)), $(last(vrr))]", "Fold"]
@@ -23,7 +23,7 @@ function get_action(game::Game, player::Player{Human}, options::Options, ioin::I
         choice = request("$(name(player))'s turn to act:", menu)
         choice == -1 && error("Uncaught case")
         choice == 1 && return Call(table, player)
-        choice == 2 && return Raise(input_raise_amt(table, player, ioin))
+        choice == 2 && return RaiseTo(game, input_raise_amt(table, player, ioin))
         choice == 3 && return Fold()
     elseif options.name == :CallAllInFold
         call_amt = call_amount(table, player)

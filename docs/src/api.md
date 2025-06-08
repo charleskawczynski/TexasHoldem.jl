@@ -39,7 +39,8 @@ The call, raise, and all-in functions follow the convetion:
  - `initial_round_raise_amount` minimum raise amount for all betting cycles in the round
  - `minimum_raise_amount` the minimum raise amount.
  - `Call(game)` will match the amount of the last bet made in the current betting round. By calling, you stay in the hand.
- - `Raise(5)` amount to raise _above_ the current total bet.
+ - `RaiseTo(game, 5)` raise the current total bet to 5.
+ - `Raise(game, 5)` raises 5 _above_ the current total bet.
  - `AllIn(game)` raise all-in (all of your remaining chips). Note that `AllIn(game).amt` will contain the raise _above_ the current total bet.
  - `bank_roll(game)`
 
@@ -51,7 +52,7 @@ Call
 call_amount
 Raise
 AllIn
-valid_raise_range
+valid_total_bet_range
 TexasHoldem.get_action
 ```
 

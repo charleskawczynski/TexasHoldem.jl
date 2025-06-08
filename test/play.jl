@@ -46,7 +46,7 @@ end
 
 @testset "Non-valid option using BotCheckOnCallRaiseFold" begin
     game = QuietGame((Player(BotCheckCall(), 1), Player(BotCheckOnCallRaiseFold(), 2),))
-    @test_throws AssertionError("a.name in (:call, :raise, :all_in, :fold)") play!(game)
+    @test_throws AssertionError("a.name in (:call, :raiseto, :all_in, :fold)") play!(game)
 end
 @testset "Non-valid option using BotCheckOnCallAllInFold" begin
     game = QuietGame((Player(BotCheckOnCallAllInFold(), 1), Player(BotRaiseAlmostAllIn(), 2)))
@@ -58,7 +58,7 @@ end
 end
 @testset "Non-valid option using BotCallOnCheckRaiseFold" begin
     game = QuietGame((Player(BotCheckCall(), 1), Player(BotCallOnCheckRaiseFold(), 2),))
-    @test_throws AssertionError("a.name in (:check, :raise, :all_in, :fold)") play!(game)
+    @test_throws AssertionError("a.name in (:check, :raiseto, :all_in, :fold)") play!(game)
 end
 @testset "Non-valid option using BotRaiseOnCallFold" begin
     game = QuietGame((Player(BotRaiseOnCallFold(), 1), Player(BotRaiseAllIn(), 2)))

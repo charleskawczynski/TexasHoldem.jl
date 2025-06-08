@@ -72,7 +72,7 @@ mutable struct Player{S #=<: AbstractStrategy=#}
     round_bank_roll::Chips # bank roll at the beginning of the round
     folded::Bool
     pot_investment::Int # accumulation of round_contribution
-    performed_action::Symbol # (:none, :checked, :called, :raised, :folded)
+    performed_action::Symbol # (:none, :checked, :called, :raiseto, :folded)
     last_to_raise::Bool
     active::Bool
     round_contribution::Int

@@ -47,12 +47,12 @@ struct MyBot <: AbstractStrategy end
 
 function get_action(game::Game, player::Player{MyBot}, options::Options)
     if options.name == :CheckRaiseFold
-        rand() < 0.5 && return Raise(rand(valid_raise_range(game)))
+        rand() < 0.5 && return RaiseTo(game, rand(valid_total_bet_range(game)))
         return Check()
         # return Fold() # we can fold, but we can check for free
     elseif options.name == :CallRaiseFold
         rand() < 0.5 && return Call(game)
-        rand() < 0.5 && return Raise(rand(valid_raise_range(game)))
+        rand() < 0.5 && return RaiseTo(game, rand(valid_total_bet_range(game)))
         return Fold()
     elseif options.name == :CallAllInFold
         rand() < 0.5 && return Call(game)
