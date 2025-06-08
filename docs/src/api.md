@@ -51,6 +51,7 @@ Fold
 Call
 call_amount
 Raise
+RaiseTo
 AllIn
 valid_total_bet_range
 TexasHoldem.get_action
