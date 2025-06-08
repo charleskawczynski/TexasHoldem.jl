@@ -98,19 +98,19 @@ end
     @test valid_total_bet_range_simple(table, players[1]) == (TH.valid_total_bet_range(table, players[1]), 8)
 end
 
-@testset "is_valid_raise_amount" begin
+@testset "is_valid_raise_to_amount" begin
     players = (Player(Human(), 1), Player(TH.FuzzBot(), 2))
     table = QuietGame(players).table
     mra = TH.minimum_raise_amount(table)
     @assert mra == TH.blinds(table).big "mra: $mra, bb: $(TH.blinds(table).big)"
-    @test TH.is_valid_raise_amount(table, players[1], 0) == (false, "Cannot raise 0. Raise must be between [$mra, 200]")
-    @test TH.is_valid_raise_amount(table, players[1], TH.bank_roll(players[1])+1) == (false, "Insufficient funds (200) to raise 201. Raise must be between [$mra, 200]")
-    @test TH.is_valid_raise_amount(table, players[1], -1) == (false, "Cannot raise -1. Raise must be between [$mra, 200]")
+    @test TH.is_valid_raise_to_amount(table, players[1], 0) == (false, "Cannot raise 0. Raise must be between [$mra, 200]")
+    @test TH.is_valid_raise_to_amount(table, players[1], TH.bank_roll(players[1])+1) == (false, "Insufficient funds (200) to raise 201. Raise must be between [$mra, 200]")
+    @test TH.is_valid_raise_to_amount(table, players[1], -1) == (false, "Cannot raise -1. Raise must be between [$mra, 200]")
 
-    @test TH.is_valid_raise_amount(table, players[1], TH.bank_roll(players[1])-1) == (true, "")
-    @test TH.is_valid_raise_amount(table, players[1], TH.blinds(table).big) == (true, "")
-    @test TH.is_valid_raise_amount(table, players[1], TH.blinds(table).big) == (true, "")
-    @test TH.is_valid_raise_amount(table, players[1], TH.bank_roll(players[1])) == (true, "")
+    @test TH.is_valid_raise_to_amount(table, players[1], TH.bank_roll(players[1])-1) == (true, "")
+    @test TH.is_valid_raise_to_amount(table, players[1], TH.blinds(table).big) == (true, "")
+    @test TH.is_valid_raise_to_amount(table, players[1], TH.blinds(table).big) == (true, "")
+    @test TH.is_valid_raise_to_amount(table, players[1], TH.bank_roll(players[1])) == (true, "")
 
     players = (Player(Human(), 1), Player(TH.FuzzBot(), 2))
     table = QuietGame(players).table
@@ -118,35 +118,35 @@ end
     table.total_bet = 20
     players[1].round_contribution = 200
     players[1].round_bank_roll = Chips(500) # oops
-    @test TH.is_valid_raise_amount(table, players[1], 200) == (false, "Cannot contribute 0 to the pot.")
+    @test TH.is_valid_raise_to_amount(table, players[1], 200) == (false, "Cannot contribute 0 to the pot.")
 
     players = (Player(Human(), 1), Player(TH.FuzzBot(), 2))
     table = QuietGame(players).table
     table.initial_round_raise_amount = 10
     table.total_bet = 10
     players[1].round_bank_roll = Chips(20)
-    @test TH.is_valid_raise_amount(table, players[1], 10) == (false, "Only allowable raise is 20 (all-in), attempting to raise 10")
+    @test TH.is_valid_raise_to_amount(table, players[1], 10) == (false, "Only allowable raise is 20 (all-in), attempting to raise 10")
 
     players = (Player(Human(), 1), Player(TH.FuzzBot(), 2))
     table = QuietGame(players).table
     table.initial_round_raise_amount = 10
     table.total_bet = 10
     players[1].round_bank_roll = Chips(20)
-    @test TH.is_valid_raise_amount(table, players[1], 20) == (true, "")
+    @test TH.is_valid_raise_to_amount(table, players[1], 20) == (true, "")
 
     players = (Player(Human(), 1), Player(TH.FuzzBot(), 2))
     table = QuietGame(players).table
     table.initial_round_raise_amount = 5
     table.total_bet = 20
     players[1].round_bank_roll = Chips(30)
-    @test TH.is_valid_raise_amount(table, players[1], 25) == (true, "")
+    @test TH.is_valid_raise_to_amount(table, players[1], 25) == (true, "")
 
     players = (Player(Human(), 1), Player(TH.FuzzBot(), 2))
     table = QuietGame(players).table
     table.initial_round_raise_amount = 5
     table.total_bet = 20
     players[1].round_bank_roll = Chips(30)
-    @test TH.is_valid_raise_amount(table, players[1], 22) == (false, "Cannot raise 22. Raise must be between [25, 30]")
+    @test TH.is_valid_raise_to_amount(table, players[1], 22) == (false, "Cannot raise 22. Raise must be between [25, 30]")
 end
 
 @testset "call_amount" begin

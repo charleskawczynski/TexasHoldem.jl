@@ -95,17 +95,17 @@ function is_valid_action(game, a::Action, options::Options)
     error("Uncaught case")
 end
 
-is_valid_raise_amount(game, amt) =
-    is_valid_raise_amount(game.table, current_player(game), amt)
+is_valid_raise_to_amount(game, amt) =
+    is_valid_raise_to_amount(game.table, current_player(game), amt)
 
 """
-    is_valid, msg = is_valid_raise_amount(table::Table, player::Player, amt)
+    is_valid, msg = is_valid_raise_to_amount(table::Table, player::Player, amt)
 
 A `Tuple` of two elements:
  - A `Bool`, `is_valid`, indicating if the raise amount is valid or not
  - A `String`, `msg`, of the error message (`msg` = "" if `is_valid = true`).
 """
-function is_valid_raise_amount(table::Table, player::Player, amt::Int)
+function is_valid_raise_to_amount(table::Table, player::Player, amt::Int)
     logger = table.logger
     prc = round_contribution(player)
     rbr = round_bank_roll(player)
@@ -140,7 +140,7 @@ end
 Return back `amt` if `amt` is a valid raise amount.
 """
 function valid_raise_amount(table::Table, player::Player, amt::Int)
-    is_valid, msg = is_valid_raise_amount(table, player, amt)
+    is_valid, msg = is_valid_raise_to_amount(table, player, amt)
     @assert is_valid "$msg"
     return amt
 end
