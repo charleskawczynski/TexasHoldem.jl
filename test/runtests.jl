@@ -32,6 +32,9 @@ end
 @safetestset "goto get_action" begin
     Δt = @elapsed include("goto_get_action.jl"); @info "Completed tests for goto_get_action in $Δt seconds"
 end
+@safetestset "Actions" begin
+    Δt = @elapsed include("actions.jl"); @info "Completed tests for actions in $Δt seconds"
+end
 @safetestset "play" begin
     Δt = @elapsed include("play.jl"); @info "Completed tests for play in $Δt seconds"
 end
