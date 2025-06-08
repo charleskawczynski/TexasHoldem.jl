@@ -232,6 +232,7 @@ end
 current_player(game) = players_at_table(game.table)[game.betting_cycle_state.pidx]
 
 any_quit_game(game) = any(x->quit_game(game, x), players_at_table(game.table))
+total_bet(game::Game) = total_bet(game.table)
 
 distribute_winnings!(game) =
     distribute_winnings!(players_at_table(game.table),
