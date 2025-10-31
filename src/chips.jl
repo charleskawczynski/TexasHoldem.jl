@@ -42,7 +42,9 @@ function Base.show(io::IO, x::SimpleRatio)
     if x.num == 0
         print(io, x.num)
     else
-        print(io, "$(x.num)//$(x.den)")
+        print(io, x.num)
+        print(io, "//")
+        print(io, x.den)
     end
 end
 
@@ -104,7 +106,8 @@ function Base.show(io::IO, x::Chips)
     if x.frac == 0
         print(io, x.n)
     else
-        print(io, "$(x.n)+$(x.frac)")
+        print(io, "$(x.n)+")
+        Base.show(io, x.frac)
     end
 end
 

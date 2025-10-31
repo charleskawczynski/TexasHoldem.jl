@@ -238,8 +238,8 @@ function update_given_valid_action!(table::Table, player::Player, action::Action
         check_for_and_declare_winner!(table)
         @cinfo logger "$(name(player)) folded!"
     elseif action.name == :raiseto || action.name == :all_in
-        amt = valid_raise_amount(table, player, action.amt) # asserts valid requested raise amount
-        update_given_raise!(table, player, amt)
+        _amt = valid_raise_amount(table, player, action.amt) # asserts valid requested raise amount
+        update_given_raise!(table, player, _amt)
         player.performed_action = :raiseto
     elseif action.name == :call
         amt = action.amt

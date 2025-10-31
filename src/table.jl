@@ -50,7 +50,7 @@ buttons(b::Buttons) = (
     b.first_to_act,
 )
 
-mutable struct Table{P<:Players, L, TM, B <: Blinds, D <: PlayingCards.AbstractDeck, G}
+mutable struct Table{P<:Players, L, TM, B <: Blinds, D <: PlayingCards.AbstractDeck, G, F}
     deck::D
     players::P
     cards::Vector{Card}
@@ -66,6 +66,7 @@ mutable struct Table{P<:Players, L, TM, B <: Blinds, D <: PlayingCards.AbstractD
     n_max_actions::Int
     logger::L
     gui::G
+    seat_to_show::F
 end
 
 buttons(table::Table) = table.buttons
@@ -97,6 +98,9 @@ function compute_n_max_actions(players::Players, bb)
 end
 n_raises(i, n_players) = Int(floor(i/n_players))
 
+default_seat_to_show(player::Player{Human}) = "($(player.cards[1]), $(player.cards[2]))"
+default_seat_to_show(player::Player{S}) where {S <: AbstractStrategy} = "(??,??)"
+
 Table(players::Tuple; kwargs...) = Table(Players(players); kwargs...)
 function Table(players::Players;
     deck = PlayingCards.MaskedDeck(),
@@ -109,6 +113,7 @@ function Table(players::Players;
     total_bet = 0,
     initial_round_raise_amount = blinds.big,
     logger = InfoLogger(),
+    seat_to_show = default_seat_to_show,
     transactions = TransactionManager(players, logger),
     winners = Winners(),
     play_out_game = false,
@@ -121,7 +126,7 @@ function Table(players::Players;
     L = typeof(logger)
     TM = typeof(transactions)
     B = typeof(blinds)
-    return Table{P, L, TM, B, typeof(deck), typeof(gui)}(deck,
+    return Table{P, L, TM, B, typeof(deck), typeof(gui), typeof(seat_to_show)}(deck,
         players,
         Card[cards[1],cards[2],cards[3],cards[4],cards[5]],
         blinds,
@@ -135,7 +140,8 @@ function Table(players::Players;
         play_out_game,
         n_max_actions,
         logger,
-        gui)
+        gui,
+        seat_to_show)
 end
 
 function Buttons(players::Players, dealer_pidx)
@@ -473,8 +479,10 @@ function Base.iterate(ct::CircleTable{FirstToAct}, ncpidx = first_to_act_pidx(ct
     return (pidx, ncpidx+1)
 end
 
-show_cards(table::Table, player::Player{Human}) = player.cards
-show_cards(table::Table, player::Player{S}) where {S <: AbstractStrategy} = "(??,??)"
+function show_cards(table::Table, player::Player{S}) where {S <: AbstractStrategy}
+    c = player.cards
+    return table.seat_to_show(player) ? "($(c[1]), $(c[2]))" : "(??,??)"
+end
 
 #####
 ##### Deal
@@ -518,7 +526,7 @@ function deal!(table::Table, blinds::Blinds)
     @inbounds for j in 1:5
         table.cards[j] = SB.sample!(table.deck)
     end
-    @cinfo logger "Table cards dealt (face-down)."
+    @cdebug logger "Table cards dealt (face-down)."
     @cdebug logger "Post-blinds bank roll summary: $(bank_roll.(players))"
 end
 
