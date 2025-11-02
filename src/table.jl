@@ -66,7 +66,7 @@ mutable struct Table{P<:Players, L, TM, B <: Blinds, D <: PlayingCards.AbstractD
     n_max_actions::Int
     logger::L
     gui::G
-    seat_to_show::F
+    show_cards::F
 end
 
 buttons(table::Table) = table.buttons
@@ -98,8 +98,8 @@ function compute_n_max_actions(players::Players, bb)
 end
 n_raises(i, n_players) = Int(floor(i/n_players))
 
-default_seat_to_show(player::Player{Human}) = "($(player.cards[1]), $(player.cards[2]))"
-default_seat_to_show(player::Player{S}) where {S <: AbstractStrategy} = "(??,??)"
+default_show_cards(player::Player{Human}) = true
+default_show_cards(player::Player{S}) where {S <: AbstractStrategy} = false
 
 Table(players::Tuple; kwargs...) = Table(Players(players); kwargs...)
 function Table(players::Players;
@@ -113,7 +113,7 @@ function Table(players::Players;
     total_bet = 0,
     initial_round_raise_amount = blinds.big,
     logger = InfoLogger(),
-    seat_to_show = default_seat_to_show,
+    show_cards = default_show_cards,
     transactions = TransactionManager(players, logger),
     winners = Winners(),
     play_out_game = false,
@@ -126,7 +126,7 @@ function Table(players::Players;
     L = typeof(logger)
     TM = typeof(transactions)
     B = typeof(blinds)
-    return Table{P, L, TM, B, typeof(deck), typeof(gui), typeof(seat_to_show)}(deck,
+    return Table{P, L, TM, B, typeof(deck), typeof(gui), typeof(show_cards)}(deck,
         players,
         Card[cards[1],cards[2],cards[3],cards[4],cards[5]],
         blinds,
@@ -141,7 +141,7 @@ function Table(players::Players;
         n_max_actions,
         logger,
         gui,
-        seat_to_show)
+        show_cards)
 end
 
 function Buttons(players::Players, dealer_pidx)
@@ -479,9 +479,9 @@ function Base.iterate(ct::CircleTable{FirstToAct}, ncpidx = first_to_act_pidx(ct
     return (pidx, ncpidx+1)
 end
 
-function show_cards(table::Table, player::Player{S}) where {S <: AbstractStrategy}
+function _show_cards(table::Table, player::Player{S}) where {S <: AbstractStrategy}
     c = player.cards
-    return table.seat_to_show(player) ? "($(c[1]), $(c[2]))" : "(??,??)"
+    return table.show_cards(player) ? "($(c[1]), $(c[2]))" : "(??,??)"
 end
 
 #####
@@ -505,19 +505,19 @@ function deal!(table::Table, blinds::Blinds)
 
         if is_small_blind(table, player) && bank_roll(player) ≤ blinds.small
             contribute!(table, player, bank_roll(player), call_blinds)
-            @cinfo logger "$(name(player)) paid the small blind (all-in) and dealt cards: $(show_cards(table, player))"
+            @cinfo logger "$(name(player)) paid the small blind (all-in) and dealt cards: $(_show_cards(table, player))"
         elseif is_big_blind(table, player) && bank_roll(player) ≤ blinds.big
             contribute!(table, player, bank_roll(player), call_blinds)
-            @cinfo logger "$(name(player)) paid the  big  blind (all-in) and dealt cards: $(show_cards(table, player))"
+            @cinfo logger "$(name(player)) paid the  big  blind (all-in) and dealt cards: $(_show_cards(table, player))"
         else
             if is_small_blind(table, player)
                 contribute!(table, player, blinds.small, call_blinds)
-                @cinfo logger "$(name(player)) paid the small blind and dealt cards: $(show_cards(table, player))"
+                @cinfo logger "$(name(player)) paid the small blind and dealt cards: $(_show_cards(table, player))"
             elseif is_big_blind(table, player)
                 contribute!(table, player, blinds.big, call_blinds)
-                @cinfo logger "$(name(player)) paid the  big  blind and dealt cards: $(show_cards(table, player))"
+                @cinfo logger "$(name(player)) paid the  big  blind and dealt cards: $(_show_cards(table, player))"
             else
-                @cinfo logger "$(name(player)) dealt (free) cards:                   $(show_cards(table, player))"
+                @cinfo logger "$(name(player)) dealt (free) cards:                   $(_show_cards(table, player))"
             end
         end
     end
