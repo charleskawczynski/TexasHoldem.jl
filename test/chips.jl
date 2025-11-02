@@ -12,4 +12,7 @@ end
     @test Chips(12, SimpleRatio(0, 1)) == Chips(12, SimpleRatio(0, 2))
     @test Chips(12, SimpleRatio(1, 3)) ≠ Chips(12, SimpleRatio(1, 2))
     @test Chips(94, SimpleRatio(-518400, 1036800)) ≤ Chips(175, SimpleRatio(0, 4031078400000))
+
+    @test "$(Chips(12, SimpleRatio(1, 1)))" == "13"
+    @test "$(Chips(12, SimpleRatio(1, 2)))" == "12+1//2"
 end

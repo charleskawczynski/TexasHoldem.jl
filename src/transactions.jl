@@ -157,9 +157,11 @@ function contribute!(table, player, amt, call=false)
     players = players_at_table(table)
     @cdebug logger "$(name(player))'s bank roll (pre-contribute) = $(bank_roll(player))"
     if !(0 ≤ amt ≤ bank_roll(player))
-        msg1 = "$(name(player)) has insufficient bank"
-        msg2 = "roll ($(bank_roll(player))) to add $amt to pot."
-        error(msg1*msg2)
+        @cerror logger begin
+            msg1 = "$(name(player)) has insufficient bank"
+            msg2 = "roll ($(bank_roll(player))) to add $amt to pot."
+            msg1*msg2
+        end
     end
     @assert all_in(player) == false
     @assert !(amt == 0) "Cannot contribute $amt to the pot!"
@@ -364,6 +366,7 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards, logg
 
 
     if !(logger isa ByPassLogger)
+        @cinfo logger "Pot distribution results:"
         for (player, player_sp_winnings) in zip(players, tm.side_pot_winnings)
             log_player_winnings(player, player_sp_winnings, tm)
         end
@@ -384,19 +387,20 @@ function log_player_winnings(player, player_sp_winnings, tm)
     net_winnings = prof
     she = sorted_hand_evals[ssn]
     hand_name = she.hand_type
-    bc = she.best_cards
+    bc = ntuple(i->she.best_cards[i], length(she.best_cards))
+    pc = ntuple(i->player.cards[i], length(player.cards))
 
     f_str = folded(player) ? "folded, " : ""
     i_str = inactive(player) ? "inactive " : ""
     st_str = "$f_str$i_str"
     if hand_name == :empty
         @cinfo logger begin
-            "$(name(player)): folded / inactive."
+            "  $(name(player)): folded / inactive."
         end
     else
         @cdebug logger "$(name(player))'s side-pot wins: $(player_sp_winnings)!"
         @cinfo logger begin
-            "$(name(player)): winnings $(winnings.n), contributed $(contributed.n), net $(net_winnings.n) with $bc ($hand_name)."
+            "  $(name(player)) had $(pc). Winnings $(winnings.n), contributed $(contributed.n), net $(net_winnings.n) with $hand_name $bc."
         end
     end
     return nothing

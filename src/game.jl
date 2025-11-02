@@ -124,7 +124,7 @@ function all_bets_were_called(table::Table)
         for cond in conds_debug
             @cdebug logger "sn, cond = $(cond[1]), $(cond[2:end])"
         end
-        @cdebug logger "snlptr = $(seat_number(lptr))"
+        "snlptr = $(seat_number(lptr))"
     end
     return all(player-> begin
         cond1 = seat_number(player) == seat_number(lptr)
@@ -320,7 +320,7 @@ function play_to_options!(game::Game)
         update_betting_cycle_state!(game)
         return (NoOptions(), :continue)
     end
-    @cdebug logger "$(name(player))'s turn to act"
+    @cinfo logger "$(name(player))'s turn to act"
 
     options = get_options(game, player)
     return (options, :goto_action)
@@ -383,7 +383,14 @@ function post_game_procedure(game)
               "    max possible profit $mpp")
     end
 
-    @cinfo logger "Final bank roll summary: $(bank_roll_chips.(players))"
+    msgs = ["Post-game summary:"]
+    for player in players
+        push!(msgs, "  $(name(player)) bank roll $(bank_roll_chips(player))")
+    end
+    for msg in msgs
+        @cinfo logger msg
+    end
+
     @assert winners.declared
     for player in players
         notify_reward(player)
@@ -444,12 +451,22 @@ end
 function verify_start_of_game(table)
     logger = table.logger
     players = players_at_table(table)
-    @cinfo logger "Initial bank roll summary: $(bank_roll_chips.(players))"
     did = dealer_pidx(table)
     sb = seat_number(small_blind(table))
     bb = seat_number(big_blind(table))
     f2a = seat_number(first_to_act(table))
-    @cinfo logger "Buttons (dealer, small, big, 1ˢᵗToAct): ($did, $sb, $bb, $f2a)"
+    msgs = String["Pre-game setup:"]
+    for player in players
+        labels = String[]
+        is_small_blind(table, player) && push!(labels, "small blind")
+        is_big_blind(table, player) && push!(labels, "big blind")
+        is_first_to_act(table, player) && push!(labels, "1ˢᵗToAct")
+        is_dealer(table, player) && push!(labels, "button")
+        push!(msgs, "  $(name(player)) bank roll $(bank_roll_chips(player)): ($(join(labels, ", ")))")
+    end
+    for msg in msgs
+        @cinfo logger msg
+    end
     @assert still_playing(dealer(table)) "The button must be placed on a non-folded player"
     @assert still_playing(small_blind(table)) "The small blind button must be placed on a non-folded player"
     @assert still_playing(big_blind(table)) "The big blind button must be placed on a non-folded player"
@@ -466,6 +483,7 @@ function reset_game!(game::Game)
         blinds=table.blinds,
         logger=logger,
         gui=table.gui,
+        seat_to_show=table.seat_to_show,
     )
     bcs = first(enumerate(circle(game.table, FirstToAct())))
     game.betting_cycle_state.i = bcs[1]
