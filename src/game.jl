@@ -483,7 +483,7 @@ function reset_game!(game::Game)
         blinds=table.blinds,
         logger=logger,
         gui=table.gui,
-        seat_to_show=table.seat_to_show,
+        show_cards=table.show_cards,
     )
     bcs = first(enumerate(circle(game.table, FirstToAct())))
     game.betting_cycle_state.i = bcs[1]
