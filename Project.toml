@@ -1,7 +1,7 @@
 name = "TexasHoldem"
 uuid = "6cef90fc-eb55-4a2a-97d0-7ecce2b738fe"
 authors = ["Charles Kawczynski <kawczynski.charles@gmail.com>"]
-version = "0.5.2"
+version = "0.5.3"
 
 [deps]
 Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"
