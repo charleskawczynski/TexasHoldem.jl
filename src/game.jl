@@ -56,10 +56,11 @@ move_buttons!(game) = move_buttons!(game.table)
 
 function print_round(table, round::Symbol)
     table.gui isa Terminal && return nothing
+    c = table.cards
     round == :preflop && @cinfo table.logger "Pre-flop!"
-    round == :flop && @cinfo table.logger "Flop: $(repeat(" ", 44)) $(table.cards[1:3])"
-    round == :turn && @cinfo table.logger "Turn: $(repeat(" ", 44)) $(table.cards[4])"
-    round == :river && @cinfo table.logger "River: $(repeat(" ", 43)) $(table.cards[5])"
+    round == :flop && @cinfo table.logger "Flop: $(repeat(" ", 44)) $(ntuple(i->c[i], 3))"
+    round == :turn && @cinfo table.logger "Turn: $(repeat(" ", 44)) $(c[4])"
+    round == :river && @cinfo table.logger "River: $(repeat(" ", 43)) $(c[5])"
 end
 
 function set_antes!(table::Table, round::Symbol)

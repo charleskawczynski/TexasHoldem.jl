@@ -86,9 +86,9 @@ valid given the options
 """
 function is_valid_action(game, a::Action, options::Options)
     on = options.name
-    on == :CheckRaiseFold && return a.name in (:check, :raiseto, :all_in, :fold) && is_valid_raise(game, action)
-    on == :CallRaiseFold && return a.name in (:call, :raiseto, :all_in, :fold) && is_valid_raise(game, action)
-    on == :CallAllInFold && return a.name in (:call, :all_in, :fold) && is_valid_raise(game, action)
+    on == :CheckRaiseFold && return a.name in (:check, :raiseto, :all_in, :fold) && is_valid_raise(game, a)
+    on == :CallRaiseFold && return a.name in (:call, :raiseto, :all_in, :fold) && is_valid_raise(game, a)
+    on == :CallAllInFold && return a.name in (:call, :all_in, :fold) && is_valid_raise(game, a)
     on == :CallFold && return a.name in (:call, :fold)
     on == :NoOptions && return a.name == :none
     error("Uncaught case")
