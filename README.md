@@ -39,34 +39,34 @@ tournament!(configure_game()) # play until 1 player remains
 Overload `get_action` with your own bot and play against it:
 
 ```julia
-using TexasHoldem
-using TexasHoldem: Options
-import TexasHoldem: get_action
+import TexasHoldem as TH
+struct MyBot <: TH.AbstractStrategy end
 
-struct MyBot <: AbstractStrategy end
-
-function get_action(game::Game, player::Player{MyBot}, options::Options)
+function TH.get_action(game::TH.Game, player::TH.Player{MyBot}, options::TH.Options)
     if options.name == :CheckRaiseFold
-        rand() < 0.5 && return RaiseTo(game, rand(valid_total_bet_range(game)))
-        return Check()
-        # return Fold() # we can fold, but we can check for free
+        rand() < 0.5 && return TH.RaiseTo(game, rand(TH.valid_total_bet_range(game)))
+        return TH.Check()
+        # return TH.Fold() # we can fold, but we can check for free
     elseif options.name == :CallRaiseFold
-        rand() < 0.5 && return Call(game)
-        rand() < 0.5 && return RaiseTo(game, rand(valid_total_bet_range(game)))
-        return Fold()
+        rand() < 0.5 && return TH.Call(game)
+        rand() < 0.5 && return TH.RaiseTo(game, rand(TH.valid_total_bet_range(game)))
+        return TH.Fold()
     elseif options.name == :CallAllInFold
-        rand() < 0.5 && return Call(game)
-        rand() < 0.5 && return AllIn(game)
-        return Fold()
+        rand() < 0.5 && return TH.Call(game)
+        rand() < 0.5 && return TH.AllIn(game)
+        return TH.Fold()
     else
         @assert options.name == :CallFold
-        rand() < 0.5 && return Call(game)
-        return Fold()
+        rand() < 0.5 && return TH.Call(game)
+        return TH.Fold()
     end
 end
 
+import Logging
+players = (TH.Player(TH.Human(), 1), TH.Player(MyBot(), 2));
+game = TH.Game(players; gui=TH.NoGUI(), logger=TH.InfoLogger())
 # Heads-up against MyBot!
-tournament!(Game((Player(Human(), 1), Player(MyBot(), 2))))
+TH.tournament!(game)
 ```
 
 ## Orchestrating your own game

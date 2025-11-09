@@ -237,13 +237,20 @@ function update_given_valid_action!(table::Table, player::Player, action::Action
         player.folded = true
         check_for_and_declare_winner!(table)
         @cinfo logger "$(name(player)) folded!"
+        @log_event_code logger Int.([CodePlayerAction, seat_number(player), CodeFold])
     elseif action.name == :raiseto || action.name == :all_in
         _amt = valid_raise_amount(table, player, action.amt) # asserts valid requested raise amount
+        if action.name == :raiseto
+            @log_event_code logger Int.([CodePlayerAction, seat_number(player), CodeRaiseTo, _amt])
+        else
+            @log_event_code logger Int.([CodePlayerAction, seat_number(player), CodeAllIn, _amt])
+        end
         update_given_raise!(table, player, _amt)
         player.performed_action = :raiseto
     elseif action.name == :call
         amt = action.amt
         @cdebug logger "$(name(player)) calling $(amt)."
+        @log_event_code logger Int.([CodePlayerAction, seat_number(player), CodeCall])
         player.performed_action = :called
         contribute!(table, player, amt, true)
         @cinfo logger begin
@@ -258,6 +265,7 @@ function update_given_valid_action!(table::Table, player::Player, action::Action
     elseif action.name == :check
         player.performed_action = :checked
         @cinfo logger "$(name(player)) checked!"
+        @log_event_code logger Int.([CodePlayerAction, seat_number(player), CodeCheck])
     else
         error("Uncaught case")
     end
