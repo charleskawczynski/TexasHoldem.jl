@@ -19,6 +19,7 @@ makedocs(;
         "Rules" => "rules.md",
         "Terminology" => "terminology.md",
         "Performance" => "perf.md",
+        "Event codes" => "event_codes.md",
         "API" => "api.md",
     ],
 )

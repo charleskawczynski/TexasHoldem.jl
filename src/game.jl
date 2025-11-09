@@ -61,6 +61,9 @@ function print_round(table, round::Symbol)
     round == :flop && @cinfo table.logger "Flop: $(repeat(" ", 44)) $(ntuple(i->c[i], 3))"
     round == :turn && @cinfo table.logger "Turn: $(repeat(" ", 44)) $(c[4])"
     round == :river && @cinfo table.logger "River: $(repeat(" ", 43)) $(c[5])"
+    round == :flop && @log_event_code table.logger Int.([CodeDealFlop, ntuple(i->card_to_int(c[i]), 3)...])
+    round == :turn && @log_event_code table.logger Int.([CodeDealTurn, card_to_int(c[4])])
+    round == :river && @log_event_code table.logger Int.([CodeDealRiver, card_to_int(c[5])])
 end
 
 function set_antes!(table::Table, round::Symbol)
@@ -468,6 +471,10 @@ function verify_start_of_game(table)
     for msg in msgs
         @cinfo logger msg
     end
+    for player in players
+        @log_event_code logger Int.([CodeSetPlayerInitialStack, seat_number(player), bank_roll(player)])
+    end
+    @log_event_code logger Int.([CodeSetBlinds, seat_number(dealer(table)), blinds(table).small, blinds(table).big])
     @assert still_playing(dealer(table)) "The button must be placed on a non-folded player"
     @assert still_playing(small_blind(table)) "The small blind button must be placed on a non-folded player"
     @assert still_playing(big_blind(table)) "The big blind button must be placed on a non-folded player"

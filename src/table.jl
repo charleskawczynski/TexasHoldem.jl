@@ -484,6 +484,43 @@ function _show_cards(table::Table, player::Player{S}) where {S <: AbstractStrate
     return table.show_cards(player) ? "($(c[1]), $(c[2]))" : "(??,??)"
 end
 
+
+"""
+    card_to_int(card::PlayingCards.Card) -> Int
+
+Converts a `PlayingCards.Card` object into a unique integer ID from 0 to 51.
+This mapping is dense (every ID from 0 to 51 is used) and lossless.
+
+The mapping is based on:
+- Ranks (1-13) from `PlayingCards.rank(card)`:
+  - 1 = Ace
+  - 2-10 = 2-10
+  - 11 = Jack
+  - 12 = Queen
+  - 13 = King
+- Suits (0-3) from `PlayingCards.suit(card).i`:
+  - 0 = ♣ (Clubs)
+  - 1 = ♢ (Diamonds)
+  - 2 = ♡ (Hearts)
+  - 3 = ♠ (Spades)
+
+The formula is `(rank - 1) * 4 + suit_index`.
+"""
+function card_to_int(card::PlayingCards.Card)::Int
+    # PlayingCards.rank(card) returns 1 (Ace) through 13 (King)
+    # PlayingCards.suit(card).i returns 0 (Clubs) through 3 (Spades)
+
+    # rank_idx goes from 0 (Ace) to 12 (King)
+    rank_idx = PlayingCards.rank(card) - 1
+    # suit_idx goes from 0 (Clubs) to 3 (Spades)
+    suit_idx = PlayingCards.suit(card).i
+
+    # This creates a dense mapping from 0 to 51
+    # Example: A♣ (Rank=1, Suit=0) -> (1-1)*4 + 0 = 0
+    # Example: K♠ (Rank=13, Suit=3) -> (13-1)*4 + 3 = 12*4 + 3 = 51
+    return rank_idx * 4 + suit_idx
+end
+
 #####
 ##### Deal
 #####
@@ -502,6 +539,7 @@ function deal!(table::Table, blinds::Blinds)
         for j in 1:2
             player.cards[j] = SB.sample!(table.deck)
         end
+        @log_event_code logger Int.([CodeDealHoleCards, seat_number(player), card_to_int(player.cards[1]), card_to_int(player.cards[2])])
 
         if is_small_blind(table, player) && bank_roll(player) ≤ blinds.small
             contribute!(table, player, bank_roll(player), call_blinds)
