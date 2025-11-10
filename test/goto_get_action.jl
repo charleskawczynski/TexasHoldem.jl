@@ -18,7 +18,7 @@ end
 
 function TH.get_action(game::Game, player::Player{RiverDreamer}, options)
     round = game.table.round
-    if options.name == :CheckRaiseFold
+    if options == TH.CheckRaiseFold
         round == :river || return Check()
         if player.strategy.fixed
             Check()
@@ -27,8 +27,8 @@ function TH.get_action(game::Game, player::Player{RiverDreamer}, options)
             vrr = TH.valid_total_bet_range(game)
             raises = sort(map(x->rand(vrr), 1:10))
             actions = (Check(), map(x -> RaiseTo(game, x), raises)..., Fold())
-            @test TH.Action(:raiseto, 6) in actions
-            @test TH.Action(:raiseto, 14) in actions
+            @test TH.Action(TH.ActionType.Raise, 6) in actions
+            @test TH.Action(TH.ActionType.Raise, 14) in actions
             rewards = map(actions) do action
                 rgame = TH.recreate_game(game, player)
                 play!(rgame, Val(false))
@@ -39,15 +39,15 @@ function TH.get_action(game::Game, player::Player{RiverDreamer}, options)
             end
             return Check()
         end
-    elseif options.name == :CallRaiseFold
+    elseif options == TH.CallRaiseFold
         round == :river || return Call(game, player)
         rgame = TH.recreate_game(game, player)
         Call(game, player)
-    elseif options.name == :CallAllInFold
+    elseif options == TH.CallAllInFold
         round == :river || return Call(game, player)
         rgame = TH.recreate_game(game, player)
         Call(game, player)
-    elseif options.name == :CallFold
+    elseif options == TH.CallFold
         round == :river || return Call(game, player)
         rgame = TH.recreate_game(game, player)
         Call(game, player)

@@ -281,7 +281,7 @@ function play_to_options!(game::Game)
         reset_round_parameters!(game.table)
         reset_round_betting_cycle_state!(game)
         reset_round_bank_rolls!(table, table.round)
-        return (NoOptions(), :break)
+        return (NoOptions, :break)
     end
     if bcs.i == 1
         update_gui(table)
@@ -292,12 +292,12 @@ function play_to_options!(game::Game)
             @assert all_bets_were_called(table)
             reset_round_parameters!(game.table)
             if table.round == :river
-                return (NoOptions(), :break)
+                return (NoOptions, :break)
             else
                 table.round = next_round(table.round)
                 reset_round_betting_cycle_state!(game)
                 reset_round_bank_rolls!(table, table.round)
-                return (NoOptions(), :continue)
+                return (NoOptions, :continue)
             end
         end
         set_play_out_game!(table)
@@ -312,17 +312,17 @@ function play_to_options!(game::Game)
         @assert all_bets_were_called(table)
         reset_round_parameters!(game.table)
         if table.round == :river
-            return (NoOptions(), :break)
+            return (NoOptions, :break)
         else
             table.round = next_round(table.round)
             reset_round_betting_cycle_state!(game)
             reset_round_bank_rolls!(table, table.round)
-            return (NoOptions(), :continue)
+            return (NoOptions, :continue)
         end
     end
     if all_in(player) || not_playing(player)
         update_betting_cycle_state!(game)
-        return (NoOptions(), :continue)
+        return (NoOptions, :continue)
     end
     @cinfo logger "$(name(player))'s turn to act"
 
@@ -506,7 +506,7 @@ function reset_game!(game::Game)
         player.pot_investment = 0
         player.game_profit = Chips(0)
         player.round_bank_roll = bank_roll_chips(player)
-        player.performed_action = :none
+        player.performed_action = ActionType.Waiting
         player.last_to_raise = false
         player.round_contribution = 0
         player.active = true

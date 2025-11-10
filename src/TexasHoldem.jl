@@ -13,6 +13,7 @@ A no-limit Texas Holdem simulator.
 """
 module TexasHoldem
 
+import EnumX
 using PlayingCards
 using PlayingCards: Card
 using PokerHandEvaluator

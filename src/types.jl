@@ -1,4 +1,31 @@
 """
+    ActionType
+
+An action enum type, to be used with `Action`.
+
+Users are expected to return an action from
+[`get_action`](@ref) by calling one of `Action`'s
+convenience methods:
+
+ - `NoOptions`
+ - `Waiting`
+ - `Fold`
+ - `Check`
+ - `Call`
+ - `Raise`
+ - `AllIn`
+"""
+EnumX.@enumx ActionType begin
+    NoOptions = -1
+    Waiting = 0
+    Fold = 1
+    Check = 2
+    Call = 3
+    Raise = 4
+    AllIn = 5
+end
+
+"""
     Action
 
 An action type, to be returned by [`get_action`](@ref)
@@ -12,44 +39,31 @@ convenience methods:
  - [`Fold`](@ref)
  - [`Check`](@ref)
  - [`Call`](@ref)
- - [`Raise`](@ref)
+ - [`RaiseTo`](@ref)
  - [`AllIn`](@ref)
-
-Options names (`(options::Options).name`) are `Symbol`s that can be only one of:
-
- - `:NoOptions`
- - `:CheckRaiseFold`
- - `:CallRaiseFold`
- - `:CallAllInFold`
- - `:CallFold`
 """
 struct Action
-    name::Symbol
+    action_type::ActionType.T
     amt::Int
 end
 
 """
     Options
 
-An options type, returned by [`get_options`](@ref).
-Users can use this to determine which action to give
-back to `play`.
+An options enum type, to be returned by [`get_options`](@ref). Users can use
+this to determine which action to give back to `play`.
 
 Helper functions to return allowable options include:
- - [`NoOptions`](@ref)
- - [`CheckRaiseFold`](@ref)
- - [`CallRaiseFold`](@ref)
- - [`CallAllInFold`](@ref)
- - [`CallFold`](@ref)
-
-Actions names (`(action::Action).name`) are `Symbol`s that can be only one of:
-
- - `:Fold`
- - `:Check`
- - `:Call`
- - `:Raise`
- - `:AllIn`
+ - `NoOptions`
+ - `CheckRaiseFold`
+ - `CallRaiseFold`
+ - `CallAllInFold`
+ - `CallFold`
 """
-struct Options
-    name::Symbol
+@enum Options begin
+    NoOptions = 0
+    CheckRaiseFold = 1
+    CallRaiseFold = 2
+    CallAllInFold = 3
+    CallFold = 4
 end

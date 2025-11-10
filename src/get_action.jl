@@ -1,49 +1,3 @@
-export NoOptions,
-    CheckRaiseFold,
-    CallRaiseFold,
-    CallAllInFold,
-    CallFold
-
-"""
-    NoOptions
-
-The option when a player has no options (e.g.,
-they are all-in).
-"""
-NoOptions() = Options(:NoOptions)
-
-"""
-    CheckRaiseFold
-
-The option when a player is only able to
-check, raise, or fold.
-"""
-CheckRaiseFold() = Options(:CheckRaiseFold)
-
-"""
-    CallRaiseFold
-
-The option when a player is only able to
-call, raise, or fold.
-"""
-CallRaiseFold() = Options(:CallRaiseFold)
-
-"""
-    CallAllInFold
-
-The option when a player is only able to
-call, raise all-in, or fold.
-"""
-CallAllInFold() = Options(:CallAllInFold)
-
-"""
-    CallFold
-
-The option when a player is only able to
-call or fold.
-"""
-CallFold() = Options(:CallFold)
-
 """
     validate_action(game::Game, action::Action, options::Options)
 
@@ -51,19 +5,18 @@ This method will assert that the given action is
 valid under the given options.
 """
 function validate_action(game::Game, a::Action, options::Options)
-    on = options.name
-    if on == :CheckRaiseFold
-        @assert a.name in (:check, :raiseto, :all_in, :fold)
-    elseif on == :CallRaiseFold
-        @assert a.name in (:call, :raiseto, :all_in, :fold)
-    elseif on == :CallAllInFold
-        @assert a.name in (:call, :all_in, :fold)
-    elseif on == :CallFold
-        @assert a.name in (:call, :fold)
+    if options == CheckRaiseFold
+        @assert a.action_type in (ActionType.Check, ActionType.Raise, ActionType.AllIn, ActionType.Fold)
+    elseif options == CallRaiseFold
+        @assert a.action_type in (ActionType.Call, ActionType.Raise, ActionType.AllIn, ActionType.Fold)
+    elseif options == CallAllInFold
+        @assert a.action_type in (ActionType.Call, ActionType.AllIn, ActionType.Fold)
+    elseif options == CallFold
+        @assert a.action_type in (ActionType.Call, ActionType.Fold)
     else
-        @assert on == :NoOptions "Expected on == :NoOptions, got $(on) == :NoOptions" # needed for, e.g., all-in
+        @assert options == NoOptions "Expected on == NoOptions, got $(options) == NoOptions" # needed for, e.g., all-in
     end
-    if a.name == :raiseto
+    if a.action_type == ActionType.Raise
         vtbr = valid_total_bet_range(game.table, current_player(game))
         total_bet = a.amt
         @assert total_bet in vtbr "Cannot raise $(total_bet). Raise must be between [$(first(vtbr)), $(last(vtbr))]"
@@ -71,7 +24,7 @@ function validate_action(game::Game, a::Action, options::Options)
 end
 
 function is_valid_raise(game, action::Action)
-    if action.name == :raiseto
+    if action.action_type == ActionType.Raise
         return action.amt in valid_total_bet_range(game.table, current_player(game))
     else
         return true
@@ -85,12 +38,11 @@ Returns a Bool indicating that the given action is
 valid given the options
 """
 function is_valid_action(game, a::Action, options::Options)
-    on = options.name
-    on == :CheckRaiseFold && return a.name in (:check, :raiseto, :all_in, :fold) && is_valid_raise(game, a)
-    on == :CallRaiseFold && return a.name in (:call, :raiseto, :all_in, :fold) && is_valid_raise(game, a)
-    on == :CallAllInFold && return a.name in (:call, :all_in, :fold) && is_valid_raise(game, a)
-    on == :CallFold && return a.name in (:call, :fold)
-    on == :NoOptions && return a.name == :none
+    options == CheckRaiseFold && return a.action_type in (ActionType.Check, ActionType.Raise, ActionType.AllIn, ActionType.Fold) && is_valid_raise(game, a)
+    options == CallRaiseFold && return a.action_type in (:call, ActionType.Raise, ActionType.AllIn, ActionType.Fold) && is_valid_raise(game, a)
+    options == CallAllInFold && return a.action_type in (:call, ActionType.AllIn, ActionType.Fold) && is_valid_raise(game, a)
+    options == CallFold && return a.action_type in (:call, ActionType.Fold)
+    options == NoOptions && return a.action_type == :none
     error("Uncaught case")
 end
 
@@ -231,27 +183,28 @@ update_given_valid_action!(game::Game, player::Player, action::Action) =
     update_given_valid_action!(game.table, player, action)
 function update_given_valid_action!(table::Table, player::Player, action::Action)
     logger = table.logger
-    @assert action.name in (:fold, :raiseto, :call, :check, :all_in)
-    if action.name == :fold
-        player.performed_action = :folded
+    @assert action.action_type in (ActionType.Fold, ActionType.Raise, ActionType.Call, ActionType.Check, ActionType.AllIn)
+    if action.action_type == ActionType.Fold
+        player.performed_action = ActionType.Fold
         player.folded = true
         check_for_and_declare_winner!(table)
         @cinfo logger "$(name(player)) folded!"
         @log_event_code logger Int.([CodePlayerAction, seat_number(player), CodeFold])
-    elseif action.name == :raiseto || action.name == :all_in
+    elseif action.action_type == ActionType.Raise || action.action_type == ActionType.AllIn
         _amt = valid_raise_amount(table, player, action.amt) # asserts valid requested raise amount
-        if action.name == :raiseto
+        if action.action_type == ActionType.Raise
             @log_event_code logger Int.([CodePlayerAction, seat_number(player), CodeRaiseTo, _amt])
         else
             @log_event_code logger Int.([CodePlayerAction, seat_number(player), CodeAllIn, _amt])
         end
         update_given_raise!(table, player, _amt)
-        player.performed_action = :raiseto
-    elseif action.name == :call
+        player.performed_action = ActionType.Raise
+        action = ActionType.Raise
+    elseif action.action_type == ActionType.Call
         amt = action.amt
         @cdebug logger "$(name(player)) calling $(amt)."
         @log_event_code logger Int.([CodePlayerAction, seat_number(player), CodeCall])
-        player.performed_action = :called
+        player.performed_action = ActionType.Call
         contribute!(table, player, amt, true)
         @cinfo logger begin
             blind_str = is_blind_call(table, player, amt) ? " (blind)" : ""
@@ -262,8 +215,8 @@ function update_given_valid_action!(table::Table, player::Player, action::Action
             end
         end
 
-    elseif action.name == :check
-        player.performed_action = :checked
+    elseif action.action_type == ActionType.Check
+        player.performed_action = ActionType.Check
         @cinfo logger "$(name(player)) checked!"
         @log_event_code logger Int.([CodePlayerAction, seat_number(player), CodeCheck])
     else
@@ -293,15 +246,15 @@ function get_options(game, player)
         if raise_possible # raise possible
             vrr = valid_total_bet_range(table, player)
             if first(vrr) == last(vrr) # only all-in raise possible
-                return CallAllInFold()
+                return CallAllInFold
             else
-                return CallRaiseFold()
+                return CallRaiseFold
             end
         else # only all-in possible
-            return CallFold()
+            return CallFold
         end
     else
-        return CheckRaiseFold()
+        return CheckRaiseFold
     end
 end
 
@@ -317,10 +270,10 @@ Users may overload this method to develop their
 own poker bots. The options type is of type [`Options`](@ref)
 and has one of the following names
 
- - `options.name == :CheckRaiseFold`
- - `options.name == :CallRaiseFold`
- - `options.name == :CallAllInFold`
- - `options.name == :CallFold`
+ - `CheckRaiseFold`
+ - `CallRaiseFold`
+ - `CallAllInFold`
+ - `CallFold`
 """
 function get_action end
 
@@ -334,21 +287,21 @@ get_action(game::Game, options::Options) =
 ##### FuzzBot
 
 function get_action(game::Game, player::Player{FuzzBot}, options)
-    if options.name == :CheckRaiseFold
+    if options == CheckRaiseFold
         rand() < 0.5 && return Check()
         rand() < 0.5 && return RaiseTo(game, rand(valid_total_bet_range(game)))
         # while we can check for free, this bot is used for fuzzing,
         # so we want to explore the most diverse set of possible cases.
         return Fold()
-    elseif options.name == :CallRaiseFold
+    elseif options == CallRaiseFold
         rand() < 0.5 && return Call(game)
         rand() < 0.5 && return RaiseTo(game, rand(valid_total_bet_range(game))) # re-raise
         return Fold()
-    elseif options.name == :CallAllInFold
+    elseif options == CallAllInFold
         rand() < 0.5 && return Call(game)
         rand() < 0.5 && return AllIn(game) # re-raise
         return Fold()
-    elseif options.name == :CallFold
+    elseif options == CallFold
         rand() < 0.5 && return Call(game)
         return Fold()
     end
@@ -358,18 +311,18 @@ end
 ##### Bot5050
 
 function get_action(game::Game, player::Player{Bot5050}, options)
-    if options.name == :CheckRaiseFold
+    if options == CheckRaiseFold
         rand() < 0.5 && return Check()
         return RaiseTo(game, rand(valid_total_bet_range(game)))
-    elseif options.name == :CallRaiseFold
+    elseif options == CallRaiseFold
         rand() < 0.5 && return Call(game)
         rand() < 0.5 && return RaiseTo(game, rand(valid_total_bet_range(game))) # re-raise
         return Fold()
-    elseif options.name == :CallAllInFold
+    elseif options == CallAllInFold
         rand() < 0.5 && return Call(game)
         rand() < 0.5 && return AllIn(game) # re-raise
         return Fold()
-    elseif options.name == :CallFold
+    elseif options == CallFold
         rand() < 0.5 && return Call(game)
         return Fold()
     end

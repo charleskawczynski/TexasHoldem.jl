@@ -363,7 +363,7 @@ function reset_round_parameters!(table::Table)
     for player in players
         not_playing(player) && continue
         all_in(player) && continue
-            player.performed_action = :none
+            player.performed_action = ActionType.Waiting
         if !all_oppononents_all_in(table, player) # all bets have been called
             player.action_required = true
         end

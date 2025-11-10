@@ -41,20 +41,20 @@ end
     players = (Player(Human(), 1), Player(TH.FuzzBot(), 2))
     game = Game(players)
     simulate_keystrokes(:down, :down, :enter, 'd')
-    TH.get_action(game, players[1], CheckRaiseFold())
+    TH.get_action(game, players[1], TH.CheckRaiseFold)
     simulate_keystrokes(:down, :down, :enter, 'd')
-    TH.get_action(game, players[1], CallRaiseFold())
+    TH.get_action(game, players[1], TH.CallRaiseFold)
     simulate_keystrokes(:down, :down, :enter, 'd')
-    TH.get_action(game, players[1], CallAllInFold())
+    TH.get_action(game, players[1], TH.CallAllInFold)
     simulate_keystrokes(:down, :enter, 'd')
-    TH.get_action(game, players[1], CallFold())
+    TH.get_action(game, players[1], TH.CallFold)
 end
 
 @testset "Test check" begin
     players = (Player(Human(), 1), Player(TH.FuzzBot(), 2))
     game = Game(players)
     simulate_keystrokes(:enter, 'd')
-    TH.get_action(game, players[1], CheckRaiseFold())
+    TH.get_action(game, players[1], TH.CheckRaiseFold)
 end
 
 @testset "Test call" begin
@@ -63,21 +63,21 @@ end
     game = Game(players)
     game.table.total_bet = 10
     simulate_keystrokes(:enter, 'd', 10)
-    act = TH.get_action(game, players[1], CallRaiseFold())
+    act = TH.get_action(game, players[1], TH.CallRaiseFold)
     @test act == TH.Call(10)
 
     players = (Player(Human(), 1), Player(TH.FuzzBot(), 2))
     game = Game(players)
     game.table.total_bet = 10
     simulate_keystrokes(:enter, 'd', 10)
-    act = TH.get_action(game, players[1], CallAllInFold())
+    act = TH.get_action(game, players[1], TH.CallAllInFold)
     @test act == TH.Call(10)
 
     players = (Player(Human(), 1), Player(TH.FuzzBot(), 2))
     game = Game(players)
     game.table.total_bet = 10
     simulate_keystrokes(:enter, 'd', 10)
-    act = TH.get_action(game, players[1], CallFold())
+    act = TH.get_action(game, players[1], TH.CallFold)
     @test act == TH.Call(10)
 end
 
@@ -87,7 +87,7 @@ end
     game = Game(players)
     game.table.total_bet = 10
     simulate_keystrokes(:down, :enter, 'd')
-    act = TH.get_action(game, players[1], CallAllInFold())
+    act = TH.get_action(game, players[1], TH.CallAllInFold)
     @test act.amt == 200
     @test act == TH.AllIn(act.amt)
 end
@@ -127,7 +127,7 @@ TH.use_input_io() = true
     simulate_keystrokes(:down, :enter) # select Raise
     TRT.automated_test(file, [10]) do emuterm
         @testset "Human player options: CheckRaiseFold" begin
-            TH.get_action(game, players[1], CheckRaiseFold(), emuterm)
+            TH.get_action(game, players[1], TH.CheckRaiseFold, emuterm)
         end
     end
 
@@ -139,7 +139,7 @@ TH.use_input_io() = true
     simulate_keystrokes(:down, :enter) # select Raise
     TRT.automated_test(file, [20]) do emuterm
         @testset "Human player options: CallRaiseFold" begin
-            TH.get_action(game, players[1], CallRaiseFold(), emuterm)
+            TH.get_action(game, players[1], TH.CallRaiseFold, emuterm)
         end
     end
 end
