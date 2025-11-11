@@ -385,7 +385,7 @@ function log_player_winnings(player, player_sp_winnings, tm)
     winnings = ∑spw
     contributed = ∑spw - prof # prof = ∑spw - contributed
     net_winnings = prof
-    @log_event_code logger Int.([CodeWinnings, net_winnings.n])
+    @log_event_code logger Int.([CodeWinnings, seat_number(player), net_winnings.n])
     she = sorted_hand_evals[ssn]
     hand_name = she.hand_type
     bc = ntuple(i->she.best_cards[i], length(she.best_cards))
