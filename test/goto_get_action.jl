@@ -1,6 +1,7 @@
 using Test
 using PlayingCards
 using TexasHoldem
+using TexasHoldem: RoundState
 import TexasHoldem
 const TH = TexasHoldem
 import Random
@@ -18,8 +19,8 @@ end
 
 function TH.get_action(game::Game, player::Player{RiverDreamer}, options)
     round = game.table.round
-    if options.name == :CheckRaiseFold
-        round == :river || return Check()
+    if options == TH.CheckRaiseFold
+        round == RoundState.River || return Check()
         if player.strategy.fixed
             Check()
         else
@@ -27,8 +28,8 @@ function TH.get_action(game::Game, player::Player{RiverDreamer}, options)
             vrr = TH.valid_total_bet_range(game)
             raises = sort(map(x->rand(vrr), 1:10))
             actions = (Check(), map(x -> RaiseTo(game, x), raises)..., Fold())
-            @test TH.Action(:raiseto, 6) in actions
-            @test TH.Action(:raiseto, 14) in actions
+            @test TH.Action(TH.ActionType.Raise, 6) in actions
+            @test TH.Action(TH.ActionType.Raise, 14) in actions
             rewards = map(actions) do action
                 rgame = TH.recreate_game(game, player)
                 play!(rgame, Val(false))
@@ -39,16 +40,16 @@ function TH.get_action(game::Game, player::Player{RiverDreamer}, options)
             end
             return Check()
         end
-    elseif options.name == :CallRaiseFold
-        round == :river || return Call(game, player)
+    elseif options == TH.CallRaiseFold
+        round == RoundState.River || return Call(game, player)
         rgame = TH.recreate_game(game, player)
         Call(game, player)
-    elseif options.name == :CallAllInFold
-        round == :river || return Call(game, player)
+    elseif options == TH.CallAllInFold
+        round == RoundState.River || return Call(game, player)
         rgame = TH.recreate_game(game, player)
         Call(game, player)
-    elseif options.name == :CallFold
-        round == :river || return Call(game, player)
+    elseif options == TH.CallFold
+        round == RoundState.River || return Call(game, player)
         rgame = TH.recreate_game(game, player)
         Call(game, player)
     else; error("Uncaught case")

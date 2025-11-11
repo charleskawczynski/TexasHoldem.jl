@@ -170,14 +170,14 @@ end
 
     players = (Player(Human(), 1), Player(TH.FuzzBot(), 2))
     table = QuietGame(players).table
-    table.round = :flop
+    table.round = TH.RoundState.Flop
     table.total_bet = 10
     players[1].round_contribution = 10
     @test call_amount(table, players[1]) == 0
 
     players = (Player(Human(), 1), Player(TH.FuzzBot(), 2))
     table = QuietGame(players).table
-    table.round = :flop
+    table.round = TH.RoundState.Flop
     table.total_bet = 10
     players[1].round_contribution = 20
     @test_throws AssertionError("Call amount cannot be negative. call_amt: -10, round_contribution: 20") call_amount(table, players[1])

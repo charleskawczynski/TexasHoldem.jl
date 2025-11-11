@@ -43,20 +43,20 @@ import TexasHoldem as TH
 struct MyBot <: TH.AbstractStrategy end
 
 function TH.get_action(game::TH.Game, player::TH.Player{MyBot}, options::TH.Options)
-    if options.name == :CheckRaiseFold
+    if options == TH.CheckRaiseFold
         rand() < 0.5 && return TH.RaiseTo(game, rand(TH.valid_total_bet_range(game)))
         return TH.Check()
         # return TH.Fold() # we can fold, but we can check for free
-    elseif options.name == :CallRaiseFold
+    elseif options == TH.CallRaiseFold
         rand() < 0.5 && return TH.Call(game)
         rand() < 0.5 && return TH.RaiseTo(game, rand(TH.valid_total_bet_range(game)))
         return TH.Fold()
-    elseif options.name == :CallAllInFold
+    elseif options == TH.CallAllInFold
         rand() < 0.5 && return TH.Call(game)
         rand() < 0.5 && return TH.AllIn(game)
         return TH.Fold()
     else
-        @assert options.name == :CallFold
+        @assert options == TH.CallFold
         rand() < 0.5 && return TH.Call(game)
         return TH.Fold()
     end
@@ -75,21 +75,31 @@ Want to orchestrate your own game? TexasHoldem.jl's `play!` implementation is
 (very roughly)
 
 ```julia
+using TexasHoldem: GameState
 import TexasHoldem as TH
 function play!(game::Game)
     TH.initialize!(game)
     while true
-        (options, flow) = TH.play_to_options!(game)::Tuple{TH.Options,Symbol}
-        if flow == :continue; continue; elseif flow == :break; break
-        elseif flow == :goto_action; else; error("Uncaught case"); end
+        (options, flow) = play_to_options!(game)::Tuple{Options,GameState.T}
+        if flow == GameState.BettingComplete
+            continue
+        elseif flow == GameState.HandOver
+            break
+        else
+            @assert flow == GameState.NextAction
+        end
 
-        action = TH.get_action(game, options)::Action
-        TH.validate_action(game, action, options)
+        action = get_action(game, options)::Action
+        validate_action(game, action, options)
 
-        TH.update_given_valid_action!(game, action)
-        flow = TH.check_if_game_is_over!(game)
-        if flow == :continue; continue; elseif flow == :break; break
-        else; error("Uncaught case"); end
+        update_given_valid_action!(game, action)
+        flow = check_if_game_is_over!(game)
+        if flow == GameState.BettingComplete
+            continue
+        else
+            @assert flow == GameState.HandOver
+            break
+        end
     end
     TH.distribute_winnings!(game)
     game.table.winners.declared = true

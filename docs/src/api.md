@@ -40,17 +40,16 @@ The call, raise, and all-in functions follow the convetion:
  - `minimum_raise_amount` the minimum raise amount.
  - `Call(game)` will match the amount of the last bet made in the current betting round. By calling, you stay in the hand.
  - `RaiseTo(game, 5)` raise the current total bet to 5.
- - `Raise(game, 5)` raises 5 _above_ the current total bet.
  - `AllIn(game)` raise all-in (all of your remaining chips). Note that `AllIn(game).amt` will contain the raise _above_ the current total bet.
  - `bank_roll(game)`
 
 ```@docs
 TexasHoldem.Action
+TexasHoldem.ActionType
 Check
 Fold
 Call
 call_amount
-Raise
 RaiseTo
 AllIn
 valid_total_bet_range
@@ -69,36 +68,38 @@ TexasHoldem.round_contribution
 
 ```@docs
 TexasHoldem.Options
-NoOptions
-CheckRaiseFold
-CallRaiseFold
-CallAllInFold
-CallFold
 TexasHoldem.get_options
 ```
 
 ## Action and Options symbols
 
-The `name` property of an `Action` object (`(action::Action).name`) is a `Symbol` that can be only one of:
+An `Action` has an `action_type` and an amount `amt`. The `action_type` is an `enum` type, with the following values:
 
- - `:Fold`
- - `:Check`
- - `:Call`
- - `:Raise`
- - `:AllIn`
+ - `Fold`
+ - `Check`
+ - `Call`
+ - `Raise`
+ - `AllIn`
 
-The `name` property of an `Options` object (`(action::Action).name`) is a `Symbol` that can be only one of:
+The allowable `enum` `Options` are:
 
- - `:NoOptions`
- - `:CheckRaiseFold`
- - `:CallRaiseFold`
- - `:CallAllInFold`
- - `:CallFold`
+ - `NoOptions`
+ - `CheckRaiseFold`
+ - `CallRaiseFold`
+ - `CallAllInFold`
+ - `CallFold`
 
 `get_options(game::Game)` will always yield a valid `Options` object, TexasHoldem
 cannot guarantee that a user will yield a valid action. Use
 `is_valid_action(game::Game, action::Action, options::Options)::Bool` to determine if a given
 action is valid or not.
+
+## States
+
+```@docs
+TexasHoldem.GameState
+TexasHoldem.RoundState
+```
 
 ## Training
 

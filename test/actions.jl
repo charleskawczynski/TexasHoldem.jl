@@ -14,13 +14,13 @@ DebugGame(args...; kwargs...) = Game(args...; kwargs..., gui=TH.NoGUI(), logger=
 struct ActionBot <: AbstractStrategy end
 
 function TH.get_action(game::Game, player::Player{ActionBot}, options)
-    if options.name == :CheckRaiseFold
+    if options == TH.CheckRaiseFold
         return RaiseTo(game, 200) # all-in
-    elseif options.name == :CallRaiseFold
+    elseif options == TH.CallRaiseFold
         return Call(game)
-    elseif options.name == :CallAllInFold
+    elseif options == TH.CallAllInFold
         return Call(game)
-    elseif options.name == :CallFold
+    elseif options == TH.CallFold
         return Call(game)
     end
     error("Uncaught case")
@@ -29,13 +29,13 @@ end
 struct ActionBot2 <: AbstractStrategy end
 
 function TH.get_action(game::Game, player::Player{ActionBot2}, options)
-    if options.name == :CheckRaiseFold
+    if options == TH.CheckRaiseFold
         return RaiseTo(game, last(TH.valid_total_bet_range(game))) # all-in
-    elseif options.name == :CallRaiseFold
+    elseif options == TH.CallRaiseFold
         return Call(game)
-    elseif options.name == :CallAllInFold
+    elseif options == TH.CallAllInFold
         return Call(game)
-    elseif options.name == :CallFold
+    elseif options == TH.CallFold
         return Call(game)
     end
     error("Uncaught case")

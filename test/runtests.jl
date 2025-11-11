@@ -1,3 +1,6 @@
+#=
+using Revise; try; using TestEnv; TestEnv.activate(); catch; end; using Revise; include("test/runtests.jl")
+=#
 using SafeTestsets
 @eval Main using TexasHoldem # don't qualify types in log
 @eval Main using TexasHoldem:SidePot # don't qualify types in log

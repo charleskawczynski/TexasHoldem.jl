@@ -10,20 +10,20 @@ import TexasHoldem as TH
 struct MyBot <: TH.AbstractStrategy end
 
 function TH.get_action(game::TH.Game, player::TH.Player{MyBot}, options::TH.Options)
-    if options.name == :CheckRaiseFold
+    if options == TH.CheckRaiseFold
         rand() < 0.5 && return TH.RaiseTo(game, rand(TH.valid_total_bet_range(game)))
         return TH.Check()
         # return TH.Fold() # we can fold, but we can check for free
-    elseif options.name == :CallRaiseFold
+    elseif options == TH.CallRaiseFold
         rand() < 0.5 && return TH.Call(game)
         rand() < 0.5 && return TH.RaiseTo(game, rand(TH.valid_total_bet_range(game)))
         return TH.Fold()
-    elseif options.name == :CallAllInFold
+    elseif options == TH.CallAllInFold
         rand() < 0.5 && return TH.Call(game)
         rand() < 0.5 && return TH.AllIn(game)
         return TH.Fold()
     else
-        @assert options.name == :CallFold
+        @assert options == TH.CallFold
         rand() < 0.5 && return TH.Call(game)
         return TH.Fold()
     end

@@ -2,7 +2,7 @@
 ##### Player actions
 #####
 
-export Fold, Check, Call, Raise, RaiseTo, AllIn
+export Fold, Check, Call, RaiseTo, AllIn
 export call_amount, valid_total_bet_range
 
 """
@@ -11,7 +11,7 @@ export call_amount, valid_total_bet_range
 The fold action, to be returned from [`get_action`](@ref),
 when a player wants to fold.
 """
-Fold() = Action(:fold, 0)
+Fold() = Action(ActionType.Fold, 0)
 
 """
     Check()
@@ -19,7 +19,7 @@ Fold() = Action(:fold, 0)
 The check action, to be returned from [`get_action`](@ref),
 when a player wants to check.
 """
-Check() = Action(:check, 0)
+Check() = Action(ActionType.Check, 0)
 
 """
     Call(game::Game)
@@ -29,7 +29,7 @@ when a player wants to call amount `amt`.
 
 Use [`call_amount`](@ref) to query how much is needed to call.
 """
-Call(amt::Int) = Action(:call, amt)
+Call(amt::Int) = Action(ActionType.Call, amt)
 Call(game::Game) = Call(game.table, current_player(game))
 Call(game::Game, player::Player) = Call(game.table, player)
 function Call(table::Table, player::Player)
@@ -54,28 +54,10 @@ raise the current total bet to 5.
 function RaiseTo(table::Table, player::Player, total_bet::Int)
     # `total_bet` is validated in `validate_action` so that
     # users can handle this gracefully
-    Action(:raiseto, total_bet)
+    Action(ActionType.Raise, total_bet)
 end
 RaiseTo(game::Game, total_bet::Int) =
     RaiseTo(game.table, current_player(game), total_bet)
-
-"""
-    Raise(game::Game, amt::Int)
-
-The raise action, should be returned from [`get_action`](@ref).
-when a player wants to raise to amount `amt`.
-
-Use [`valid_total_bet_range`](@ref) to query the valid range
-that they are allowed to raise.
-
-When a player returns `Raise(5)`, this means that they want to
-raise 5 above the current total bet.
-"""
-function Raise(game::Game, amt::Int)
-    error("Raise has been deprecated. We plan to add support please use RaiseTo")
-    # @assert amt > 0 "Cannot raise less than 0!"
-    # Action(:raiseto, amt)
-end
 
 """
     AllIn(game::Game)
@@ -91,8 +73,7 @@ See [`valid_total_bet_range`](@ref) for querying the valid range
 that they are allowed to raise.
 """
 function AllIn(amt::Int)
-    @assert amt > 0 "Cannot raise less than 0!"
-    Action(:all_in, amt)
+    Action(ActionType.AllIn, amt)
 end
 AllIn(table::Table, player::Player) = # convenience function
     AllIn(last(valid_total_bet_range(table, player)))

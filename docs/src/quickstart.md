@@ -7,18 +7,18 @@ using TexasHoldem
 import TexasHoldem: get_action
 struct RandomBot <: AbstractStrategy end
 function get_action(game::Game, player::Player{RandomBot}, options)
-    if options.name == :CheckRaiseFold
+    if options == TH.CheckRaiseFold
         rand() < 0.5 && return RaiseTo(game, rand(valid_total_bet_range(game)))
         return Check()
-    elseif options.name == :CallRaiseFold
+    elseif options == TH.CallRaiseFold
         rand() < 0.5 && return Call(game)
         rand() < 0.5 && return RaiseTo(game, rand(valid_total_bet_range(game)))
         return Fold()
-    elseif options.name == :CallAllInFold
+    elseif options == TH.CallAllInFold
         rand() < 0.5 && return Call(game)
         rand() < 0.5 && return AllIn(game)
         return Fold()
-    elseif options.name == :CallFold
+    elseif options == TH.CallFold
         rand() < 0.5 && return Call(game)
         return Fold()
     else; error("Uncaught case")

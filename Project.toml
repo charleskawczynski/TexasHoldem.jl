@@ -1,9 +1,10 @@
 name = "TexasHoldem"
 uuid = "6cef90fc-eb55-4a2a-97d0-7ecce2b738fe"
 authors = ["Charles Kawczynski <kawczynski.charles@gmail.com>"]
-version = "0.5.4"
+version = "0.6.0"
 
 [deps]
+EnumX = "4e289a0a-7415-4d19-859d-a7e5c4648b56"
 Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"
 PlayingCards = "ecfe714a-bcc2-4d11-ad00-25525ff8f984"
 PokerHandEvaluator = "18ed25b1-892a-4a3b-b8fc-1036dc9a6a89"
@@ -13,6 +14,7 @@ StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 TupleTools = "9d95972d-f1c8-5527-a6e0-b4b365fa01f6"
 
 [compat]
+EnumX = "1.0.5"
 Logging = "1"
 PlayingCards = "0.4"
 PokerHandEvaluator = "0.2"

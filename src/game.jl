@@ -54,20 +54,20 @@ any_actions_required(game::Game) = any_actions_required(game.table)
 round(game::Game) = round(game.table)
 move_buttons!(game) = move_buttons!(game.table)
 
-function print_round(table, round::Symbol)
+function print_round(table, round::RoundState.T)
     table.gui isa Terminal && return nothing
     c = table.cards
-    round == :preflop && @cinfo table.logger "Pre-flop!"
-    round == :flop && @cinfo table.logger "Flop: $(repeat(" ", 44)) $(ntuple(i->c[i], 3))"
-    round == :turn && @cinfo table.logger "Turn: $(repeat(" ", 44)) $(c[4])"
-    round == :river && @cinfo table.logger "River: $(repeat(" ", 43)) $(c[5])"
-    round == :flop && @log_event_code table.logger Int.([CodeDealFlop, ntuple(i->card_to_int(c[i]), 3)...])
-    round == :turn && @log_event_code table.logger Int.([CodeDealTurn, card_to_int(c[4])])
-    round == :river && @log_event_code table.logger Int.([CodeDealRiver, card_to_int(c[5])])
+    round == RoundState.Preflop && @cinfo table.logger "Pre-flop!"
+    round == RoundState.Flop && @cinfo table.logger "Flop: $(repeat(" ", 44)) $(ntuple(i->c[i], 3))"
+    round == RoundState.Turn && @cinfo table.logger "Turn: $(repeat(" ", 44)) $(c[4])"
+    round == RoundState.River && @cinfo table.logger "River: $(repeat(" ", 43)) $(c[5])"
+    round == RoundState.Flop && @log_event_code table.logger Int.([CodeDealFlop, ntuple(i->card_to_int(c[i]), 3)...])
+    round == RoundState.Turn && @log_event_code table.logger Int.([CodeDealTurn, card_to_int(c[4])])
+    round == RoundState.River && @log_event_code table.logger Int.([CodeDealRiver, card_to_int(c[5])])
 end
 
-function set_antes!(table::Table, round::Symbol)
-    round == :preflop || return nothing
+function set_antes!(table::Table, round::RoundState.T)
+    round == RoundState.Preflop || return nothing
     players = players_at_table(table)
     for i in 1:length(players)
         if is_first_to_act(table, players[i])
@@ -139,8 +139,8 @@ function all_bets_were_called(table::Table)
     end, players)
 end
 
-function end_preflop_actions(table::Table, player::Player, round::Symbol)
-    round == :preflop || return false
+function end_preflop_actions(table::Table, player::Player, round::RoundState.T)
+    round == RoundState.Preflop || return false
     cond1 = is_big_blind(table, player)
     cond2 = checked(player)
     cond3 = still_playing(player)
@@ -161,7 +161,7 @@ end
 
 function reset_round_betting_cycle_state!(game)
     game.betting_cycle_state.i=1
-    if game.table.round == :preflop
+    if game.table.round == RoundState.Preflop
         game.betting_cycle_state.pidx=first(circle(game.table, FirstToAct()))
     else
         game.betting_cycle_state.pidx=first(circle(game.table, SmallBlind()))
@@ -213,17 +213,26 @@ end
 function _play!(game::Game, ::Val{init}) where {init}
     init && initialize!(game)
     while true
-        (options, flow) = play_to_options!(game)::Tuple{Options,Symbol}
-        if flow == :continue; continue; elseif flow == :break; break
-        elseif flow == :goto_action; else; error("Uncaught case"); end
+        (options, flow) = play_to_options!(game)::Tuple{Options,GameState.T}
+        if flow == GameState.BettingComplete
+            continue
+        elseif flow == GameState.HandOver
+            break
+        else
+            @assert flow == GameState.NextAction
+        end
 
         action = get_action(game, options)::Action
         validate_action(game, action, options)
 
         update_given_valid_action!(game, action)
         flow = check_if_game_is_over!(game)
-        if flow == :continue; continue; elseif flow == :break; break
-        else; error("Uncaught case"); end
+        if flow == GameState.BettingComplete
+            continue
+        else
+            @assert flow == GameState.HandOver
+            break
+        end
     end
     distribute_winnings!(game)
     game.table.winners.declared = true
@@ -231,10 +240,10 @@ function _play!(game::Game, ::Val{init}) where {init}
     return any_quit_game(game)
 end
 
-function next_round(r)
-    if r == :preflop;  return :flop
-    elseif r == :flop; return :turn
-    elseif r == :turn; return :river
+function next_round(r::RoundState.T)
+    if r == RoundState.Preflop;  return RoundState.Flop
+    elseif r == RoundState.Flop; return RoundState.Turn
+    elseif r == RoundState.Turn; return RoundState.River
     else; error("Uncaught case")
     end
 end
@@ -256,7 +265,6 @@ distribute_winnings!(game) =
 Plays until the next player's options are reached, and returns a tuple
 (options, flow) where:
 
- - `flow` is either (:continue, :break, or :goto_action)
  - `options` is a valid [`Options`](@ref) object
 """
 function play_to_options!(game::Game)
@@ -265,7 +273,7 @@ function play_to_options!(game::Game)
     winners = table.winners
     players = players_at_table(table)
     bcs = game.betting_cycle_state
-    if bcs.i > n_max_actions(table) # :preflop, :flop, :turn, :river
+    if bcs.i > n_max_actions(table) # preflop, flop, turn, river
         error("Too many actions have occurred, please open an issue.")
     end
     if bcs.i == 1
@@ -281,7 +289,7 @@ function play_to_options!(game::Game)
         reset_round_parameters!(game.table)
         reset_round_betting_cycle_state!(game)
         reset_round_bank_rolls!(table, table.round)
-        return (NoOptions(), :break)
+        return (NoOptions, GameState.HandOver)
     end
     if bcs.i == 1
         update_gui(table)
@@ -291,13 +299,13 @@ function play_to_options!(game::Game)
             @cinfo logger "Betting finished for $(table.round)."
             @assert all_bets_were_called(table)
             reset_round_parameters!(game.table)
-            if table.round == :river
-                return (NoOptions(), :break)
+            if table.round == RoundState.River
+                return (NoOptions, GameState.HandOver)
             else
                 table.round = next_round(table.round)
                 reset_round_betting_cycle_state!(game)
                 reset_round_bank_rolls!(table, table.round)
-                return (NoOptions(), :continue)
+                return (NoOptions, GameState.BettingComplete)
             end
         end
         set_play_out_game!(table)
@@ -311,23 +319,23 @@ function play_to_options!(game::Game)
         @cinfo logger "Betting finished for $(table.round)."
         @assert all_bets_were_called(table)
         reset_round_parameters!(game.table)
-        if table.round == :river
-            return (NoOptions(), :break)
+        if table.round == RoundState.River
+            return (NoOptions, GameState.HandOver)
         else
             table.round = next_round(table.round)
             reset_round_betting_cycle_state!(game)
             reset_round_bank_rolls!(table, table.round)
-            return (NoOptions(), :continue)
+            return (NoOptions, GameState.BettingComplete)
         end
     end
     if all_in(player) || not_playing(player)
         update_betting_cycle_state!(game)
-        return (NoOptions(), :continue)
+        return (NoOptions, GameState.BettingComplete)
     end
     @cinfo logger "$(name(player))'s turn to act"
 
     options = get_options(game, player)
-    return (options, :goto_action)
+    return (options, GameState.NextAction)
 end
 
 function check_if_game_is_over!(game::Game)
@@ -337,17 +345,17 @@ function check_if_game_is_over!(game::Game)
         @cinfo table.logger "Betting finished for $(table.round)."
         @assert all_bets_were_called(table)
         reset_round_parameters!(game.table)
-        if table.round == :river
-            return :break
+        if table.round == RoundState.River
+            return GameState.HandOver
         else
             table.round = next_round(table.round)
             reset_round_betting_cycle_state!(game)
             reset_round_bank_rolls!(table, table.round)
-            return :continue
+            return GameState.BettingComplete
         end
     end
     update_betting_cycle_state!(game)
-    return :continue
+    return GameState.BettingComplete
 end
 
 
@@ -387,12 +395,14 @@ function post_game_procedure(game)
               "    max possible profit $mpp")
     end
 
-    msgs = ["Post-game summary:"]
-    for player in players
-        push!(msgs, "  $(name(player)) bank roll $(bank_roll_chips(player))")
-    end
-    for msg in msgs
-        @cinfo logger msg
+    if !(logger isa ByPassLogger)
+        msgs = ["Post-game summary:"]
+        for player in players
+            push!(msgs, "  $(name(player)) bank roll $(bank_roll_chips(player))")
+        end
+        for msg in msgs
+            @cinfo logger msg
+        end
     end
 
     @assert winners.declared
@@ -434,14 +444,14 @@ function initialize!(game)
     verify_seats(table)
 
     reset!(table.transactions, players)
-    table.round = :preflop
+    table.round = RoundState.Preflop
     @assert all(p->!has_cards(p), players)
     @assert all(c->c==joker, cards(table))
     # round bank-rolls must _exclude_ blinds, so we must reset before dealing
     reset_round_bank_rolls!(table, :null)
     deal!(table, blinds(table))
     @assert cards(table) ≠ nothing
-    game.table.round = :preflop
+    game.table.round = RoundState.Preflop
     reset_round_betting_cycle_state!(game) # depends on round
     return game
 end
@@ -459,17 +469,19 @@ function verify_start_of_game(table)
     sb = seat_number(small_blind(table))
     bb = seat_number(big_blind(table))
     f2a = seat_number(first_to_act(table))
-    msgs = String["Pre-game setup:"]
-    for player in players
-        labels = String[]
-        is_small_blind(table, player) && push!(labels, "small blind")
-        is_big_blind(table, player) && push!(labels, "big blind")
-        is_first_to_act(table, player) && push!(labels, "1ˢᵗToAct")
-        is_dealer(table, player) && push!(labels, "button")
-        push!(msgs, "  $(name(player)) bank roll $(bank_roll_chips(player)): ($(join(labels, ", ")))")
-    end
-    for msg in msgs
-        @cinfo logger msg
+    if !(logger isa ByPassLogger)
+        msgs = String["Pre-game setup:"]
+        for player in players
+            labels = String[]
+            is_small_blind(table, player) && push!(labels, "small blind")
+            is_big_blind(table, player) && push!(labels, "big blind")
+            is_first_to_act(table, player) && push!(labels, "1ˢᵗToAct")
+            is_dealer(table, player) && push!(labels, "button")
+            push!(msgs, "  $(name(player)) bank roll $(bank_roll_chips(player)): ($(join(labels, ", ")))")
+        end
+        for msg in msgs
+            @cinfo logger msg
+        end
     end
     for player in players
         @log_event_code logger Int.([CodeSetPlayerInitialStack, seat_number(player), bank_roll(player)])
@@ -506,7 +518,7 @@ function reset_game!(game::Game)
         player.pot_investment = 0
         player.game_profit = Chips(0)
         player.round_bank_roll = bank_roll_chips(player)
-        player.performed_action = :none
+        player.performed_action = ActionType.Waiting
         player.last_to_raise = false
         player.round_contribution = 0
         player.active = true
