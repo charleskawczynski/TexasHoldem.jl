@@ -3,6 +3,7 @@
 #####
 
 using TexasHoldem
+using TexasHoldem: RoundState
 import TexasHoldem
 const TH = TexasHoldem
 
@@ -38,7 +39,7 @@ BotFlopRaise() = BotFlopRaise(nothing)
 function TH.get_action(game::Game, player::Player{<:BotFlopRaise}, options::TH.Options)
     amt = player.strategy.amt isa Nothing ? floor(Int, bank_roll(player)/2) : player.strategy.amt
     round = game.table.round
-    options == TH.CheckRaiseFold && return round == :flop ? RaiseTo(game, amt) : Check()
+    options == TH.CheckRaiseFold && return round == TH.RoundState.Flop ? RaiseTo(game, amt) : Check()
     options == TH.CallRaiseFold && return Call(game)
     options == TH.CallAllInFold && return Call(game)
     options == TH.CallFold && return Call(game)
@@ -72,7 +73,7 @@ struct BotBetSB <: AbstractStrategy end
 
 function TH.get_action(game::Game, player::Player{BotBetSB}, options::TH.Options)
     round = game.table.round
-    options == TH.CheckRaiseFold && return round == :preflop ? RaiseTo(game, TH.blinds(game).small) : RaiseTo(game, TH.blinds(game).small)
+    options == TH.CheckRaiseFold && return round == RoundState.Preflop ? RaiseTo(game, TH.blinds(game).small) : RaiseTo(game, TH.blinds(game).small)
     options == TH.CallRaiseFold && return Call(game)
     options == TH.CallFold && return Call(game)
     error("Uncaught case")
@@ -83,7 +84,7 @@ struct BotBetBB <: AbstractStrategy end
 
 function TH.get_action(game::Game, player::Player{BotBetBB}, options::TH.Options)
     round = game.table.round
-    options == TH.CheckRaiseFold && return round == :preflop ? RaiseTo(game, 2*TH.blinds(game).big) : RaiseTo(game, TH.blinds(game).big)
+    options == TH.CheckRaiseFold && return round == RoundState.Preflop ? RaiseTo(game, 2*TH.blinds(game).big) : RaiseTo(game, TH.blinds(game).big)
     options == TH.CallRaiseFold && return Call(game)
     options == TH.CallFold && return Call(game)
     error("Uncaught case")
@@ -93,7 +94,7 @@ end
 struct BotCheckOnCallRaiseFold <: AbstractStrategy end
 
 function TH.get_action(game::Game, player::Player{BotCheckOnCallRaiseFold}, options::TH.Options)
-    @assert options == TH.CallRaiseFold "needed :CallRaiseFold, got options: $(options::TH.Options)"
+    @assert options == TH.CallRaiseFold "needed CallRaiseFold, got options: $(options)"
     return Check()
 end
 
@@ -101,7 +102,7 @@ end
 struct BotCheckOnCallAllInFold <: AbstractStrategy end
 
 function TH.get_action(game::Game, player::Player{BotCheckOnCallAllInFold}, options::TH.Options)
-    @assert options == TH.CallAllInFold "needed :CallAllInFold, got options: $(options::TH.Options)"
+    @assert options == TH.CallAllInFold "needed CallAllInFold, got options: $(options)"
     return Check()
 end
 
@@ -109,7 +110,7 @@ end
 struct BotCheckOnCallFold <: AbstractStrategy end
 
 function TH.get_action(game::Game, player::Player{BotCheckOnCallFold}, options::TH.Options)
-    @assert options == TH.CallFold "needed :CallFold, got options: $(options::TH.Options)"
+    @assert options == TH.CallFold "needed CallFold, got options: $(options)"
     Check()
 end
 
@@ -118,7 +119,7 @@ struct BotCallOnCheckRaiseFold <: AbstractStrategy end
 
 function TH.get_action(game::Game, player::Player{BotCallOnCheckRaiseFold}, options::TH.Options)
     round = game.table.round
-    options == TH.CallRaiseFold && return round == :preflop ? Call(game) : Call(game)
+    options == TH.CallRaiseFold && return round == RoundState.Preflop ? Call(game) : Call(game)
     options == TH.CheckRaiseFold && return Call(game)
     error("Uncaught case")
 end
@@ -127,7 +128,7 @@ end
 struct BotRaiseOnCallFold <: AbstractStrategy end
 
 function TH.get_action(game::Game, player::Player{BotRaiseOnCallFold}, options::TH.Options)
-    @assert options == TH.CallFold "needed :CallFold, got options: $(options::TH.Options)"
+    @assert options == TH.CallFold "needed CallFold, got options: $(options)"
     return RaiseTo(game, bank_roll(player))
 end
 
@@ -161,7 +162,7 @@ end
 
 function TH.get_action(game::Game, player::Player{<:BotPreFlopRaise}, options::TH.Options)
     round = game.table.round
-    options == TH.CheckRaiseFold && return round == :preflop ? RaiseTo(game, TH.strategy(player).amt) : Check()
+    options == TH.CheckRaiseFold && return round == RoundState.Preflop ? RaiseTo(game, TH.strategy(player).amt) : Check()
     options == TH.CallRaiseFold && return RaiseTo(game, TH.strategy(player).amt)
     options == TH.CallAllInFold && return Call(game)
     options == TH.CallFold && return Call(game)

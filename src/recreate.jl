@@ -1,8 +1,8 @@
 function table_card_inds(round)
-    if round == :preflop; return ntuple(i->i, 5)
-    elseif round == :flop; return (4, 5)
-    elseif round == :turn; return (5,)
-    elseif round == :river; return ()
+    if round == RoundState.Preflop; return ntuple(i->i, 5)
+    elseif round == RoundState.Flop; return (4, 5)
+    elseif round == RoundState.Turn; return (5,)
+    elseif round == RoundState.River; return ()
     else; error("Uncaught case")
     end
 end

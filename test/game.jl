@@ -1,5 +1,6 @@
 using Test
 using PlayingCards
+using TexasHoldem: RoundState
 using TexasHoldem
 const TH = TexasHoldem
 
@@ -23,7 +24,7 @@ DebugGame(args...; kwargs...) = Game(args...; kwargs..., gui=TH.NoGUI(), logger=
     game = QuietGame(players)
     sprint(show, game)
 
-    game.table.round = :preflop
+    game.table.round = RoundState.Preflop
     sprint(show, game)
 end
 

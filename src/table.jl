@@ -56,7 +56,7 @@ mutable struct Table{P<:Players, L, TM, B <: Blinds, D <: PlayingCards.AbstractD
     cards::Vector{Card}
     blinds::B
     pot::Int
-    round::Symbol
+    round::RoundState.T
     buttons::Buttons
     total_bet::Int
     initial_round_raise_amount::Int
@@ -108,7 +108,7 @@ function Table(players::Players;
     gui = isinteractive() ? Terminal() : NoGUI(), # NoGUI() is better for testing
     blinds = Blinds(),
     pot = 0,
-    round = :preflop,
+    round = RoundState.Preflop,
     dealer_pidx = default_dealer_pidx(),
     total_bet = 0,
     initial_round_raise_amount = blinds.big,
@@ -184,29 +184,29 @@ cards(table::Table) = table.cards
 
 function observed_cards(table::Table)
     r = round(table)
-    if r == :preflop;   return Card[]
-    elseif r == :flop;  return table.cards[1:3]
-    elseif r == :turn;  return table.cards[1:4]
-    elseif r == :river; return table.cards
+    if r == RoundState.Preflop;   return Card[]
+    elseif r == RoundState.Flop;  return table.cards[1:3]
+    elseif r == RoundState.Turn;  return table.cards[1:4]
+    elseif r == RoundState.River; return table.cards
     else; error("Uncaught case")
     end
 end
 
 function observed_cards_all(table::Table, r = round(table))
-    if r == :preflop;   return Card[joker,joker,joker,joker,joker]
-    elseif r == :flop;  return Card[table.cards[1:3]..., joker, joker]
-    elseif r == :turn;  return Card[table.cards[1:4]..., joker]
-    elseif r == :river; return table.cards
+    if r == RoundState.Preflop;   return Card[joker,joker,joker,joker,joker]
+    elseif r == RoundState.Flop;  return Card[table.cards[1:3]..., joker, joker]
+    elseif r == RoundState.Turn;  return Card[table.cards[1:4]..., joker]
+    elseif r == RoundState.River; return table.cards
     else; error("Uncaught case")
     end
 end
 
 function unobserved_cards(table::Table)
     r = round(table)
-    if r == :preflop;   return table.cards
-    elseif r == :flop;  return table.cards[4:5]
-    elseif r == :turn;  return Card[table.cards[5]]
-    elseif r == :river; return Card[]
+    if r == RoundState.Preflop;   return table.cards
+    elseif r == RoundState.Flop;  return table.cards[4:5]
+    elseif r == RoundState.Turn;  return Card[table.cards[5]]
+    elseif r == RoundState.River; return Card[]
     else; error("Uncaught case")
     end
 end
@@ -351,7 +351,7 @@ function is_blind_call(table::Table, player::Player, amt = call_amount(table, pl
 end
 
 function reset_round_bank_rolls!(table::Table, round)
-    round == :preflop && return nothing
+    round == RoundState.Preflop && return nothing
     players = players_at_table(table)
     for player in players
         player.round_bank_roll = bank_roll_chips(player)

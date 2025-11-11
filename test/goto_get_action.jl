@@ -1,6 +1,7 @@
 using Test
 using PlayingCards
 using TexasHoldem
+using TexasHoldem: RoundState
 import TexasHoldem
 const TH = TexasHoldem
 import Random
@@ -19,7 +20,7 @@ end
 function TH.get_action(game::Game, player::Player{RiverDreamer}, options)
     round = game.table.round
     if options == TH.CheckRaiseFold
-        round == :river || return Check()
+        round == RoundState.River || return Check()
         if player.strategy.fixed
             Check()
         else
@@ -40,15 +41,15 @@ function TH.get_action(game::Game, player::Player{RiverDreamer}, options)
             return Check()
         end
     elseif options == TH.CallRaiseFold
-        round == :river || return Call(game, player)
+        round == RoundState.River || return Call(game, player)
         rgame = TH.recreate_game(game, player)
         Call(game, player)
     elseif options == TH.CallAllInFold
-        round == :river || return Call(game, player)
+        round == RoundState.River || return Call(game, player)
         rgame = TH.recreate_game(game, player)
         Call(game, player)
     elseif options == TH.CallFold
-        round == :river || return Call(game, player)
+        round == RoundState.River || return Call(game, player)
         rgame = TH.recreate_game(game, player)
         Call(game, player)
     else; error("Uncaught case")

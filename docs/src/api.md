@@ -94,6 +94,13 @@ cannot guarantee that a user will yield a valid action. Use
 `is_valid_action(game::Game, action::Action, options::Options)::Bool` to determine if a given
 action is valid or not.
 
+## States
+
+```@docs
+TexasHoldem.GameState
+TexasHoldem.RoundState
+```
+
 ## Training
 
 There are additional functionalities added for training purposes

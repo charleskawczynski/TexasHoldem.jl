@@ -6,8 +6,7 @@ A no-limit Texas Holdem simulator.
 # Terminology
  - `game` a single "game", where players are dealt hands,
    winner(s) are declared once.
- - `round` a point or process in the game, including
-   `:preflop`, `:flop`, `:turn`, `:river`.
+ - `round` a point or process in the game (from RoundState)
  - `round` the process of each player deciding which
    actions to take, until no further actions are taking.
 """
@@ -28,6 +27,8 @@ struct NoGUI <: AbstractGUI end
 struct Terminal <: AbstractGUI end
 
 include("chips.jl")
+include("round_state.jl")
+include("game_state.jl")
 include("types.jl")
 include("player_type.jl")
 include("players.jl")
