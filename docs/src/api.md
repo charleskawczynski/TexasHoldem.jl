@@ -60,7 +60,7 @@ Additional helpers:
 ```@docs
 TexasHoldem.total_bet
 TexasHoldem.is_valid_action
-TexasHoldem.validate_action
+TexasHoldem.action_validation_code
 TexasHoldem.round_contribution
 ```
 
@@ -93,6 +93,14 @@ The allowable `enum` `Options` are:
 cannot guarantee that a user will yield a valid action. Use
 `is_valid_action(game::Game, action::Action, options::Options)::Bool` to determine if a given
 action is valid or not.
+
+## Action validation
+
+Simply use `@assert action_validation_code(game, action, options) == ActionValidationCode.ValidAction` to validation a given action under the current options options. See `ActionValidationCode` for the action validation codes.
+
+```@docs
+TexasHoldem.ActionValidationCode
+```
 
 ## States
 

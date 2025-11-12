@@ -47,13 +47,13 @@ end
 
     (options, flow) = TH.play_to_options!(game)
     action = TH.get_action(game, options)::TH.Action
-    TH.validate_action(game, action, options)
+    @assert TH.is_valid_action(game, action, options)
     TH.update_given_valid_action!(game, action)
     flow = TH.check_if_game_is_over!(game)
 
     (options, flow) = TH.play_to_options!(game)
     action = TH.get_action(game, options)::TH.Action
-    TH.validate_action(game, action, options)
+    @assert TH.is_valid_action(game, action, options)
     TH.update_given_valid_action!(game, action)
     flow = TH.check_if_game_is_over!(game)
     @test TH.total_bet(game) == 200
@@ -66,13 +66,13 @@ end
 
     (options, flow) = TH.play_to_options!(game)
     action = TH.get_action(game, options)::TH.Action
-    TH.validate_action(game, action, options)
+    @assert TH.is_valid_action(game, action, options)
     TH.update_given_valid_action!(game, action)
     flow = TH.check_if_game_is_over!(game)
 
     (options, flow) = TH.play_to_options!(game)
     action = TH.get_action(game, options)::TH.Action
-    TH.validate_action(game, action, options)
+    @assert TH.is_valid_action(game, action, options)
     TH.update_given_valid_action!(game, action)
     flow = TH.check_if_game_is_over!(game)
     @test TH.total_bet(game) == 200

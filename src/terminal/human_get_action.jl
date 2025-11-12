@@ -75,8 +75,8 @@ function input_raise_amt(table, player::Player{Human}, io::IO=stdin)
         raise_amt = readline(io)
         try
             raise_amt = parse(Int, raise_amt)
-            is_valid, msg = is_valid_raise_amount(table, player, raise_amt)
-            is_valid && break
+            code = raise_validation_code(table, player, raise_amt)
+            code == ActionValidationCode.ValidAction || break
             println_io(io, msg)
         catch
             println_io(io, "Raise must be a Int")

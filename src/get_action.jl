@@ -1,33 +1,96 @@
 """
-    validate_action(game::Game, action::Action, options::Options)
+    ActionValidationCode
 
-This method will assert that the given action is
-valid under the given options.
+An action validation code enum type.
+
+ - `NoOptions`
+ - `Waiting`
+ - `Fold`
+ - `Check`
+ - `Call`
+ - `Raise`
+ - `AllIn`
 """
-function validate_action(game::Game, a::Action, options::Options)
+EnumX.@enumx ActionValidationCode begin
+    ValidAction
+    InvalidActionType
+    RaiseTooLarge
+    RaiseTooSmall
+    CallTooLarge
+    CallTooSmall
+    InsufficientFunds
+    CannotRaise0
+    OnlyAllInIsAllowed
+    RaiseNotInValidRange
+    MustContributePositiveAmount
+end
+
+
+"""
+    action_validation_code(game::Game, action::Action, options::Options)
+
+Returns an ActionValidationCode for the given action and options.
+"""
+function action_validation_code(game::Game, a::Action, options::Options)
+    # First, validate action type given options:
+    at = a.action_type
     if options == CheckRaiseFold
-        @assert a.action_type in (ActionType.Check, ActionType.Raise, ActionType.AllIn, ActionType.Fold)
+        if at in (ActionType.Check, ActionType.Fold)
+            return ActionValidationCode.ValidAction
+        elseif at in (ActionType.Raise, ActionType.AllIn)
+            return raise_validation_code(game, a, options)
+        else
+            return ActionValidationCode.InvalidActionType
+        end
     elseif options == CallRaiseFold
-        @assert a.action_type in (ActionType.Call, ActionType.Raise, ActionType.AllIn, ActionType.Fold)
+        if at == ActionType.Fold
+            return ActionValidationCode.ValidAction
+        elseif at == ActionType.Call
+            return call_validation_code(game, a, options)
+        elseif at in (ActionType.Raise, ActionType.AllIn)
+            return raise_validation_code(game, a, options)
+        else
+            return ActionValidationCode.InvalidActionType
+        end
     elseif options == CallAllInFold
-        @assert a.action_type in (ActionType.Call, ActionType.AllIn, ActionType.Fold)
+        if at == ActionType.Fold
+            return ActionValidationCode.ValidAction
+        elseif at == ActionType.Call
+            return call_validation_code(game, a, options)
+        elseif at == ActionType.AllIn
+            return raise_validation_code(game, a, options)
+        else
+            return ActionValidationCode.InvalidActionType
+        end
     elseif options == CallFold
-        @assert a.action_type in (ActionType.Call, ActionType.Fold)
+        if at == ActionType.Fold
+            return ActionValidationCode.ValidAction
+        elseif at == ActionType.Call
+            return call_validation_code(game, a, options)
+        else
+            return ActionValidationCode.InvalidActionType
+        end
     else
-        @assert options == NoOptions "Expected on == NoOptions, got $(options) == NoOptions" # needed for, e.g., all-in
-    end
-    if a.action_type == ActionType.Raise
-        vtbr = valid_total_bet_range(game.table, current_player(game))
-        total_bet = a.amt
-        @assert total_bet in vtbr "Cannot raise $(total_bet). Raise must be between [$(first(vtbr)), $(last(vtbr))]"
+        @assert options == NoOptions
+        a.action_type == ActionType.NoOptions || return ActionValidationCode.InvalidActionType
     end
 end
 
-function is_valid_raise(game, action::Action)
-    if action.action_type == ActionType.Raise
-        return action.amt in valid_total_bet_range(game.table, current_player(game))
+call_validation_code(game::Game, a::Action, options::Options) =
+    call_validation_code(game, current_player(game), a, options)
+
+function call_validation_code(game::Game, player::Player, a::Action, options::Options)
+    @assert a.action_type == ActionType.Call
+    ca = call_amount(game)
+    if a.amt == ca
+        return ActionValidationCode.ValidAction
+    elseif a.amt < ca && a.amt == bank_roll(player)
+        return ActionValidationCode.ValidAction
+    elseif a.amt < ca
+        return ActionValidationCode.CallTooSmall
     else
-        return true
+        @assert a.amt > ca
+        return ActionValidationCode.CallTooLarge
     end
 end
 
@@ -37,26 +100,24 @@ end
 Returns a Bool indicating that the given action is
 valid given the options
 """
-function is_valid_action(game, a::Action, options::Options)
-    options == CheckRaiseFold && return a.action_type in (ActionType.Check, ActionType.Raise, ActionType.AllIn, ActionType.Fold) && is_valid_raise(game, a)
-    options == CallRaiseFold && return a.action_type in (:call, ActionType.Raise, ActionType.AllIn, ActionType.Fold) && is_valid_raise(game, a)
-    options == CallAllInFold && return a.action_type in (:call, ActionType.AllIn, ActionType.Fold) && is_valid_raise(game, a)
-    options == CallFold && return a.action_type in (:call, ActionType.Fold)
-    options == NoOptions && return a.action_type == :none
-    error("Uncaught case")
-end
+is_valid_action(game, a::Action, options::Options) = action_validation_code(game, a, options) == ActionValidationCode.ValidAction
 
-is_valid_raise_amount(game, amt) =
-    is_valid_raise_amount(game.table, current_player(game), amt)
+raise_validation_info(game::Game, action::Action, options::Options) =
+    raise_validation_info(game, current_player(game), action, options)
 
 """
-    is_valid, msg = is_valid_raise_amount(table::Table, player::Player, amt)
+    (; amt, rbr, minraise, maxraise, prc) = raise_validation_code(game::Game, action::Action, options::Options)
 
-A `Tuple` of two elements:
- - A `Bool`, `is_valid`, indicating if the raise amount is valid or not
- - A `String`, `msg`, of the error message (`msg` = "" if `is_valid = true`).
+A NamedTuple containing:
+ - `amt` - the candidate raise amount
+ - `rbr` - the player's round bank roll
+ - `minraise` - the minimum valid total bet
+ - `maxraise` - the maximum valid total bet
+ - `prc` - the player's round contribution
 """
-function is_valid_raise_amount(table::Table, player::Player, amt::Int)
+function raise_validation_info(game::Game, player::Player, action::Action, options::Options)
+    amt = action.amt
+    table = game.table
     logger = table.logger
     prc = round_contribution(player)
     rbr = round_bank_roll(player)
@@ -64,36 +125,36 @@ function is_valid_raise_amount(table::Table, player::Player, amt::Int)
     @cdebug logger "vrr = $vrr, amt = $amt, prc = $prc, rbr=$rbr, br=$(bank_roll(player))"
     minraise = first(vrr)
     maxraise = last(vrr)
+    return (; amt, rbr, minraise, maxraise, prc)
+end
 
-    @assert !(minraise == maxraise == 0) "Cannot raise 0."
-    if amt == 0
-        return false, "Cannot raise $amt. Raise must be between [$minraise, $maxraise]"
+raise_validation_code(game::Game, action::Action, options::Options) =
+    raise_validation_code(game, current_player(game), action, options)
+
+"""
+    code = raise_validation_code(game::Game, action::Action, options::Options)
+
+Returns the ActionValidation code for raises.
+"""
+function raise_validation_code(game::Game, player::Player, action::Action, options::Options)
+    (; amt, rbr, minraise, maxraise, prc) = raise_validation_info(game, player, action, options)
+    if amt == 0 || (minraise == maxraise == 0)
+        return ActionValidationCode.CannotRaise0
     end
     if !(amt ≤ rbr)
-        return false, "Insufficient funds ($rbr) to raise $amt. Raise must be between [$minraise, $maxraise]"
+        return ActionValidationCode.InsufficientFunds
     end
     if !(minraise ≤ amt ≤ maxraise || amt == minraise == maxraise)
         if minraise == maxraise
-            return false, "Only allowable raise is $(minraise) (all-in), attempting to raise $amt"
+            return ActionValidationCode.OnlyAllInIsAllowed
         else
-            return false, "Cannot raise $amt. Raise must be between [$minraise, $maxraise]"
+            return ActionValidationCode.RaiseNotInValidRange
         end
     end
     if !(amt - prc > 0)
-        return false, "Cannot contribute $(amt - prc) to the pot."
+        return ActionValidationCode.MustContributePositiveAmount
     end
-    return true, ""
-end
-
-"""
-    valid_raise_amount(table::Table, player::Player, amt)
-
-Return back `amt` if `amt` is a valid raise amount.
-"""
-function valid_raise_amount(table::Table, player::Player, amt::Int)
-    is_valid, msg = is_valid_raise_amount(table, player, amt)
-    @assert is_valid "$msg"
-    return amt
+    return ActionValidationCode.ValidAction
 end
 
 #=Not performance critical (only needed for info log)=#
@@ -184,6 +245,7 @@ update_given_valid_action!(game::Game, player::Player, action::Action) =
 function update_given_valid_action!(table::Table, player::Player, action::Action)
     logger = table.logger
     @assert action.action_type in (ActionType.Fold, ActionType.Raise, ActionType.Call, ActionType.Check, ActionType.AllIn)
+    amt = action.amt
     if action.action_type == ActionType.Fold
         player.performed_action = ActionType.Fold
         player.folded = true
@@ -191,17 +253,15 @@ function update_given_valid_action!(table::Table, player::Player, action::Action
         @cinfo logger "$(name(player)) folded!"
         @log_event_code logger Int.([CodePlayerAction, seat_number(player), CodeFold])
     elseif action.action_type == ActionType.Raise || action.action_type == ActionType.AllIn
-        _amt = valid_raise_amount(table, player, action.amt) # asserts valid requested raise amount
         if action.action_type == ActionType.Raise
-            @log_event_code logger Int.([CodePlayerAction, seat_number(player), CodeRaiseTo, _amt])
+            @log_event_code logger Int.([CodePlayerAction, seat_number(player), CodeRaiseTo, amt])
         else
-            @log_event_code logger Int.([CodePlayerAction, seat_number(player), CodeAllIn, _amt])
+            @log_event_code logger Int.([CodePlayerAction, seat_number(player), CodeAllIn, amt])
         end
-        update_given_raise!(table, player, _amt)
+        update_given_raise!(table, player, amt)
         player.performed_action = ActionType.Raise
         action = ActionType.Raise
     elseif action.action_type == ActionType.Call
-        amt = action.amt
         @cdebug logger "$(name(player)) calling $(amt)."
         @log_event_code logger Int.([CodePlayerAction, seat_number(player), CodeCall])
         player.performed_action = ActionType.Call
