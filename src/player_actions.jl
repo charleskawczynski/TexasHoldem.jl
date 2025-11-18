@@ -51,11 +51,7 @@ that they are allowed to raise.
 When a player returns `RaiseTo(game, 5)`, this means that they want to
 raise the current total bet to 5.
 """
-function RaiseTo(table::Table, player::Player, total_bet::Int)
-    # `total_bet` is validated in `validate_action` so that
-    # users can handle this gracefully
-    Action(ActionType.Raise, total_bet)
-end
+RaiseTo(table::Table, player::Player, total_bet::Int) = Action(ActionType.Raise, total_bet)
 RaiseTo(game::Game, total_bet::Int) =
     RaiseTo(game.table, current_player(game), total_bet)
 

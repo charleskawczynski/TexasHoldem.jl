@@ -27,7 +27,7 @@ end
     game = QuietGame((Player(BotBetSB(),1), Player(BotCheckCall(),2)))
     # Cannot raise small blind on pre-flop! The big blind is
     # the raise min raise, so we must raise at least big-blind
-    @test_throws AssertionError("Cannot raise 1. Raise must be between [4, 200]") play!(game)
+    @test_throws AssertionError("Invalid action code: RaiseNotInValidRange. Details: \n\t(amt = 1, rbr = 200, minraise = 4, maxraise = 200, prc = 2)") play!(game)
 end
 
 @testset "Game: Play (BotBetBB)" begin
@@ -46,23 +46,23 @@ end
 
 @testset "Non-valid option using BotCheckOnCallRaiseFold" begin
     game = QuietGame((Player(BotCheckCall(), 1), Player(BotCheckOnCallRaiseFold(), 2),))
-    @test_throws AssertionError("a.action_type in (ActionType.Call, ActionType.Raise, ActionType.AllIn, ActionType.Fold)") play!(game)
+    @test_throws AssertionError("Invalid action code: InvalidActionType. Details: \n\t(amt = 0, rbr = 200, minraise = 4, maxraise = 200, prc = 1)") play!(game)
 end
 @testset "Non-valid option using BotCheckOnCallAllInFold" begin
     game = QuietGame((Player(BotCheckOnCallAllInFold(), 1), Player(BotRaiseAlmostAllIn(), 2)))
-    @test_throws AssertionError("a.action_type in (ActionType.Call, ActionType.AllIn, ActionType.Fold)") play!(game)
+    @test_throws AssertionError("Invalid action code: InvalidActionType. Details: \n\t(amt = 0, rbr = 200, minraise = 200, maxraise = 200, prc = 2)") play!(game)
 end
 @testset "Non-valid option using BotCheckOnCallFold" begin
     game = QuietGame((Player(BotCheckOnCallFold(), 1), Player(BotRaiseAllIn(), 2)))
-    @test_throws AssertionError("a.action_type in (ActionType.Call, ActionType.Fold)") play!(game)
+    @test_throws AssertionError("Invalid action code: InvalidActionType. Details: \n\t(amt = 0, rbr = 200, minraise = 0, maxraise = 0, prc = 2)") play!(game)
 end
 @testset "Non-valid option using BotCallOnCheckRaiseFold" begin
     game = QuietGame((Player(BotCheckCall(), 1), Player(BotCallOnCheckRaiseFold(), 2),))
-    @test_throws AssertionError("a.action_type in (ActionType.Check, ActionType.Raise, ActionType.AllIn, ActionType.Fold)") play!(game)
+    @test_throws AssertionError("Invalid action code: InvalidActionType. Details: \n\t(amt = 0, rbr = 198, minraise = 2, maxraise = 198, prc = 0)") play!(game)
 end
 @testset "Non-valid option using BotRaiseOnCallFold" begin
     game = QuietGame((Player(BotRaiseOnCallFold(), 1), Player(BotRaiseAllIn(), 2)))
-    @test_throws AssertionError("a.action_type in (ActionType.Call, ActionType.Fold)") play!(game)
+    @test_throws AssertionError("Invalid action code: InvalidActionType. Details: \n\t(amt = 198, rbr = 200, minraise = 0, maxraise = 0, prc = 2)") play!(game)
 end
 
 Random.seed!(1234)

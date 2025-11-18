@@ -223,7 +223,8 @@ function _play!(game::Game, ::Val{init}) where {init}
         end
 
         action = get_action(game, options)::Action
-        validate_action(game, action, options)
+        ac = action_validation_code(game, action, options)
+        @assert ac == ActionValidationCode.ValidAction "Invalid action code: $ac. Details: \n\t$(raise_validation_info(game, action, options))"
 
         update_given_valid_action!(game, action)
         flow = check_if_game_is_over!(game)

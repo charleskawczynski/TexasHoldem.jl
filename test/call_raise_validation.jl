@@ -98,19 +98,27 @@ end
     @test valid_total_bet_range_simple(table, players[1]) == (TH.valid_total_bet_range(table, players[1]), 8)
 end
 
-@testset "is_valid_raise_amount" begin
+raise_validation_info(table, player, amt) = TH.raise_validation_info(TH.Game(table), player, TH.RaiseTo(TH.Game(table), amt), TH.CallRaiseFold)
+raise_validation_code(table, player, amt) = TH.raise_validation_code(TH.Game(table), player, TH.RaiseTo(TH.Game(table), amt), TH.CallRaiseFold)
+
+@testset "raise_validation_code" begin
     players = (Player(Human(), 1), Player(TH.FuzzBot(), 2))
     table = QuietGame(players).table
     mra = TH.minimum_raise_amount(table)
     @assert mra == TH.blinds(table).big "mra: $mra, bb: $(TH.blinds(table).big)"
-    @test TH.is_valid_raise_amount(table, players[1], 0) == (false, "Cannot raise 0. Raise must be between [$mra, 200]")
-    @test TH.is_valid_raise_amount(table, players[1], TH.bank_roll(players[1])+1) == (false, "Insufficient funds (200) to raise 201. Raise must be between [$mra, 200]")
-    @test TH.is_valid_raise_amount(table, players[1], -1) == (false, "Cannot raise -1. Raise must be between [$mra, 200]")
+    @test raise_validation_code(table, players[1], 0) == TH.ActionValidationCode.CannotRaise0
+    @test raise_validation_info(table, players[1], 0) == (;amt=0, rbr=200, minraise=2, maxraise=200, prc=0)
 
-    @test TH.is_valid_raise_amount(table, players[1], TH.bank_roll(players[1])-1) == (true, "")
-    @test TH.is_valid_raise_amount(table, players[1], TH.blinds(table).big) == (true, "")
-    @test TH.is_valid_raise_amount(table, players[1], TH.blinds(table).big) == (true, "")
-    @test TH.is_valid_raise_amount(table, players[1], TH.bank_roll(players[1])) == (true, "")
+    @test raise_validation_code(table, players[1], TH.bank_roll(players[1])+1) == TH.ActionValidationCode.InsufficientFunds
+    @test raise_validation_info(table, players[1], TH.bank_roll(players[1])+1) == (;amt=201, rbr=200, minraise=2, maxraise=200, prc=0)
+
+    @test raise_validation_code(table, players[1], -1) == TH.ActionValidationCode.RaiseNotInValidRange
+    @test raise_validation_info(table, players[1], -1) == (;amt=-1, rbr=200, minraise=2, maxraise=200, prc=0)
+
+    @test raise_validation_code(table, players[1], TH.bank_roll(players[1])-1) == TH.ActionValidationCode.ValidAction
+    @test raise_validation_code(table, players[1], TH.blinds(table).big) == TH.ActionValidationCode.ValidAction
+    @test raise_validation_code(table, players[1], TH.blinds(table).big) == TH.ActionValidationCode.ValidAction
+    @test raise_validation_code(table, players[1], TH.bank_roll(players[1])) == TH.ActionValidationCode.ValidAction
 
     players = (Player(Human(), 1), Player(TH.FuzzBot(), 2))
     table = QuietGame(players).table
@@ -118,35 +126,38 @@ end
     table.total_bet = 20
     players[1].round_contribution = 200
     players[1].round_bank_roll = Chips(500) # oops
-    @test TH.is_valid_raise_amount(table, players[1], 200) == (false, "Cannot contribute 0 to the pot.")
+    @test raise_validation_code(table, players[1], 200) == TH.ActionValidationCode.MustContributePositiveAmount
+    @test raise_validation_info(table, players[1], 200) == (;amt=200, rbr=500, minraise=40, maxraise=200, prc=200)
 
     players = (Player(Human(), 1), Player(TH.FuzzBot(), 2))
     table = QuietGame(players).table
     table.initial_round_raise_amount = 10
     table.total_bet = 10
     players[1].round_bank_roll = Chips(20)
-    @test TH.is_valid_raise_amount(table, players[1], 10) == (false, "Only allowable raise is 20 (all-in), attempting to raise 10")
+    @test raise_validation_code(table, players[1], 10) == TH.ActionValidationCode.OnlyAllInIsAllowed
+    @test raise_validation_info(table, players[1], 10) == (;amt=10, rbr=20, minraise=20, maxraise=20, prc=0)
 
     players = (Player(Human(), 1), Player(TH.FuzzBot(), 2))
     table = QuietGame(players).table
     table.initial_round_raise_amount = 10
     table.total_bet = 10
     players[1].round_bank_roll = Chips(20)
-    @test TH.is_valid_raise_amount(table, players[1], 20) == (true, "")
+    @test raise_validation_code(table, players[1], 20) == TH.ActionValidationCode.ValidAction
 
     players = (Player(Human(), 1), Player(TH.FuzzBot(), 2))
     table = QuietGame(players).table
     table.initial_round_raise_amount = 5
     table.total_bet = 20
     players[1].round_bank_roll = Chips(30)
-    @test TH.is_valid_raise_amount(table, players[1], 25) == (true, "")
+    @test raise_validation_code(table, players[1], 25) == TH.ActionValidationCode.ValidAction
 
     players = (Player(Human(), 1), Player(TH.FuzzBot(), 2))
     table = QuietGame(players).table
     table.initial_round_raise_amount = 5
     table.total_bet = 20
     players[1].round_bank_roll = Chips(30)
-    @test TH.is_valid_raise_amount(table, players[1], 22) == (false, "Cannot raise 22. Raise must be between [25, 30]")
+    @test raise_validation_code(table, players[1], 22) == TH.ActionValidationCode.RaiseNotInValidRange
+    @test raise_validation_info(table, players[1], 22) == (;amt=22, rbr=30, minraise=25, maxraise=30, prc=0)
 end
 
 @testset "call_amount" begin
