@@ -6,11 +6,11 @@
 |
 ++++++++++++++++++++++++++++++++++++++++++++++++++
 |Enter raise amt:
-|Raise must be a Int
+|Raise must be a Int, received oops_string, type: String
 |Enter raise amt:
 |
 --------------------------------------------------
 |AAAAAAAAAAAAAAAA
-|AAAAAAAAAAAAAAAAAAA
+|AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 |AAAAAAAAAAAAAAAA
 |

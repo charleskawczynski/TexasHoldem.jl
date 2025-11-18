@@ -88,9 +88,9 @@ which happens when
           until all players are all-in.
 """
 function compute_n_max_actions(players::Players, bb)
-    maxbr = maximum(bank_roll.(players))
+    maxbr = sum(bank_roll.(players)) / 2 # pretend two players have all the chips
     n_players = length(players)
-    n_check_call_rounds = n_players*3 # preflop, flop, turn
+    n_check_call_rounds = n_players*4 # preflop, flop, turn
     n_raise_rounds = findfirst(1:typemax(Int)) do i
         maxbr < bb^n_raises(i, n_players)
     end

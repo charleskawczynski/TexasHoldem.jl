@@ -12,7 +12,7 @@ function get_action(game::Game, player::Player{Human}, options::Options, ioin::I
         choice = request("$(name(player))'s turn to act:", menu)
         choice == -1 && error("Uncaught case")
         choice == 1 && return Check()
-        choice == 2 && return RaiseTo(game, input_raise_amt(table, player, ioin))
+        choice == 2 && return RaiseTo(game, input_raise_amt(game, player, options, ioin))
         choice == 3 && return Fold()
     elseif options == CallRaiseFold
         vrr = valid_total_bet_range(table, player)
@@ -23,7 +23,7 @@ function get_action(game::Game, player::Player{Human}, options::Options, ioin::I
         choice = request("$(name(player))'s turn to act:", menu)
         choice == -1 && error("Uncaught case")
         choice == 1 && return Call(table, player)
-        choice == 2 && return RaiseTo(game, input_raise_amt(table, player, ioin))
+        choice == 2 && return RaiseTo(game, input_raise_amt(game, player, options, ioin))
         choice == 3 && return Fold()
     elseif options == CallAllInFold
         call_amt = call_amount(table, player)
@@ -68,21 +68,21 @@ end
 use_input_io() = false
 println_io(io::IO, msg) = use_input_io() ? println(io, msg) : println(msg)
 
-function input_raise_amt(table, player::Player{Human}, io::IO=stdin)
+function input_raise_amt(game::Game, player::Player{Human}, options::Options, io::IO=stdin)
     raise_amt = nothing
     while true
         println_io(io, "Enter raise amt:")
         raise_amt = readline(io)
         try
             raise_amt = parse(Int, raise_amt)
-            code = raise_validation_code(table, player, raise_amt)
-            code == ActionValidationCode.ValidAction || break
-            println_io(io, msg)
-        catch
-            println_io(io, "Raise must be a Int")
+            action = RaiseTo(game, raise_amt)
+            code = raise_validation_code(game, player, action, options)
+            code == ActionValidationCode.ValidAction && break
+            println_io(io, code)
+        catch e
+            println_io(io, "Raise must be a Int, received $raise_amt, type: $(typeof(raise_amt))")
+            # rethrow(e)
         end
     end
-    @assert raise_amt ≠ nothing
-    amt = valid_raise_amount(table, player, raise_amt)
-    return amt
+    return raise_amt
 end
