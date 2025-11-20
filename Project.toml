@@ -1,7 +1,7 @@
 name = "TexasHoldem"
 uuid = "6cef90fc-eb55-4a2a-97d0-7ecce2b738fe"
 authors = ["Charles Kawczynski <kawczynski.charles@gmail.com>"]
-version = "0.6.2"
+version = "0.6.3"
 
 [deps]
 EnumX = "4e289a0a-7415-4d19-859d-a7e5c4648b56"

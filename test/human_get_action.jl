@@ -115,7 +115,7 @@ TH.use_input_io() = true
     file = joinpath(path,"input_raise_amt.output")
     TRT.automated_test(file, ["oops_string", 10]) do emuterm
         @testset "Human player options: input_raise_amt" begin
-            @test TH.input_raise_amt(game.table, players[1], emuterm) == 10
+            @test TH.input_raise_amt(game, players[1], TH.CallRaiseFold, emuterm) == 10
         end
     end
 
