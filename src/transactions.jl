@@ -230,8 +230,9 @@ Base.@propagate_inbounds function sidepot_winnings(tm::TransactionManager, id::I
     mapreduce(i->sum(tm.side_pots[i].amts), +, 1:id; init=0)
 end
 
-function profit(player, tm)
-    ∑spw = sum(tm.side_pot_winnings[seat_number(player)])
+function profit(player, tm, players::Players)
+    player_idx = _find_player_by_seat_id_or_error(players, seat_number(player))
+    ∑spw = sum(tm.side_pot_winnings[player_idx])
     return Chips(∑spw-pot_investment(player))
 end
 
@@ -332,12 +333,12 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards, logg
             is_winner || continue
             winner_id = ssn
             @cdebug logger "winning pidx = $(tm.perm[winner_id])"
-            win_seat = seat_number(players[tm.perm[winner_id]])
+            winner_player_idx = tm.perm[winner_id]
             amt_total = sidepot_winnings(tm, i)
             amt_base = div(amt_total, n_winners)
             remainder = rem(amt_total, n_winners) # ∈ 1:(amt_base-1)
             amt_chips = Chips(amt_base, SimpleRatio(remainder,n_winners))
-            tm.side_pot_winnings[win_seat][i] = amt_chips
+            tm.side_pot_winnings[winner_player_idx][i] = amt_chips
         end
         for j in 1:i
             tm.side_pots[j].amts .= 0 # empty out distributed winnings
@@ -348,7 +349,7 @@ function distribute_winnings!(players, tm::TransactionManager, table_cards, logg
     for (player, initial_br, player_sp_winnings) in zip(players, tm.initial_brs, tm.side_pot_winnings)
         ∑spw = sum(player_sp_winnings)
         amt_contributed = initial_br - bank_roll(player)
-        prof = profit(player, tm)
+        prof = profit(player, tm, players)
         player.game_profit = prof
         if !(∑spw == 0 && active(player))
             if amt_contributed == 0 && ∑spw == 0 && prof == 0 && !still_playing(player)
@@ -381,7 +382,7 @@ function log_player_winnings(player, player_sp_winnings, tm)
     sorted_hand_evals = tm.sorted_hand_evals
     ∑spw = sum(player_sp_winnings)
     ssn = tm.unsorted_to_sorted_map[seat_number(player)]
-    prof = profit(player, tm)
+    prof = profit(player, tm, players)
     winnings = ∑spw
     contributed = ∑spw - prof # prof = ∑spw - contributed
     net_winnings = prof

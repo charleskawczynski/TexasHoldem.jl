@@ -4,9 +4,10 @@ const PHE = PokerHandEvaluator
 function ascii_player(table, player, player_cards; to_string=false, rbuffer="")
     showdown = table.winners.declared
     tm = table.transactions
+    players = players_at_table(table)
     card_lines = ascii_card(player_cards; to_string, rbuffer)
     width = length(card_lines[1])
-    net_winnings = showdown ? "Net winnings: $(profit(player, tm))" : ""
+    net_winnings = showdown ? "Net winnings: $(profit(player, tm, players))" : ""
     hand = if !isnothing(player_cards[1]) && showdown
         "$(PHE.hand_type(PHE.CompactHandEval((player_cards..., table.cards...))))"
     else

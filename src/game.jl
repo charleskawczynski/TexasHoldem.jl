@@ -6,7 +6,7 @@ export Game, play!, tournament!
 
 mutable struct BettingCycleState
     i::Int
-    pidx::Int
+    seat_id::Int  # seat_id of current player in betting cycle
 end
 
 mutable struct Game{T<:Table, IBRs, TBR}
@@ -27,16 +27,16 @@ end
 
 function Game(table::Table; kwargs...)
     players = players_at_table(table)
-    bcs = first(enumerate(circle(table, FirstToAct())))
-    betting_cycle_state = BettingCycleState(bcs[1], bcs[2])
+    first_seat_id = first(circle(table, FirstToAct()))
+    betting_cycle_state = BettingCycleState(1, first_seat_id)
     initial_∑brs = ∑bank_rolls(players)
     Game(table, deepcopy(bank_roll_chips.(players)), betting_cycle_state, initial_∑brs)
 end
 Game(players::Tuple; kwargs...) = Game(Players(players); kwargs...)
 function Game(players::Players; kwargs...)
     table = Table(players; kwargs...)
-    bcs = first(enumerate(circle(table, FirstToAct())))
-    betting_cycle_state = BettingCycleState(bcs[1], bcs[2])
+    first_seat_id = first(circle(table, FirstToAct()))
+    betting_cycle_state = BettingCycleState(1, first_seat_id)
     initial_∑brs = ∑bank_rolls(players)
     Game(table, deepcopy(bank_roll_chips.(players)), betting_cycle_state, initial_∑brs)
 end
@@ -147,45 +147,36 @@ function end_preflop_actions(table::Table, player::Player, round::RoundState.T)
     return all((cond1, cond2, cond3))
 end
 
-function pidx_next_player(game)
-    pidx = game.betting_cycle_state.pidx
+function next_betting_seat_id(game)
+    current_seat_id = game.betting_cycle_state.seat_id
     players = players_at_table(game.table)
-    # return this_or_next_valid_pidx(players, pidx+1)
-    return cyclic_player_index(players, pidx+1)
+    return next_active_seat_id(players, current_seat_id)
 end
 
 function update_betting_cycle_state!(game)
-    game.betting_cycle_state.i+=1
-    game.betting_cycle_state.pidx=pidx_next_player(game)
+    game.betting_cycle_state.i += 1
+    game.betting_cycle_state.seat_id = next_betting_seat_id(game)
 end
 
 function reset_round_betting_cycle_state!(game)
-    game.betting_cycle_state.i=1
+    game.betting_cycle_state.i = 1
     if game.table.round == RoundState.Preflop
-        game.betting_cycle_state.pidx=first(circle(game.table, FirstToAct()))
+        game.betting_cycle_state.seat_id = first(circle(game.table, FirstToAct()))
     else
-        game.betting_cycle_state.pidx=first(circle(game.table, SmallBlind()))
+        game.betting_cycle_state.seat_id = first(circle(game.table, SmallBlind()))
     end
 end
 
 metafmt(level, _module, group, id, file, line) =
     Logging.default_metafmt(level, nothing, group, id, nothing, nothing)
 
-function pidx_from_seat_number(player, players)::Int
-    for (i, p) in enumerate(players)
-        if seat_number(player) == seat_number(p)
-            return i
-        end
-    end
-    error("Uncaught case")
-end
-
 function max_possible_profit(player, players, initial_brs)
     mpp = Chips(0)
-    pidx = pidx_from_seat_number(player, players)
+    player_seat_id = seat_number(player)
+    player_idx = _find_player_by_seat_id_or_error(players, player_seat_id)
     for (oidx, opponent) in enumerate(players)
         seat_number(player) == seat_number(opponent) && continue
-        mpp += min(initial_brs[pidx], initial_brs[oidx])
+        mpp += min(initial_brs[player_idx], initial_brs[oidx])
     end
     return mpp
 end
@@ -249,7 +240,7 @@ function next_round(r::RoundState.T)
     end
 end
 
-current_player(game) = players_at_table(game.table)[game.betting_cycle_state.pidx]
+current_player(game) = _get_player_by_seat_id_or_error(players_at_table(game.table), game.betting_cycle_state.seat_id)
 
 any_quit_game(game) = any(x->quit_game(game, x), players_at_table(game.table))
 minimum_raise_amount(game::Game) = minimum_raise_amount(game.table)
@@ -312,7 +303,7 @@ function play_to_options!(game::Game)
         set_play_out_game!(table)
     end
 
-    player = players[bcs.pidx]
+    player = _get_player_by_seat_id_or_error(players, bcs.seat_id)
     @cdebug logger "Checking to see if it's $(name(player))'s turn to act"
     @cdebug logger "     not_playing(player) = $(not_playing(player))"
     @cdebug logger "     all_in.(players) = $(all_in.(players))"
@@ -434,8 +425,8 @@ function initialize!(game)
     players = players_at_table(table)
     initial_brs = game.initial_brs
     @assert !winners.declared "We haven't started playing yet!"
-    @inbounds for (pidx, player) in enumerate(players)
-        initial_brs[pidx] = bank_roll_chips(player)
+    @inbounds for (idx, player) in enumerate(players)
+        initial_brs[idx] = bank_roll_chips(player)
     end
     @cinfo logger "------ Playing game!"
     set_active_status!(table, players)
@@ -458,18 +449,18 @@ function initialize!(game)
 end
 
 function verify_seats(table)
-    @assert dealer_pidx(table) ≠ small_blind_pidx(table) "The button and small blind cannot coincide"
-    @assert small_blind_pidx(table) ≠ big_blind_pidx(table) "The small and big blinds cannot coincide"
-    @assert big_blind_pidx(table) ≠ first_to_act_pidx(table) "The big blind and first to act cannot coincide"
+    @assert dealer_seat_id(table) ≠ small_blind_seat_id(table) "The button and small blind cannot coincide"
+    @assert small_blind_seat_id(table) ≠ big_blind_seat_id(table) "The small and big blinds cannot coincide"
+    @assert big_blind_seat_id(table) ≠ first_to_act_seat_id(table) "The big blind and first to act cannot coincide"
 end
 
 function verify_start_of_game(table)
     logger = table.logger
     players = players_at_table(table)
-    did = dealer_pidx(table)
-    sb = seat_number(small_blind(table))
-    bb = seat_number(big_blind(table))
-    f2a = seat_number(first_to_act(table))
+    did = dealer_seat_id(table)
+    sb = small_blind_seat_id(table)
+    bb = big_blind_seat_id(table)
+    f2a = first_to_act_seat_id(table)
     if !(logger isa ByPassLogger)
         msgs = String["Pre-game setup:"]
         for player in players
@@ -500,15 +491,15 @@ function reset_game!(game::Game)
     players = players_at_table(table)
 
     game.table = Table(players;
-        dealer_pidx=dealer_pidx(table),
+        dealer_seat_id=dealer_seat_id(table),
         blinds=table.blinds,
         logger=logger,
         gui=table.gui,
         show_cards=table.show_cards,
     )
-    bcs = first(enumerate(circle(game.table, FirstToAct())))
-    game.betting_cycle_state.i = bcs[1]
-    game.betting_cycle_state.pidx = bcs[2]
+    first_seat_id = first(circle(game.table, FirstToAct()))
+    game.betting_cycle_state.i = 1
+    game.betting_cycle_state.seat_id = first_seat_id
     PlayingCards.reset!(game.table.deck)
     table = game.table
     players = players_at_table(table)
